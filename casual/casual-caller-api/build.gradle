@@ -1,0 +1,19 @@
+/*
+ * Copyright (c) 2021, The casual project. All rights reserved.
+ *
+ * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
+ */
+
+//-*- coding: utf-8 -*-
+plugins {
+    id 'java-library'
+    id 'jacoco'
+}
+
+dependencies {
+  compileOnly libs.casual_api
+  compileOnly libs.casual_jca
+
+  testImplementation libs.casual_api
+  testImplementation libs.casual_jca
+}
