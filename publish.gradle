@@ -26,8 +26,8 @@ publishing {
                 }
             }
             pom {
-                name = 'Casual JCA'
-                description = 'Casual JCA - Resource Adapter for Casual middleware.'
+                name = 'Casual Caller'
+                description = 'Casual Caller - application for outbound communication with casual middleware.'
                 url = 'http://casual.laz.se'
 
                 licenses {
@@ -37,9 +37,9 @@ publishing {
                     }
                 }
                 scm {
-                    connection = 'scm:git:ssh://github.com:casualcore/casual-java.git'
-                    developerConnection = 'scm:git:ssh://github.com:casualcore/casual-java.git'
-                    url = 'https://github.com/casualcore/casual-java'
+                    connection = 'scm:git:ssh://github.com:casualcore/casual-caller.git'
+                    developerConnection = 'scm:git:ssh://github.com:casualcore/casual-caller.git'
+                    url = 'https://github.com/casualcore/casual-caller'
                 }
                 developers {
                     developer {
