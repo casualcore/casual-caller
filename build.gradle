@@ -45,12 +45,12 @@ subprojects{
 }
 
 project.ext {
-    casual_jca_subprojects = subprojects.findAll {
+    casual_caller_subprojects = subprojects.findAll {
         it.name.equals( "casual-caller-app" ) || it.name.equals( "casual-caller-api" )
     }
 }
 
-configure(project.casual_jca_subprojects) {
+configure(project.casual_caller_subprojects) {
     apply from: "$rootProject.projectDir/publish.gradle"
 }
 
