@@ -18,12 +18,12 @@ import se.laz.casual.api.queue.QueueMessage;
 import se.laz.casual.api.service.ServiceDetails;
 import se.laz.casual.jca.CasualConnection;
 
-import javax.ejb.Remote;
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
-import javax.inject.Inject;
-import javax.resource.ResourceException;
+import jakarta.ejb.Remote;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionAttributeType;
+import jakarta.inject.Inject;
+import jakarta.resource.ResourceException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;

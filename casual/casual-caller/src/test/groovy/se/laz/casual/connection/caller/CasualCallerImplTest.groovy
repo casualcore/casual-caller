@@ -15,10 +15,10 @@ import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
 import spock.lang.Specification
 
-import javax.resource.ResourceException
-import javax.resource.spi.EISSystemException
-import javax.transaction.Transaction
-import javax.transaction.TransactionManager
+import jakarta.resource.ResourceException
+import jakarta.resource.spi.EISSystemException
+import jakarta.transaction.Transaction
+import jakarta.transaction.TransactionManager
 import java.util.concurrent.CompletableFuture
 
 class CasualCallerImplTest extends Specification

@@ -9,8 +9,8 @@ package se.laz.casual.connection.caller;
 import se.laz.casual.api.discovery.DiscoveryReturn;
 import se.laz.casual.jca.CasualConnection;
 
-import javax.inject.Inject;
-import javax.resource.ResourceException;
+import jakarta.inject.Inject;
+import jakarta.resource.ResourceException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

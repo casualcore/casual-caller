@@ -11,7 +11,7 @@ import se.laz.casual.api.service.ServiceDetails;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.jca.CasualConnectionFactory;
 
-import javax.resource.ResourceException;
+import jakarta.resource.ResourceException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;

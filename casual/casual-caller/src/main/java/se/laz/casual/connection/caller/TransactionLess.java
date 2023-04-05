@@ -8,11 +8,11 @@ package se.laz.casual.connection.caller;
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.ServiceReturn;
 
-import javax.inject.Inject;
-import javax.transaction.InvalidTransactionException;
-import javax.transaction.SystemException;
-import javax.transaction.Transaction;
-import javax.transaction.TransactionManager;
+import jakarta.inject.Inject;
+import jakarta.transaction.InvalidTransactionException;
+import jakarta.transaction.SystemException;
+import jakarta.transaction.Transaction;
+import jakarta.transaction.TransactionManager;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;

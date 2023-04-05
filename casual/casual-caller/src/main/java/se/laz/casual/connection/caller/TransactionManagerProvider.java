@@ -8,7 +8,7 @@ package se.laz.casual.connection.caller;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.transaction.TransactionManager;
+import jakarta.transaction.TransactionManager;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;

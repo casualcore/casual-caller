@@ -12,7 +12,7 @@ import se.laz.casual.api.flags.ErrorState;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.network.connection.CasualConnectionException;
 
-import javax.resource.ResourceException;
+import jakarta.resource.ResourceException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;

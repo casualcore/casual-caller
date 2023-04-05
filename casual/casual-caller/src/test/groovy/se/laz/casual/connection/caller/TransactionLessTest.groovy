@@ -11,8 +11,8 @@ import se.laz.casual.api.flags.ErrorState
 import se.laz.casual.api.flags.ServiceReturnState
 import spock.lang.Specification
 
-import javax.transaction.Transaction
-import javax.transaction.TransactionManager
+import jakarta.transaction.Transaction
+import jakarta.transaction.TransactionManager
 import java.util.concurrent.CompletableFuture
 import java.util.function.Supplier
 

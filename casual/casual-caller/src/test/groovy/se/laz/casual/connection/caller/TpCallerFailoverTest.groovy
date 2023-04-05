@@ -6,6 +6,7 @@
 
 package se.laz.casual.connection.caller
 
+import jakarta.resource.ResourceException
 import se.laz.casual.api.buffer.CasualBuffer
 import se.laz.casual.api.buffer.ServiceReturn
 import se.laz.casual.api.flags.ErrorState
@@ -110,7 +111,7 @@ class TpCallerFailoverTest extends Specification
         def result = tpCaller.tpcall(serviceName, data, flags, lookupService)
 
         then:
-        1 * conFacHigh.getConnection() >> {throw new javax.resource.ResourceException(failMessage)}
+        1 * conFacHigh.getConnection() >> {throw new ResourceException(failMessage)}
         0 * conHigh.tpcall(serviceName, data, flags) >> {throw new RuntimeException("This should not happen because getConnection should fail")}
         1 * conLow.tpcall(serviceName, data, flags) >> someServiceReturn
         result == someServiceReturn
@@ -127,8 +128,8 @@ class TpCallerFailoverTest extends Specification
         def result = tpCaller.tpcall(serviceName, data, flags, lookupService)
 
         then:
-        1 * conFacHigh.getConnection() >> {throw new javax.resource.ResourceException(failMessage)}
-        1 * conFacLow.getConnection() >> {throw new javax.resource.ResourceException(failMessage)}
+        1 * conFacHigh.getConnection() >> {throw new ResourceException(failMessage)}
+        1 * conFacLow.getConnection() >> {throw new ResourceException(failMessage)}
         def e = thrown(CasualResourceException)
         e.message == 'Call failed to all 2 available casual connections.'
         result == null
@@ -164,7 +165,7 @@ class TpCallerFailoverTest extends Specification
         def result = tpCaller.tpcall(serviceName, data, flags, lookupService)
 
         then:
-        (priorities*entriesPerPriority) * conFacHigh.getConnection() >> {throw new javax.resource.ResourceException(failMessage)}
+        (priorities*entriesPerPriority) * conFacHigh.getConnection() >> {throw new ResourceException(failMessage)}
         def e = thrown(CasualResourceException)
         e.message == 'Call failed to all 64 available casual connections.'
         result == null
@@ -218,7 +219,7 @@ class TpCallerFailoverTest extends Specification
         def result = tpCaller.tpcall(serviceName, data, flags, lookupService)
 
         then:
-        (priorities*entriesPerPriority) * conFacHigh.getConnection() >> {throw new javax.resource.ResourceException(failMessage)}
+        (priorities*entriesPerPriority) * conFacHigh.getConnection() >> {throw new ResourceException(failMessage)}
         (1) * conLow.tpcall(serviceName, data, flags) >> someServiceReturn
         result == someServiceReturn
     }

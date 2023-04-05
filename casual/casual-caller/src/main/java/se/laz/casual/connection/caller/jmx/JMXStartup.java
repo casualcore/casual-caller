@@ -10,11 +10,11 @@ import se.laz.casual.api.CasualRuntimeException;
 import se.laz.casual.connection.caller.Cache;
 import se.laz.casual.connection.caller.ConnectionFactoryEntryStore;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
+import jakarta.inject.Inject;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanRegistrationException;

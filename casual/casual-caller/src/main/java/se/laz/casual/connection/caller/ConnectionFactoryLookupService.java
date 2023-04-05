@@ -8,7 +8,7 @@ package se.laz.casual.connection.caller;
 
 import se.laz.casual.api.queue.QueueInfo;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;

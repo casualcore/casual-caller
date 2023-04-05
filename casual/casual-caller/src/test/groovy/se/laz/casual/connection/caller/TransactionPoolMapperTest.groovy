@@ -10,8 +10,8 @@ import se.laz.casual.api.CasualRuntimeException
 import spock.lang.Shared
 import spock.lang.Specification
 
-import javax.transaction.Status
-import javax.transaction.Transaction
+import jakarta.transaction.Status
+import jakarta.transaction.Transaction
 
 class TransactionPoolMapperTest extends Specification
 {

@@ -8,7 +8,7 @@ package se.laz.casual.connection.caller;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.jca.CasualConnectionFactory;
 
-import javax.resource.ResourceException;
+import jakarta.resource.ResourceException;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;

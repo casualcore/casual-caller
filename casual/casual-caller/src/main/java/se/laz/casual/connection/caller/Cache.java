@@ -9,7 +9,7 @@ package se.laz.casual.connection.caller;
 import se.laz.casual.api.discovery.DiscoveryReturn;
 import se.laz.casual.api.queue.QueueInfo;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

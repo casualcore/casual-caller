@@ -8,6 +8,10 @@ Casual caller provides an abstraction for outbound connections on top of casual-
 This is just a convenience layer for applications to make use, it does not in any way impact the casual-jca implementation.
 
 
+## Note
+This, 3.2, branch is for Jakarta EE and Java 17.
+If you want to use Java 8 and Java EE - please check out the 2.2 branch.
+
 ## Requirements on setup of connection pools
 
 Connection factories for outbound connection pool(s) has to exist under the same JNDI-root.

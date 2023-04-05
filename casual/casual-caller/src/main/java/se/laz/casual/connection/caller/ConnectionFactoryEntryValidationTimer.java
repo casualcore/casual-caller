@@ -8,16 +8,16 @@ package se.laz.casual.connection.caller;
 
 import se.laz.casual.connection.caller.config.ConfigurationService;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
-import javax.ejb.Timeout;
-import javax.ejb.TimerConfig;
-import javax.ejb.TimerService;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
+import jakarta.ejb.Singleton;
+import jakarta.ejb.Startup;
+import jakarta.ejb.Timeout;
+import jakarta.ejb.TimerConfig;
+import jakarta.ejb.TimerService;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionAttributeType;
+import jakarta.inject.Inject;
 import java.util.logging.Logger;
 
 @Singleton
