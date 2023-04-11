@@ -20,3 +20,11 @@ ear{
     description = "Casual application that provides an abstraction layer on top of n # of CasualConnectionFactories"
   }
 }
+
+publishing {
+  publications {
+    mavenJava( MavenPublication ) {
+      artifact ear
+    }
+  }
+}
