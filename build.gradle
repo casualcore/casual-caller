@@ -7,7 +7,7 @@
 //-*- coding: utf-8 -*-
 buildscript {
     repositories {
-        mavenCentral()
+	mavenCentral()
         maven { url 'https://repo.spring.io/plugins-release' }
     }
 }
@@ -34,8 +34,9 @@ allprojects{
     targetCompatibility = "8"
     options.compilerArgs << "-Xlint:all" << "-Werror"
   }
-  repositories {
-    mavenCentral()
+    repositories {
+	maven {url 'https://s01.oss.sonatype.org/content/repositories/snapshots' }
+	mavenCentral()
   }
 }
 
