@@ -244,6 +244,17 @@ class CacheTest extends Specification
       afterRepopulate.size() == 1
    }
 
+   def 'using Arrays.asList does not throw UnsupportedOperationException when remove is used'()
+   {
+      given:
+      def queueInfoOnlyConnectionOne = QueueInfo.of(queueNameOnlyFromConnectionFactoryOne)
+      instance.store(queueInfoOnlyConnectionOne, Arrays.asList(cacheEntryOne))
+      when:
+      instance.purge(cacheEntryOne)
+      then:
+      noExceptionThrown()
+   }
+
    QueueDetails toQueueDetails(String name)
    {
       return QueueDetails.of(name, 0)

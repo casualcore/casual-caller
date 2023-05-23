@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class Cache
@@ -52,7 +53,12 @@ public class Cache
     {
         Objects.requireNonNull(qinfo, "qinfo can not be null");
         Objects.requireNonNull(entries, "entry can not be null");
-        queueCache.store(qinfo, entries);
+        // note, by not using the list coming as is we guard against such things as Arrays.asList
+        // being used by the caller.
+        // This since it should be possible to remove entries from the list
+        // If the caller would use Arrays.asList, and we just stored the list value -
+        // remove would throw UnsupportedOperationException
+        queueCache.store(qinfo, entries.stream().collect(Collectors.toList()));
     }
 
     public void purgeServices()
