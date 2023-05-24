@@ -18,6 +18,7 @@ import jakarta.ejb.TimerService;
 import jakarta.ejb.TransactionAttribute;
 import jakarta.ejb.TransactionAttributeType;
 import jakarta.inject.Inject;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Singleton
@@ -62,7 +63,7 @@ public class ConnectionFactoryEntryValidationTimer
                                              catch(Exception e)
                                              {
                                                  connectionFactoryEntry.invalidate();
-                                                 LOG.warning(() -> "Failed validating: " + connectionFactoryEntry + " -> " + e);
+                                                 LOG.log(Level.WARNING, e, () -> "Failed validating: " + connectionFactoryEntry);
                                              }
                                      });
         }
