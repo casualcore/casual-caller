@@ -143,6 +143,19 @@ class CacheTest extends Specification
       entries.isPresent()
    }
 
+   def 'set and get queue but the connection factory is invalid'()
+   {
+      given:
+      ConnectionFactoryEntry connectionFactoryEntry = Mock(ConnectionFactoryEntry){
+         isValid() >> false
+      }
+      when:
+      instance.store(qInfo, [connectionFactoryEntry])
+      def entry = instance.getSingle(qInfo)
+      then:
+      entry.isEmpty()
+   }
+
    def 'get missing queue entry'()
    {
       given:
@@ -242,6 +255,17 @@ class CacheTest extends Specification
       def afterRepopulate = instance.get(queueInfoOnlyConnectionOne)
       then:
       afterRepopulate.size() == 1
+   }
+
+   def 'using Arrays.asList does not throw UnsupportedOperationException when remove is used'()
+   {
+      given:
+      def queueInfoOnlyConnectionOne = QueueInfo.of(queueNameOnlyFromConnectionFactoryOne)
+      instance.store(queueInfoOnlyConnectionOne, Arrays.asList(cacheEntryOne))
+      when:
+      instance.purge(cacheEntryOne)
+      then:
+      noExceptionThrown()
    }
 
    QueueDetails toQueueDetails(String name)
