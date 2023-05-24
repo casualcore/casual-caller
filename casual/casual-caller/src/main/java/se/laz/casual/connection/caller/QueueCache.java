@@ -55,6 +55,12 @@ public class QueueCache
                         .filter(ConnectionFactoryEntry::isValid)
                         .collect(Collectors.toList());
 
+                if(cachedForQueue.isEmpty())
+                {
+                    LOG.info(() -> "No valid connection for queuename: " + queueName);
+                    return Optional.empty();
+                }
+
                 // We never expect more than one source for a queue. Just pick first one and stick to it
                 ConnectionFactoryEntry selectedFactory = cachedForQueue.get(0);
                 stickies.put(queueName, selectedFactory);
