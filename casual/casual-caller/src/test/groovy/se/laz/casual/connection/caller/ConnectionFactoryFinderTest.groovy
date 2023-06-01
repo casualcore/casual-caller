@@ -1,6 +1,7 @@
 package se.laz.casual.connection.caller
 
 import se.laz.casual.connection.caller.util.ConnectionFactoryFinder
+import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
 import spock.lang.Specification
 
@@ -21,7 +22,7 @@ class ConnectionFactoryFinderTest extends Specification
             entries
         }
         when:
-        def result = ConnectionFactoryFinder.of().findConnectionFactory(root, context)
+        def result = ConnectionFactoryFinder.of().findConnectionFactory(root, context, {Mock(ConnectionFactoryProducer)})
         then:
         result.isEmpty()
     }
@@ -47,7 +48,7 @@ class ConnectionFactoryFinderTest extends Specification
             'A string and not an instance of CasualConnectionFactory'
         }
         when:
-        def result = ConnectionFactoryFinder.of().findConnectionFactory(root, context)
+        def result = ConnectionFactoryFinder.of().findConnectionFactory(root, context, {Mock(ConnectionFactoryProducer)})
         then:
         result.isEmpty()
     }
@@ -66,15 +67,25 @@ class ConnectionFactoryFinderTest extends Specification
             element.getName() >> partJndiName
             return element
         }
-        def context = Mock(InitialContext)
-        context.list(root) >> {
-            entries
+        def connectionFactory = Mock(CasualConnectionFactory) {
+           getConnection() >> Mock(CasualConnection)
         }
-        context.lookup(completeJndiName) >> {
-            Mock(CasualConnectionFactory)
+        def producerFunction = {
+           Mock(ConnectionFactoryProducer){
+              getConnectionFactory() >> connectionFactory
+              getJndiName() >> completeJndiName
+           }}
+        def context = Mock(InitialContext){
+           list(root) >> {
+              entries
+           }
+           lookup(completeJndiName) >> {
+              connectionFactory
+           }
         }
+
         when:
-        def result = ConnectionFactoryFinder.of().findConnectionFactory(root, context)
+        def result = ConnectionFactoryFinder.of().findConnectionFactory(root, context, producerFunction)
         then:
         !result.isEmpty()
         result[0].getJndiName() == completeJndiName

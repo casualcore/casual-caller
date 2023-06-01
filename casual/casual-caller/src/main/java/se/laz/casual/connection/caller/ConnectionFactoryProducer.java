@@ -16,9 +16,11 @@ public class ConnectionFactoryProducer
 {
 
     private final String jndiName;
+
     private ConnectionFactoryProducer(String jndiName)
     {
         this.jndiName = jndiName;
+
     }
 
     public static ConnectionFactoryProducer of(String jndiName)
@@ -73,4 +75,5 @@ public class ConnectionFactoryProducer
                 "jndiName='" + jndiName + '\'' +
                 '}';
     }
+
 }

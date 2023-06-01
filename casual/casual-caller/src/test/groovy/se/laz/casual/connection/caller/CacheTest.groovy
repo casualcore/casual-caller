@@ -10,6 +10,7 @@ import se.laz.casual.api.discovery.DiscoveryReturn
 import se.laz.casual.api.queue.QueueDetails
 import se.laz.casual.api.queue.QueueInfo
 import se.laz.casual.api.service.ServiceDetails
+import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
 import se.laz.casual.network.messages.domain.TransactionType
 import spock.lang.Shared
@@ -22,11 +23,15 @@ class CacheTest extends Specification
    @Shared
    Cache instance
    @Shared
-   def connectionFactoryOne = Mock(CasualConnectionFactory)
+   def connectionFactoryOne = Mock(CasualConnectionFactory){
+      getConnection() >> Mock(CasualConnection)
+   }
    @Shared
    def jndiNameOne = 'eis/CasualConnectionFactory'
    @Shared
-   def connectionFactoryTwo = Mock(CasualConnectionFactory)
+   def connectionFactoryTwo = Mock(CasualConnectionFactory){
+      getConnection() >> Mock(CasualConnection)
+   }
    @Shared
    def jndiNameTwo = 'eis/AnotherCasualConnectionFactory'
    @Shared

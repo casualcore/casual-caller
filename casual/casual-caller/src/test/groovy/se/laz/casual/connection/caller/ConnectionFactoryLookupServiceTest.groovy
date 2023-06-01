@@ -33,27 +33,10 @@ class ConnectionFactoryLookupServiceTest extends Specification
     @Shared
     CasualConnectionFactory conFacTwo
     @Shared
-    ConnectionFactoryProducer producerOne = {
-       def mock = Mock(ConnectionFactoryProducer)
-       mock.getConnectionFactory() >> {
-          conFac
-       }
-      mock.getJndiName() >> {
-         jndiNameConFactoryOne
-      }
-      return mock
-    }()
+    ConnectionFactoryProducer producerOne
+
     @Shared
-    ConnectionFactoryProducer producerTwo = {
-       def mock = Mock(ConnectionFactoryProducer)
-       mock.getConnectionFactory() >> {
-          conFacTwo
-       }
-       mock.getJndiName() >> {
-          jndiNameConFactoryTwo
-       }
-       return mock
-    }()
+    ConnectionFactoryProducer producerTwo
 
     @Shared
     def env = new HashMap()
@@ -87,9 +70,32 @@ class ConnectionFactoryLookupServiceTest extends Specification
         conFacHigh.getConnection() >> conHigh
         conFacLow.getConnection() >> conLow
 
-        conFac = Mock(CasualConnectionFactory)
-        conFacTwo = Mock(CasualConnectionFactory)
+        conFac = Mock(CasualConnectionFactory) {
+           getConnection() >> conHigh
+        }
+        conFacTwo = Mock(CasualConnectionFactory) {
+           getConnection() >> conLow
+        }
         connnectionFactoryProvider = Mock(ConnectionFactoryEntryStore)
+
+        producerOne = Mock(ConnectionFactoryProducer) {
+           getConnectionFactory() >> {
+              conFac
+           }
+           getJndiName() >> {
+              jndiNameConFactoryOne
+           }
+        }
+
+        producerTwo = Mock(ConnectionFactoryProducer) {
+           getConnectionFactory() >> {
+              conFacTwo
+           }
+           getJndiName() >> {
+              jndiNameConFactoryTwo
+           }
+        }
+
         cache =  new Cache()
         lookup = Mock(Lookup)
         instance = new ConnectionFactoryLookupService()
@@ -98,7 +104,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         instance.lookup = lookup
     }
 
-    def 'asssert basic sanity'()
+    def 'assert basic sanity'()
     {
         given:
         connnectionFactoryProvider.get() >> {
@@ -224,10 +230,18 @@ class ConnectionFactoryLookupServiceTest extends Specification
     def "priority is descending"()
     {
         setup:
-        def conFac1 = Mock(CasualConnectionFactory)
-        def conFac2 = Mock(CasualConnectionFactory)
-        def conFac3 = Mock(CasualConnectionFactory)
-        def conFac4 = Mock(CasualConnectionFactory)
+        def conFac1 = Mock(CasualConnectionFactory) {
+           getConnection() >> Mock(CasualConnection)
+        }
+        def conFac2 = Mock(CasualConnectionFactory) {
+           getConnection() >> Mock(CasualConnection)
+        }
+        def conFac3 = Mock(CasualConnectionFactory) {
+           getConnection() >> Mock(CasualConnection)
+        }
+        def conFac4 = Mock(CasualConnectionFactory) {
+           getConnection() >> Mock(CasualConnection)
+        }
 
         def conFac1Name = "name1"
         def conFac2Name = "name2"

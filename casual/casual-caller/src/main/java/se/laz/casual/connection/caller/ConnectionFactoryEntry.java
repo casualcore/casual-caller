@@ -7,20 +7,26 @@ package se.laz.casual.connection.caller;
 
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.jca.CasualConnectionFactory;
+import se.laz.casual.jca.ConnectionListener;
 
 import javax.resource.ResourceException;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ConnectionFactoryEntry
+public class ConnectionFactoryEntry implements ConnectionListener
 {
     private static final Logger LOG = Logger.getLogger(ConnectionFactoryEntry.class.getName());
     private final ConnectionFactoryProducer connectionFactoryProducer;
-
+    private final AtomicBoolean connectionListenerAdded = new AtomicBoolean(false);
+    private final AtomicBoolean connectionEnabled = new AtomicBoolean(true);
     /**
      * Connection factory entries should invalidate on connection errors and revalidate as soon as a new valid
      * connection can be established.
+     * For casual protocol >= v1.1 - if the connection is disabled, this also means that it is not valid
+     * until enabled.
+     * It is enabled when the actual connection is closed, if it was disabled due to domain disconnecting.
      */
     private boolean valid = true;
 
@@ -32,7 +38,9 @@ public class ConnectionFactoryEntry
     public static ConnectionFactoryEntry of(ConnectionFactoryProducer connectionFactoryProducer)
     {
         Objects.requireNonNull(connectionFactoryProducer, "CasualConnectionFactoryProducer can not be null");
-        return new ConnectionFactoryEntry(connectionFactoryProducer);
+        ConnectionFactoryEntry connectionFactoryEntry = new ConnectionFactoryEntry(connectionFactoryProducer);
+        connectionFactoryEntry.validate();
+        return connectionFactoryEntry;
     }
 
     public String getJndiName()
@@ -47,12 +55,12 @@ public class ConnectionFactoryEntry
 
     public boolean isValid()
     {
-        return valid;
+        return valid && connectionEnabled.get();
     }
 
     public boolean isInvalid()
     {
-        return !valid;
+        return !isValid();
     }
 
     public void invalidate()
@@ -67,6 +75,7 @@ public class ConnectionFactoryEntry
     {
         try(CasualConnection con = getConnectionFactory().getConnection())
         {
+            maybeAddConnectionListener(con);
             // We just want to check that a connection could be established to check connectivity
             valid = true;
             LOG.finest(() -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
@@ -97,6 +106,7 @@ public class ConnectionFactoryEntry
     @Override
     public int hashCode()
     {
+        // TODO: why is isValid in hashCode?
         return Objects.hash(connectionFactoryProducer, isValid());
     }
 
@@ -106,6 +116,28 @@ public class ConnectionFactoryEntry
         return "ConnectionFactoryEntry{" +
                 "connectionFactoryProducer=" + connectionFactoryProducer +
                 ", valid=" + valid +
+                ", connectionEnabled=" + connectionEnabled +
                 '}';
+    }
+
+    @Override
+    public void connectionDisabled()
+    {
+        connectionEnabled.set(true);
+    }
+
+    @Override
+    public void connectionEnabled()
+    {
+        connectionEnabled.set(false);
+    }
+
+    private void maybeAddConnectionListener(CasualConnection connection)
+    {
+        if(connectionListenerAdded.get())
+        {
+            return;
+        }
+        connection.addListener(this);
     }
 }

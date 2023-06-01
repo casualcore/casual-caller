@@ -6,11 +6,7 @@ import se.laz.casual.api.flags.AtmiFlags
 import se.laz.casual.api.flags.ErrorState
 import se.laz.casual.api.flags.Flag
 import se.laz.casual.api.flags.ServiceReturnState
-import se.laz.casual.api.queue.DequeueReturn
-import se.laz.casual.api.queue.EnqueueReturn
-import se.laz.casual.api.queue.MessageSelector
-import se.laz.casual.api.queue.QueueInfo
-import se.laz.casual.api.queue.QueueMessage
+import se.laz.casual.api.queue.*
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
 import spock.lang.Specification
@@ -35,16 +31,20 @@ class CasualCallerImplTest extends Specification
     def setup()
     {
         transactionManager = Mock(TransactionManager)
-        fallBackConnectionFactory = Mock(CasualConnectionFactory)
-        def fallbackConnection = Mock(CasualConnection)
-        fallbackConnection.tpcall('does not exist', _, _) >> {
-            ServiceReturn<CasualBuffer> serviceReturn = new ServiceReturn<CasualBuffer>(Mock(CasualBuffer), ServiceReturnState.TPFAIL, ErrorState.TPENOENT, 0)
-            return serviceReturn
+        CasualConnection fallbackConnection = Mock(CasualConnection){
+           tpacall('does not exist', _, _) >> {
+              ServiceReturn<CasualBuffer> serviceReturn = new ServiceReturn<CasualBuffer>(Mock(CasualBuffer), ServiceReturnState.TPFAIL, ErrorState.TPENOENT, 0)
+              return serviceReturn
+           }
         }
+        fallBackConnectionFactory = Mock(CasualConnectionFactory){
+           getConnection() >> fallbackConnection
+        }
+
         fallBackConnectionFactory.getConnection() >> fallbackConnection
         def fallbackProducer = Mock(ConnectionFactoryProducer) {
            getConnectionFactory() >> {
-              fallbackConnection
+              fallBackConnectionFactory
            }
            getJndiName() >> {
               'fallback-jndi'
@@ -77,9 +77,8 @@ class CasualCallerImplTest extends Specification
     {
         given:
         def serviceName = 'echo'
-        def connectionFactory = Mock(CasualConnectionFactory)
-        connectionFactory.getConnection() >> {
-            throw new EISSystemException("oopsie")
+        def connectionFactory = Mock(CasualConnectionFactory){
+           getConnection() >>> [Mock(CasualConnection)] >> {throw new EISSystemException("oopsie")}
         }
         def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
@@ -104,10 +103,6 @@ class CasualCallerImplTest extends Specification
     {
         given:
         def serviceName = 'does not exist'
-        def connectionFactory = Mock(CasualConnectionFactory)
-        connectionFactory.getConnection() >> {
-            throw new EISSystemException("oopsie")
-        }
         lookup.get(serviceName) >> {
             []
         }
@@ -123,9 +118,8 @@ class CasualCallerImplTest extends Specification
     {
         given:
         def serviceName = 'echo'
-        def connectionFactory = Mock(CasualConnectionFactory)
-        connectionFactory.getConnection() >> {
-            throw new EISSystemException("oopsie")
+        def connectionFactory = Mock(CasualConnectionFactory){
+           getConnection() >>> [Mock(CasualConnection)] >> {throw new EISSystemException("oopsie")}
         }
         def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
@@ -170,9 +164,8 @@ class CasualCallerImplTest extends Specification
         given:
         def queueInfo = QueueInfo.of("bar.foo")
         def messageSelector = MessageSelector.of()
-        def connectionFactory = Mock(CasualConnectionFactory)
-        connectionFactory.getConnection() >> {
-            throw new EISSystemException("oopsie")
+        def connectionFactory = Mock(CasualConnectionFactory){
+           getConnection() >>> [Mock(CasualConnection)] >> {throw new EISSystemException("oopsie")}
         }
         def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
@@ -198,9 +191,8 @@ class CasualCallerImplTest extends Specification
         given:
         def queueInfo = QueueInfo.of("bar.foo")
         def queueMessage = QueueMessage.of(Mock(CasualBuffer))
-        def connectionFactory = Mock(CasualConnectionFactory)
-        connectionFactory.getConnection() >> {
-            throw new EISSystemException("oopsie")
+        def connectionFactory = Mock(CasualConnectionFactory){
+           getConnection() >>> [Mock(CasualConnection)] >> {throw new EISSystemException("oopsie")}
         }
         def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
@@ -225,15 +217,18 @@ class CasualCallerImplTest extends Specification
     {
         given:
         def serviceName = 'echo'
-        def connectionFactory = Mock(CasualConnectionFactory)
         def serviceReturn = createServiceReturn(Mock(CasualBuffer))
         def callingBuffer = Mock(CasualBuffer)
         def flags = Flag.of(AtmiFlags.NOFLAG)
-        connectionFactory.getConnection() >> {
-            def connection = Mock(CasualConnection)
-            1 * connection.tpcall(serviceName, callingBuffer, flags) >> serviceReturn
-            return connection
+        def connectionFactory = Mock(CasualConnectionFactory){
+           def connection = Mock(CasualConnection){
+              1 * tpcall(serviceName, callingBuffer, flags) >> serviceReturn
+           }
+           getConnection() >> {
+              connection
+           }
         }
+
         def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               connectionFactory
@@ -256,14 +251,16 @@ class CasualCallerImplTest extends Specification
     {
         given:
         def serviceName = 'echo'
-        def connectionFactory = Mock(CasualConnectionFactory)
         def future = new CompletableFuture()
         def callingBuffer = Mock(CasualBuffer)
         def flags = Flag.of(AtmiFlags.NOFLAG)
-        connectionFactory.getConnection() >> {
-            def connection = Mock(CasualConnection)
-            1 * connection.tpacall(serviceName, callingBuffer, flags) >> future
-            return connection
+        def connectionFactory = Mock(CasualConnectionFactory){
+           def connection = Mock(CasualConnection){
+              1 * tpacall(serviceName, callingBuffer, flags) >> future
+           }
+           getConnection() >> {
+              connection
+           }
         }
         def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
@@ -349,12 +346,12 @@ class CasualCallerImplTest extends Specification
         given:
         def queueInfo = QueueInfo.of("bar.foo")
         def queueMessage = QueueMessage.of(Mock(CasualBuffer))
-        def connectionFactory = Mock(CasualConnectionFactory)
         def uuid = UUID.randomUUID()
-        connectionFactory.getConnection() >> {
-            def connection = Mock(CasualConnection)
-            1 * connection.enqueue(queueInfo, queueMessage) >> EnqueueReturn.createBuilder().withErrorState(ErrorState.OK).withId(uuid).build()
-            return connection
+        def connectionFactory = Mock(CasualConnectionFactory){
+           def connection = Mock(CasualConnection){
+              1 * enqueue(queueInfo, queueMessage) >> EnqueueReturn.createBuilder().withErrorState(ErrorState.OK).withId(uuid).build()
+           }
+           getConnection() >> connection
         }
         def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
@@ -380,11 +377,11 @@ class CasualCallerImplTest extends Specification
         def queueInfo = QueueInfo.of("bar.foo")
         def messageSelector = MessageSelector.of()
         def queueMessage = QueueMessage.of(Mock(CasualBuffer))
-        def connectionFactory = Mock(CasualConnectionFactory)
-        connectionFactory.getConnection() >> {
-            def connection = Mock(CasualConnection)
-            1 * connection.dequeue(queueInfo, messageSelector) >> DequeueReturn.createBuilder().withErrorState(ErrorState.OK).withQueueMessage(queueMessage).build()
-            return connection
+        def connectionFactory = Mock(CasualConnectionFactory){
+           def connection = Mock(CasualConnection){
+              1 * dequeue(queueInfo, messageSelector) >> DequeueReturn.createBuilder().withErrorState(ErrorState.OK).withQueueMessage(queueMessage).build()
+           }
+           getConnection() >> connection
         }
         def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {

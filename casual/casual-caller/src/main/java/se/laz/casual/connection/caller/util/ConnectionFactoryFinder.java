@@ -5,8 +5,8 @@
  */
 package se.laz.casual.connection.caller.util;
 
-import se.laz.casual.connection.caller.ConnectionFactoryProducer;
 import se.laz.casual.connection.caller.ConnectionFactoryEntry;
+import se.laz.casual.connection.caller.ConnectionFactoryProducer;
 import se.laz.casual.jca.CasualConnectionFactory;
 
 import javax.naming.InitialContext;
@@ -16,6 +16,7 @@ import javax.naming.NamingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 public class ConnectionFactoryFinder
@@ -36,7 +37,7 @@ public class ConnectionFactoryFinder
         try
         {
             InitialContext ctx = new InitialContext();
-            return findConnectionFactory(root, ctx);
+            return findConnectionFactory(root, ctx, ConnectionFactoryProducer::of);
         }
         catch (NamingException e)
         {
@@ -45,7 +46,7 @@ public class ConnectionFactoryFinder
         return Collections.<ConnectionFactoryEntry>emptyList();
     }
 
-    public List<ConnectionFactoryEntry> findConnectionFactory(String root, InitialContext context)
+    public List<ConnectionFactoryEntry> findConnectionFactory(String root, InitialContext context, Function<String, ConnectionFactoryProducer> producerFunction)
     {
         try
         {
@@ -58,7 +59,7 @@ public class ConnectionFactoryFinder
                 Object instance = context.lookup(jndiName);
                 if(instance instanceof CasualConnectionFactory)
                 {
-                    foundEntries.add(ConnectionFactoryEntry.of(ConnectionFactoryProducer.of(jndiName)));
+                    foundEntries.add(ConnectionFactoryEntry.of(producerFunction.apply(jndiName)));
                     log.info(() -> "found casual connection factory with JNDI-name: " + jndiName);
                 }
             }
