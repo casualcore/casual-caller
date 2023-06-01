@@ -139,5 +139,6 @@ public class ConnectionFactoryEntry implements ConnectionListener
             return;
         }
         connection.addListener(this);
+        connectionListenerAdded.set(true);
     }
 }
