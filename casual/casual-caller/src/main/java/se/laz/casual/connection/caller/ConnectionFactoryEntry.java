@@ -19,7 +19,6 @@ public class ConnectionFactoryEntry implements ConnectionListener
 {
     private static final Logger LOG = Logger.getLogger(ConnectionFactoryEntry.class.getName());
     private final ConnectionFactoryProducer connectionFactoryProducer;
-    private final AtomicBoolean connectionListenerAdded = new AtomicBoolean(false);
     private final AtomicBoolean connectionEnabled = new AtomicBoolean(true);
     /**
      * Connection factory entries should invalidate on connection errors and revalidate as soon as a new valid
@@ -75,7 +74,7 @@ public class ConnectionFactoryEntry implements ConnectionListener
     {
         try(CasualConnection con = getConnectionFactory().getConnection())
         {
-            maybeAddConnectionListener(con);
+            con.addListener(this);
             // We just want to check that a connection could be established to check connectivity
             valid = true;
             LOG.finest(() -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
@@ -106,8 +105,7 @@ public class ConnectionFactoryEntry implements ConnectionListener
     @Override
     public int hashCode()
     {
-        // TODO: why is isValid in hashCode?
-        return Objects.hash(connectionFactoryProducer, isValid());
+        return Objects.hash(connectionFactoryProducer);
     }
 
     @Override
@@ -123,22 +121,12 @@ public class ConnectionFactoryEntry implements ConnectionListener
     @Override
     public void connectionDisabled()
     {
-        connectionEnabled.set(true);
+        connectionEnabled.set(false);
     }
 
     @Override
     public void connectionEnabled()
     {
-        connectionEnabled.set(false);
-    }
-
-    private void maybeAddConnectionListener(CasualConnection connection)
-    {
-        if(connectionListenerAdded.get())
-        {
-            return;
-        }
-        connection.addListener(this);
-        connectionListenerAdded.set(true);
+        connectionEnabled.set(true);
     }
 }
