@@ -12,6 +12,7 @@ import se.laz.casual.api.flags.ErrorState
 import se.laz.casual.api.flags.Flag
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
+import se.laz.casual.network.connection.DomainDisconnectedException
 import spock.lang.Shared
 import spock.lang.Specification
 
@@ -102,18 +103,21 @@ class TpCallerFailoverTest extends Specification
                 (priorityHigh): [ConnectionFactoryEntry.of(connectionFactoryProducerHigh)],
                 (priorityLow): [ConnectionFactoryEntry.of(connectionFactoryProducerLow)]
         ])
-        def failMessage = 'Connection is fail'
-
         def someServiceReturn = new ServiceReturn(null, null, null, 0)
 
         when:
         def result = tpCaller.tpcall(serviceName, data, flags, lookupService)
 
         then:
-        1 * conFacHigh.getConnection() >> {throw new javax.resource.ResourceException(failMessage)}
+        1 * conFacHigh.getConnection() >> {exception()}
         0 * conHigh.tpcall(serviceName, data, flags) >> {throw new RuntimeException("This should not happen because getConnection should fail")}
         1 * conLow.tpcall(serviceName, data, flags) >> someServiceReturn
         result == someServiceReturn
+
+        where:
+        _ || exception
+        _ || {msg -> throw new javax.resource.ResourceException('Connection is fail') }
+        _ || {msg -> throw new DomainDisconnectedException('Connection is fail') }
     }
 
     def "2 connection factories with same priority - both are called and fail, exception is thrown"()
