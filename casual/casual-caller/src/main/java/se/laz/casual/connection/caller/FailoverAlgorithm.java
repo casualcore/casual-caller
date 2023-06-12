@@ -11,6 +11,7 @@ import se.laz.casual.api.buffer.ServiceReturn;
 import se.laz.casual.api.flags.ErrorState;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.network.connection.CasualConnectionException;
+import se.laz.casual.network.connection.DomainDisconnectedException;
 
 import javax.resource.ResourceException;
 import java.util.List;
@@ -120,9 +121,10 @@ public class FailoverAlgorithm
                 // These exceptions are rollback-only, do not attempt any retries.
                 throw new CasualResourceException("Call failed during execution to service=" + serviceName + " on connection=" + connectionFactoryEntry.getJndiName() + " because of a network connection error, retries not possible.", e);
             }
-            catch (ResourceException e)
+            catch (ResourceException | DomainDisconnectedException e)
             {
                 // This error branch will most likely happen on failure to establish connection with a casual backend
+                // or when a casual domain is disconnecting
                 connectionFactoryEntry.invalidate();
 
                 // Do retries on ResourceExceptions. Save the thrown exception and return to the loop
