@@ -23,7 +23,6 @@ public class ConnectionFactoriesByPriority
 {
     private final Map<Long, List<ConnectionFactoryEntry>> mapping = new ConcurrentHashMap<>();
     private final Set<String> checkedConnectionFactories = new HashSet<>();
-    private final Set<String> foundConnectionFactories = new HashSet<>();
 
     private ConnectionFactoriesByPriority()
     {
@@ -64,7 +63,6 @@ public class ConnectionFactoriesByPriority
         if (!serviceDetails.isEmpty())
         {
             checkedConnectionFactories.add(entry.getJndiName());
-            foundConnectionFactories.add(entry.getJndiName());
             serviceDetails
                     .forEach(discoveryDetails ->
                     {
@@ -91,7 +89,6 @@ public class ConnectionFactoriesByPriority
         // Add missing connection factories for this service and priority
         for (ConnectionFactoryEntry entry : entries)
         {
-            foundConnectionFactories.add(entry.getJndiName());
             if (!listForPriority.contains(entry))
             {
                 listForPriority.add(entry);
@@ -183,7 +180,6 @@ public class ConnectionFactoriesByPriority
 
     public void remove(ConnectionFactoryEntry connectionFactoryEntry)
     {
-        foundConnectionFactories.remove(connectionFactoryEntry.getJndiName());
         checkedConnectionFactories.remove(connectionFactoryEntry.getJndiName());
         for(Map.Entry<Long, List<ConnectionFactoryEntry>> entry : mapping.entrySet())
         {
