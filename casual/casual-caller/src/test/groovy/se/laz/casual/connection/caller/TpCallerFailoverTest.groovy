@@ -117,7 +117,7 @@ class TpCallerFailoverTest extends Specification
 
         where:
         _ || exception
-        _ || {msg -> throw new javax.resource.ResourceException('Connection is fail') }
+        _ || {msg -> throw new jakarta.resource.ResourceException('Connection is fail') }
         _ || {msg -> throw new DomainDisconnectedException('Connection is fail') }
     }
 
