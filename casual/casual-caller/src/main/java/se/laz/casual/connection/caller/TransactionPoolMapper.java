@@ -116,13 +116,15 @@ public final class TransactionPoolMapper
             @Override
             public void beforeCompletion()
             {
-                transactionStickies.remove(transaction);
+                // NOP
             }
 
             @Override
             public void afterCompletion(int status)
             {
-                // NOP
+                // Remove after completion because this should happen at the end of all transactions, while
+                // beforeCompletion may not fire for rollbacks etc.
+                transactionStickies.remove(transaction);
             }
         }));
     }
@@ -166,13 +168,28 @@ public final class TransactionPoolMapper
         return transactionStickies.size();
     }
 
+    public int getNumberOfTrackedTransactions(String poolName)
+    {
+        Objects.requireNonNull(poolName, "poolName must have a value");
+        return (int) transactionStickies.values().stream().filter(s -> s.equals(poolName)).count();
+    }
+
     public boolean isPoolMappingActive()
     {
         return stickyEnabled;
     }
 
-    public void purgeMappingsForSpecificPool(String poolName)
+    public void purgeMappings()
     {
+        synchronized (lock)
+        {
+            transactionStickies.clear();
+        }
+    }
+
+    public void purgeMappings(String poolName)
+    {
+        Objects.requireNonNull(poolName, "poolName must have a value");
         synchronized (lock)
         {
             Set<Transaction> keys = transactionStickies.keySet();

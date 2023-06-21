@@ -10,6 +10,7 @@ import se.laz.casual.api.queue.QueueInfo;
 import se.laz.casual.connection.caller.Cache;
 import se.laz.casual.connection.caller.ConnectionFactoryEntry;
 import se.laz.casual.connection.caller.ConnectionFactoryEntryStore;
+import se.laz.casual.connection.caller.TransactionPoolMapper;
 import se.laz.casual.connection.caller.config.ConfigurationService;
 
 import java.util.ArrayList;
@@ -115,5 +116,25 @@ public class CasualCallerControl implements CasualCallerControlMBean
     public boolean transactionStickyEnabled()
     {
         return ConfigurationService.getInstance().getConfiguration().isTransactionStickyEnabled();
+    }
+
+    @Override
+    public void purgeTransactionStickies() {
+        TransactionPoolMapper.getInstance().purgeMappings();
+    }
+
+    @Override
+    public void purgeTransactionStickiesForPool(String poolName) {
+        TransactionPoolMapper.getInstance().purgeMappings(poolName);
+    }
+
+    @Override
+    public Integer currentTransactionStickies() {
+        return TransactionPoolMapper.getInstance().getNumberOfTrackedTransactions();
+    }
+
+    @Override
+    public Integer currentTransactionStickiesForPool(String poolName) {
+        return TransactionPoolMapper.getInstance().getNumberOfTrackedTransactions(poolName);
     }
 }
