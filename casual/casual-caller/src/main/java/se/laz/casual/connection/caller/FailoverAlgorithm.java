@@ -186,7 +186,7 @@ public class FailoverAlgorithm
         }
         else if (stickyFactoryMaybe.isPresent())
         {
-            TransactionPoolMapper.getInstance().purgeMappingsForSpecificPool(transactionPoolName);
+            TransactionPoolMapper.getInstance().purgeMappings(transactionPoolName);
         }
 
         LOG.finest(() -> "Failed to call service=" + serviceName + " on stickied pool=" + transactionPoolName + ", falling through to normal flow.");

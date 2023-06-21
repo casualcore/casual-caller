@@ -24,4 +24,8 @@ public interface CasualCallerControlMBean
     String getQueueStickiedPool(String queueName);
 
     boolean transactionStickyEnabled();
+    void purgeTransactionStickies();
+    void purgeTransactionStickiesForPool(String poolName);
+    Integer currentTransactionStickies();
+    Integer currentTransactionStickiesForPool(String poolName);
 }
