@@ -35,7 +35,7 @@ class ConnectionFactoriesByPriorityTest extends Specification
       // back in  thread 1
       priorities.each {storedEntries = instance.getForPriority(it)}
       then:
-      thrown(NullPointerException)
+      storedEntries.isEmpty()
    }
 
    def 'do not store null values'()

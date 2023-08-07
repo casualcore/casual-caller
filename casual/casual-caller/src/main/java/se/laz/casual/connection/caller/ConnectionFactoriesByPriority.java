@@ -36,14 +36,14 @@ import java.util.stream.Collectors;
     public List<ConnectionFactoryEntry> getForPriority(Long priority)
     {
         // note:
-        // this may return a list with a null value
-        // we handle it at call site
         // due to threading
         // thread 1 calls getOrderedKeys to get the priorities
         // thread 2 gets to run and removes the entries
         // thread 1 continues and calls this method using the now invalid indexes
         // -> nullptr when using the value via for instance a predicate
-        return new ArrayList<>(mapping.get(priority));
+        // thus returning empty list in case of none existence
+        List<ConnectionFactoryEntry> entries = mapping.get(priority);
+        return null == entries ? Collections.emptyList() : new ArrayList<>(entries);
     }
 
     public boolean isEmpty()
