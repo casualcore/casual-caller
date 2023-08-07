@@ -19,7 +19,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-public class ConnectionFactoriesByPriority
+ public class ConnectionFactoriesByPriority
 {
     private final Map<Long, List<ConnectionFactoryEntry>> mapping = new ConcurrentHashMap<>();
     private final Set<String> checkedConnectionFactories = new HashSet<>();
@@ -35,6 +35,14 @@ public class ConnectionFactoriesByPriority
 
     public List<ConnectionFactoryEntry> getForPriority(Long priority)
     {
+        // note:
+        // this may return a list with a null value
+        // we handle it at call site
+        // due to threading
+        // thread 1 calls getOrderedKeys to get the priorities
+        // thread 2 gets to run and removes the entries
+        // thread 1 continues and calls this method using the now invalid indexes
+        // -> nullptr when using the value via for instance a predicate
         return new ArrayList<>(mapping.get(priority));
     }
 
@@ -89,10 +97,14 @@ public class ConnectionFactoriesByPriority
         // Add missing connection factories for this service and priority
         for (ConnectionFactoryEntry entry : entries)
         {
-            if (!listForPriority.contains(entry))
+            if (null != entry && !listForPriority.contains(entry))
             {
                 listForPriority.add(entry);
             }
+        }
+        if(listForPriority.isEmpty())
+        {
+            mapping.remove(priority);
         }
     }
 
@@ -137,13 +149,16 @@ public class ConnectionFactoriesByPriority
 
             for (ConnectionFactoryEntry cfe : factoriesForPriority)
             {
-                if (!entriesRandomOrderByPriority.contains(cfe))
+                // note:
+                // this null check is needed since another thread may have called remove
+                // after this method called getOrderedKeys
+                // in that case getForPriority will return an ArrayList with a null element
+                if (null != cfe && !entriesRandomOrderByPriority.contains(cfe))
                 {
                     entriesRandomOrderByPriority.add(cfe);
                 }
             }
         }
-
         return entriesRandomOrderByPriority;
     }
 
