@@ -17,13 +17,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
- public class ConnectionFactoriesByPriority
+public class ConnectionFactoriesByPriority
 {
-    private final Object connectionFactoryEntryListLock = new Object();
-    private final Map<Long, List<ConnectionFactoryEntry>> mapping = new ConcurrentHashMap<>();
-    private final Set<String> checkedConnectionFactories = new HashSet<>();
+    private final PrioritizedCollection<ConnectionFactoryEntry> prioritizedEntries = new PrioritizedCollection<>();
+    private final Set<String> checkedConnectionFactories = ConcurrentHashMap.newKeySet();
 
     private ConnectionFactoriesByPriority()
     {
@@ -31,28 +29,17 @@ import java.util.stream.Collectors;
 
     public List<Long> getOrderedKeys()
     {
-        return mapping.keySet().stream().sorted().collect(Collectors.toList());
+        return prioritizedEntries.getPriorities();
     }
 
     public List<ConnectionFactoryEntry> getForPriority(Long priority)
     {
-        // note:
-        // due to threading
-        // thread 1 calls getOrderedKeys to get the priorities
-        // thread 2 gets to run and removes the entries
-        // thread 1 continues and calls this method using the now invalid indexes
-        // -> nullptr when using the value via for instance a predicate
-        // thus returning empty list in case of none existence
-        synchronized (connectionFactoryEntryListLock)
-        {
-            List<ConnectionFactoryEntry> entries = mapping.get(priority);
-            return null == entries ? Collections.emptyList() : new ArrayList<>(entries);
-        }
+        return prioritizedEntries.get(priority);
     }
 
     public boolean isEmpty()
     {
-        return mapping.isEmpty();
+        return prioritizedEntries.isEmpty();
     }
 
     public void addResolvedFactories(Collection<String> resolvedNames)
@@ -79,43 +66,13 @@ import java.util.stream.Collectors;
                     .forEach(discoveryDetails ->
                     {
                         Long priority = discoveryDetails.getHops();
-
-                        // Ensure a list of entries exists for the priority if none have been added previously
-                        List<ConnectionFactoryEntry> factoriesForPriority =
-                                mapping.computeIfAbsent(priority, mapPriority -> new ArrayList<>());
-
-                        // Add current entry for this given priority for the service.
-                        synchronized (connectionFactoryEntryListLock)
-                        {
-                            if (!factoriesForPriority.contains(entry))
-                            {
-                                factoriesForPriority.add(entry);
-                            }
-                        }
+                        prioritizedEntries.add(priority, entry);
                     });
         }
     }
     public void store(Long priority, List<ConnectionFactoryEntry> entries)
     {
-        // Ensure priority level exists
-        List<ConnectionFactoryEntry> listForPriority =
-                mapping.computeIfAbsent(priority, mapPrio -> new ArrayList<>());
-
-        // Add missing connection factories for this service and priority
-        for (ConnectionFactoryEntry entry : entries)
-        {
-            synchronized (connectionFactoryEntryListLock)
-            {
-                if (null != entry && !listForPriority.contains(entry))
-                {
-                    listForPriority.add(entry);
-                }
-            }
-        }
-        if(isEmpty(listForPriority))
-        {
-            mapping.remove(priority);
-        }
+        prioritizedEntries.add(priority, entries);
     }
 
     public boolean isResolved(String entryName)
@@ -206,24 +163,7 @@ import java.util.stream.Collectors;
     public void remove(ConnectionFactoryEntry connectionFactoryEntry)
     {
         checkedConnectionFactories.remove(connectionFactoryEntry.getJndiName());
-        for(Map.Entry<Long, List<ConnectionFactoryEntry>> entry : mapping.entrySet())
-        {
-            synchronized (connectionFactoryEntryListLock)
-            {
-                entry.getValue().removeIf(cachedConnectionFactoryEntry -> cachedConnectionFactoryEntry.getJndiName().equals(connectionFactoryEntry.getJndiName()));
-            }
-            if(isEmpty(entry.getValue()))
-            {
-                mapping.remove(entry.getKey());
-            }
-        }
+        prioritizedEntries.remove(connectionFactoryEntry);
     }
 
-    private boolean isEmpty(List<ConnectionFactoryEntry> entries)
-    {
-        synchronized (connectionFactoryEntryListLock)
-        {
-            return entries.isEmpty();
-        }
-    }
 }
