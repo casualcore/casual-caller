@@ -34,6 +34,7 @@ public class ConnectionFactoriesByPriority
 
     public List<ConnectionFactoryEntry> getForPriority(Long priority)
     {
+        Objects.requireNonNull(priority, "priority can not be null");
         return prioritizedEntries.get(priority);
     }
 
@@ -44,6 +45,7 @@ public class ConnectionFactoriesByPriority
 
     public void addResolvedFactories(Collection<String> resolvedNames)
     {
+        Objects.requireNonNull(resolvedNames, "resolvedNames can not be null");
         checkedConnectionFactories.addAll(resolvedNames);
     }
 
@@ -59,6 +61,8 @@ public class ConnectionFactoriesByPriority
 
     public void store(List<ServiceDetails> serviceDetails, ConnectionFactoryEntry entry)
     {
+        Objects.requireNonNull(serviceDetails, "serviceDetails can not be null");
+        Objects.requireNonNull(entry, "ConnectionFactoryEntry can not be null");
         if (!serviceDetails.isEmpty())
         {
             checkedConnectionFactories.add(entry.getJndiName());
@@ -72,21 +76,26 @@ public class ConnectionFactoriesByPriority
     }
     public void store(Long priority, List<ConnectionFactoryEntry> entries)
     {
+        Objects.requireNonNull(priority, "priority can not be null");
+        Objects.requireNonNull(entries, "entries can not be null");
         prioritizedEntries.add(priority, entries);
     }
 
     public boolean isResolved(String entryName)
     {
+        Objects.requireNonNull(entryName, "entryName can not be null");
         return checkedConnectionFactories.contains(entryName);
     }
 
     public void setResolved(String entryName)
     {
+        Objects.requireNonNull(entryName, "entryName can not be null");
         checkedConnectionFactories.add(entryName);
     }
 
     public boolean hasCheckedAllValid(List<ConnectionFactoryEntry> entries)
     {
+        Objects.requireNonNull(entries, "entries can not be null");
         for (ConnectionFactoryEntry entry : entries)
         {
             if (!checkedConnectionFactories.contains(entry.getJndiName()) && entry.isValid())
@@ -162,6 +171,7 @@ public class ConnectionFactoriesByPriority
 
     public void remove(ConnectionFactoryEntry connectionFactoryEntry)
     {
+        Objects.requireNonNull(connectionFactoryEntry, "connectionFactoryEntry can not be null");
         checkedConnectionFactories.remove(connectionFactoryEntry.getJndiName());
         prioritizedEntries.remove(connectionFactoryEntry);
     }

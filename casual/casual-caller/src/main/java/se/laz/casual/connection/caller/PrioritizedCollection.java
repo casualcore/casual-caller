@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -24,6 +25,7 @@ public class PrioritizedCollection<T>
 
     public List<T> get(Long priority)
     {
+        Objects.requireNonNull(priority, "priority can not be null");
         // note:
         // due to threading
         // thread 1 calls getPriorities to get the priorities
@@ -42,6 +44,8 @@ public class PrioritizedCollection<T>
 
     public PrioritizedCollection<T> add(Long priority, T entry)
     {
+        Objects.requireNonNull(priority, "priority can not be null");
+        Objects.requireNonNull(entry, "entry can not be null");
         Set<T> factoriesForPriority =
                 collection.computeIfAbsent(priority, mapPriority -> ConcurrentHashMap.newKeySet());
         factoriesForPriority.add(entry);
@@ -50,6 +54,8 @@ public class PrioritizedCollection<T>
 
     public PrioritizedCollection<T> add(Long priority, List<T> entries)
     {
+        Objects.requireNonNull(priority, "priority can not be null");
+        Objects.requireNonNull(entries, "entries can not be null");
         Set<T> factoriesForPriority =
                 collection.computeIfAbsent(priority, mapPriority -> ConcurrentHashMap.newKeySet());
         entries.forEach(entry -> {
@@ -67,6 +73,7 @@ public class PrioritizedCollection<T>
 
     public PrioritizedCollection<T> remove(T entryToRemove)
     {
+        Objects.requireNonNull(entryToRemove, "entryToRemove can not be null");
         for (Map.Entry<Long, Set<T>> entry : collection.entrySet())
         {
             entry.getValue().removeIf(cachedEntry -> cachedEntry.equals(entryToRemove));
