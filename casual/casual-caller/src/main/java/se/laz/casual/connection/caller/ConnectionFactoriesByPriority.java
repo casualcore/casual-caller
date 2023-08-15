@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
  public class ConnectionFactoriesByPriority
 {
+    private final Object connectionFactoryEntryListLock = new Object();
     private final Map<Long, List<ConnectionFactoryEntry>> mapping = new ConcurrentHashMap<>();
     private final Set<String> checkedConnectionFactories = new HashSet<>();
 
@@ -42,8 +43,11 @@ import java.util.stream.Collectors;
         // thread 1 continues and calls this method using the now invalid indexes
         // -> nullptr when using the value via for instance a predicate
         // thus returning empty list in case of none existence
-        List<ConnectionFactoryEntry> entries = mapping.get(priority);
-        return null == entries ? Collections.emptyList() : new ArrayList<>(entries);
+        synchronized (connectionFactoryEntryListLock)
+        {
+            List<ConnectionFactoryEntry> entries = mapping.get(priority);
+            return null == entries ? Collections.emptyList() : new ArrayList<>(entries);
+        }
     }
 
     public boolean isEmpty()
@@ -81,9 +85,12 @@ import java.util.stream.Collectors;
                                 mapping.computeIfAbsent(priority, mapPriority -> new ArrayList<>());
 
                         // Add current entry for this given priority for the service.
-                        if (!factoriesForPriority.contains(entry))
+                        synchronized (connectionFactoryEntryListLock)
                         {
-                            factoriesForPriority.add(entry);
+                            if (!factoriesForPriority.contains(entry))
+                            {
+                                factoriesForPriority.add(entry);
+                            }
                         }
                     });
         }
@@ -97,12 +104,15 @@ import java.util.stream.Collectors;
         // Add missing connection factories for this service and priority
         for (ConnectionFactoryEntry entry : entries)
         {
-            if (null != entry && !listForPriority.contains(entry))
+            synchronized (connectionFactoryEntryListLock)
             {
-                listForPriority.add(entry);
+                if (null != entry && !listForPriority.contains(entry))
+                {
+                    listForPriority.add(entry);
+                }
             }
         }
-        if(listForPriority.isEmpty())
+        if(isEmpty(listForPriority))
         {
             mapping.remove(priority);
         }
@@ -198,11 +208,22 @@ import java.util.stream.Collectors;
         checkedConnectionFactories.remove(connectionFactoryEntry.getJndiName());
         for(Map.Entry<Long, List<ConnectionFactoryEntry>> entry : mapping.entrySet())
         {
-            entry.getValue().removeIf(cachedConnectionFactoryEntry -> cachedConnectionFactoryEntry.getJndiName().equals(connectionFactoryEntry.getJndiName()));
-            if(entry.getValue().isEmpty())
+            synchronized (connectionFactoryEntryListLock)
+            {
+                entry.getValue().removeIf(cachedConnectionFactoryEntry -> cachedConnectionFactoryEntry.getJndiName().equals(connectionFactoryEntry.getJndiName()));
+            }
+            if(isEmpty(entry.getValue()))
             {
                 mapping.remove(entry.getKey());
             }
+        }
+    }
+
+    private boolean isEmpty(List<ConnectionFactoryEntry> entries)
+    {
+        synchronized (connectionFactoryEntryListLock)
+        {
+            return entries.isEmpty();
         }
     }
 }
