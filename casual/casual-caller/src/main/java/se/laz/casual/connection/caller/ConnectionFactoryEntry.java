@@ -91,13 +91,13 @@ public class ConnectionFactoryEntry
             return false;
         }
         ConnectionFactoryEntry that = (ConnectionFactoryEntry) o;
-        return isValid() == that.isValid() && connectionFactoryProducer.equals(that.connectionFactoryProducer);
+        return connectionFactoryProducer.equals(that.connectionFactoryProducer);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(connectionFactoryProducer, isValid());
+        return Objects.hash(connectionFactoryProducer);
     }
 
     @Override

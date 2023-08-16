@@ -17,12 +17,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public class ConnectionFactoriesByPriority
 {
-    private final Map<Long, List<ConnectionFactoryEntry>> mapping = new ConcurrentHashMap<>();
-    private final Set<String> checkedConnectionFactories = new HashSet<>();
+    private final PrioritizedCollection<ConnectionFactoryEntry> prioritizedEntries = new PrioritizedCollection<>();
+    private final Set<String> checkedConnectionFactories = ConcurrentHashMap.newKeySet();
 
     private ConnectionFactoriesByPriority()
     {
@@ -30,21 +29,23 @@ public class ConnectionFactoriesByPriority
 
     public List<Long> getOrderedKeys()
     {
-        return mapping.keySet().stream().sorted().collect(Collectors.toList());
+        return prioritizedEntries.getPriorities();
     }
 
     public List<ConnectionFactoryEntry> getForPriority(Long priority)
     {
-        return new ArrayList<>(mapping.get(priority));
+        Objects.requireNonNull(priority, "priority can not be null");
+        return prioritizedEntries.get(priority);
     }
 
     public boolean isEmpty()
     {
-        return mapping.isEmpty();
+        return prioritizedEntries.isEmpty();
     }
 
     public void addResolvedFactories(Collection<String> resolvedNames)
     {
+        Objects.requireNonNull(resolvedNames, "resolvedNames can not be null");
         checkedConnectionFactories.addAll(resolvedNames);
     }
 
@@ -60,6 +61,8 @@ public class ConnectionFactoriesByPriority
 
     public void store(List<ServiceDetails> serviceDetails, ConnectionFactoryEntry entry)
     {
+        Objects.requireNonNull(serviceDetails, "serviceDetails can not be null");
+        Objects.requireNonNull(entry, "ConnectionFactoryEntry can not be null");
         if (!serviceDetails.isEmpty())
         {
             checkedConnectionFactories.add(entry.getJndiName());
@@ -67,47 +70,32 @@ public class ConnectionFactoriesByPriority
                     .forEach(discoveryDetails ->
                     {
                         Long priority = discoveryDetails.getHops();
-
-                        // Ensure a list of entries exists for the priority if none have been added previously
-                        List<ConnectionFactoryEntry> factoriesForPriority =
-                                mapping.computeIfAbsent(priority, mapPriority -> new ArrayList<>());
-
-                        // Add current entry for this given priority for the service.
-                        if (!factoriesForPriority.contains(entry))
-                        {
-                            factoriesForPriority.add(entry);
-                        }
+                        prioritizedEntries.add(priority, entry);
                     });
         }
     }
     public void store(Long priority, List<ConnectionFactoryEntry> entries)
     {
-        // Ensure priority level exists
-        List<ConnectionFactoryEntry> listForPriority =
-                mapping.computeIfAbsent(priority, mapPrio -> new ArrayList<>());
-
-        // Add missing connection factories for this service and priority
-        for (ConnectionFactoryEntry entry : entries)
-        {
-            if (!listForPriority.contains(entry))
-            {
-                listForPriority.add(entry);
-            }
-        }
+        Objects.requireNonNull(priority, "priority can not be null");
+        Objects.requireNonNull(entries, "entries can not be null");
+        prioritizedEntries.add(priority, entries);
     }
 
     public boolean isResolved(String entryName)
     {
+        Objects.requireNonNull(entryName, "entryName can not be null");
         return checkedConnectionFactories.contains(entryName);
     }
 
     public void setResolved(String entryName)
     {
+        Objects.requireNonNull(entryName, "entryName can not be null");
         checkedConnectionFactories.add(entryName);
     }
 
     public boolean hasCheckedAllValid(List<ConnectionFactoryEntry> entries)
     {
+        Objects.requireNonNull(entries, "entries can not be null");
         for (ConnectionFactoryEntry entry : entries)
         {
             if (!checkedConnectionFactories.contains(entry.getJndiName()) && entry.isValid())
@@ -137,13 +125,16 @@ public class ConnectionFactoriesByPriority
 
             for (ConnectionFactoryEntry cfe : factoriesForPriority)
             {
-                if (!entriesRandomOrderByPriority.contains(cfe))
+                // note:
+                // this null check is needed since another thread may have called remove
+                // after this method called getOrderedKeys
+                // in that case getForPriority will return an ArrayList with a null element
+                if (null != cfe && !entriesRandomOrderByPriority.contains(cfe))
                 {
                     entriesRandomOrderByPriority.add(cfe);
                 }
             }
         }
-
         return entriesRandomOrderByPriority;
     }
 
@@ -180,14 +171,9 @@ public class ConnectionFactoriesByPriority
 
     public void remove(ConnectionFactoryEntry connectionFactoryEntry)
     {
+        Objects.requireNonNull(connectionFactoryEntry, "connectionFactoryEntry can not be null");
         checkedConnectionFactories.remove(connectionFactoryEntry.getJndiName());
-        for(Map.Entry<Long, List<ConnectionFactoryEntry>> entry : mapping.entrySet())
-        {
-            entry.getValue().removeIf(cachedConnectionFactoryEntry -> cachedConnectionFactoryEntry.getJndiName().equals(connectionFactoryEntry.getJndiName()));
-            if(entry.getValue().isEmpty())
-            {
-                mapping.remove(entry.getKey());
-            }
-        }
+        prioritizedEntries.remove(connectionFactoryEntry);
     }
+
 }
