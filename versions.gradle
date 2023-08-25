@@ -29,5 +29,5 @@ ext.libs = [
   spock_bom: 'org.spockframework:spock-bom:2.3-groovy-4.0',
   spock_core: 'org.spockframework:spock-core',
   spock_junit4: 'org.spockframework:spock-junit4',
-  cglib_nodep: 'net.bytebuddy:byte-buddy:1.12.17'
+  byte_buddy: 'net.bytebuddy:byte-buddy:1.12.17'
 ]
