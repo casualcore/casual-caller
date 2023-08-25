@@ -18,7 +18,6 @@ import javax.ejb.TimerService;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Singleton
@@ -30,9 +29,6 @@ public class ConnectionFactoryEntryValidationTimer
 
     @Resource
     private TimerService timerService;
-
-    @Inject
-    private ConnectionFactoryEntryStore connectionFactoryStore;
 
     @Inject
     ConnectionValidator connectionValidator;
@@ -54,18 +50,7 @@ public class ConnectionFactoryEntryValidationTimer
         LOG.finest("Running ConnectionFactoryEntryValidationTimer");
         try
         {
-            connectionFactoryStore.get()
-                                  .forEach( connectionFactoryEntry -> {
-                                             try
-                                             {
-                                                 connectionValidator.validate(connectionFactoryEntry);
-                                             }
-                                             catch(Exception e)
-                                             {
-                                                 connectionFactoryEntry.invalidate();
-                                                 LOG.log(Level.WARNING, e, () -> "Failed validating: " + connectionFactoryEntry);
-                                             }
-                                     });
+            connectionValidator.validateAllConnections();
         }
         catch(Exception e)
         {
