@@ -6,33 +6,39 @@
 
 package se.laz.casual.connection.caller;
 
-import se.laz.casual.connection.caller.config.ConfigurationService;
-import se.laz.casual.connection.caller.util.ConnectionFactoryFinder;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import se.laz.casual.connection.caller.config.ConfigurationService;
+import se.laz.casual.connection.caller.util.ConnectionFactoryFinder;
+import se.laz.casual.jca.ConnectionObserver;
+import se.laz.casual.jca.DomainId;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
 @ApplicationScoped
-public class ConnectionFactoryEntryStore
+public class ConnectionFactoryEntryStore implements ConnectionObserver
 {
     private static final Logger LOG = Logger.getLogger(ConnectionFactoryEntryStore.class.getName());
     private final ConnectionFactoryFinder connectionFactoryFinder;
+    private final TopologyChangedHandler topologyChangedHandler;
     private List<ConnectionFactoryEntry> connectionFactories;
 
     public ConnectionFactoryEntryStore()
     {
         // public NOP-constructor needed for wls-only
         connectionFactoryFinder = null;
+        topologyChangedHandler = null;
     }
 
     @Inject
-    public ConnectionFactoryEntryStore(ConnectionFactoryFinder connectionFactoryFinder)
+    public ConnectionFactoryEntryStore(ConnectionFactoryFinder connectionFactoryFinder, TopologyChangedHandler topologyChangedHandler)
     {
         this.connectionFactoryFinder = connectionFactoryFinder;
+        this.topologyChangedHandler = topologyChangedHandler;
     }
 
     public List<ConnectionFactoryEntry> get()
@@ -52,10 +58,22 @@ public class ConnectionFactoryEntryStore
     public synchronized void initialize()
     {
         connectionFactories = connectionFactoryFinder.findConnectionFactory(getJndiRoot());
+        connectionFactories.forEach(this::addConnectionObserver);
+    }
+
+    public void addConnectionObserver(ConnectionFactoryEntry connectionFactoryEntry)
+    {
+        ConnectionObserverHandler.of().addObserver(connectionFactoryEntry, this);
     }
 
     private String getJndiRoot()
     {
         return ConfigurationService.getInstance().getConfiguration().getJndiSearchRoot();
+    }
+
+    @Override
+    public void topologyChanged(DomainId domainId)
+    {
+        topologyChangedHandler.topologyChanged(domainId, connectionFactories);
     }
 }

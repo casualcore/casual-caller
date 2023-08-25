@@ -6,8 +6,6 @@
 
 package se.laz.casual.connection.caller;
 
-import se.laz.casual.connection.caller.config.ConfigurationService;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import jakarta.ejb.Singleton;
@@ -18,7 +16,8 @@ import jakarta.ejb.TimerService;
 import jakarta.ejb.TransactionAttribute;
 import jakarta.ejb.TransactionAttributeType;
 import jakarta.inject.Inject;
-import java.util.logging.Level;
+import se.laz.casual.connection.caller.config.ConfigurationService;
+
 import java.util.logging.Logger;
 
 @Singleton
@@ -30,9 +29,6 @@ public class ConnectionFactoryEntryValidationTimer
 
     @Resource
     private TimerService timerService;
-
-    @Inject
-    private ConnectionFactoryEntryStore connectionFactoryStore;
 
     @Inject
     ConnectionValidator connectionValidator;
@@ -54,18 +50,7 @@ public class ConnectionFactoryEntryValidationTimer
         LOG.finest("Running ConnectionFactoryEntryValidationTimer");
         try
         {
-            connectionFactoryStore.get()
-                                  .forEach( connectionFactoryEntry -> {
-                                             try
-                                             {
-                                                 connectionValidator.validate(connectionFactoryEntry);
-                                             }
-                                             catch(Exception e)
-                                             {
-                                                 connectionFactoryEntry.invalidate();
-                                                 LOG.log(Level.WARNING, e, () -> "Failed validating: " + connectionFactoryEntry);
-                                             }
-                                     });
+            connectionValidator.validateAllConnections();
         }
         catch(Exception e)
         {
