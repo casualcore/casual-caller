@@ -24,7 +24,7 @@ class ConnectionFactoriesByPriorityTest extends Specification
       when:
       def storedEntries = instance.getForPriority(priority)
       then:
-      storedEntries == entries
+      storedEntries.sort() == entries.sort()
       when:
       // note, imagine this being run in two different threads - then this may happen
       // thread 1

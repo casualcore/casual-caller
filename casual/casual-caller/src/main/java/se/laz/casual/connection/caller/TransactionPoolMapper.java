@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class TransactionPoolMapper
@@ -148,19 +149,24 @@ public final class TransactionPoolMapper
 
     private Optional<Transaction> getCurrentTransaction()
     {
-        if (transactionManager == null)
-        {
-            transactionManager = new TransactionManagerProvider().getTransactionManager();
-        }
-
         try
         {
-            return Optional.ofNullable(transactionManager.getTransaction());
+            return Optional.ofNullable(getTransactionManager().getTransaction());
         }
         catch (SystemException e)
         {
             return Optional.empty();
         }
+    }
+
+    private TransactionManager getTransactionManager()
+    {
+        if (transactionManager == null)
+        {
+            transactionManager = new TransactionManagerProvider().getTransactionManager();
+        }
+
+        return transactionManager;
     }
 
     public int getNumberOfTrackedTransactions()
@@ -174,9 +180,22 @@ public final class TransactionPoolMapper
         return (int) transactionStickies.values().stream().filter(s -> s.equals(poolName)).count();
     }
 
+    /**
+     * Pool mapping is treated as disabled if sticky is not enabled by configuration or a transaction instance can't
+     * be acquired in the current context.
+     * @return true if pool mapping for transactions is enabled in the current context, otherwise false.
+     */
     public boolean isPoolMappingActive()
     {
-        return stickyEnabled;
+        try
+        {
+            return stickyEnabled && getTransactionManager().getTransaction() != null;
+        }
+        catch (SystemException e)
+        {
+            LOG.log(Level.SEVERE, "Failed to get transaction from TransactionManager, will report pool mapping disabled", e);
+            return false;
+        }
     }
 
     public void purgeMappings()
