@@ -99,8 +99,9 @@ public class FailoverAlgorithm
                 return stickyMaybe.get();
             }
         }
-        catch (ResourceException e)
+        catch (ResourceException | DomainDisconnectedException e)
         {
+            LOG.finest("Failed call for stickied pool with exception, will run failover if applicable");
             thrownException = e;
         }
 
@@ -109,9 +110,7 @@ public class FailoverAlgorithm
         {
             try (CasualConnection con = connectionFactoryEntry.getConnectionFactory().getConnection())
             {
-                T returnValue = doCall.apply(con);
-                TransactionPoolMapper.getInstance().setPoolNameForCurrentTransaction(connectionFactoryEntry.getJndiName());
-                return returnValue;
+                return doCall.apply(con);
             }
             catch (CasualConnectionException e)
             {
@@ -150,19 +149,14 @@ public class FailoverAlgorithm
             List<ConnectionFactoryEntry> factories,
             FunctionThrowsResourceException<CasualConnection, T> doCall) throws ResourceException
     {
-        if (! TransactionPoolMapper.getInstance().isPoolMappingActive())
+        if (!TransactionPoolMapper.getInstance().isPoolMappingActive())
         {
             return Optional.empty();
         }
 
-        String transactionPoolName = TransactionPoolMapper.getInstance().getPoolNameForCurrentTransaction();
+        Optional<ConnectionFactoryEntry> stickyFactoryMaybe = getAndSetSticky(serviceName, factories);
 
-        Optional<ConnectionFactoryEntry> stickyFactoryMaybe = factories
-                .stream()
-                .filter(connectionFactoryEntry -> connectionFactoryEntry.isValid() && connectionFactoryEntry.getJndiName().equals(transactionPoolName))
-                .findFirst();
-
-        if (stickyFactoryMaybe.isPresent() && stickyFactoryMaybe.get().isValid())
+        if (stickyFactoryMaybe.isPresent())
         {
             // We have a specific stickied pool to use that looks usable, try to use it
             ConnectionFactoryEntry connectionFactoryEntry = stickyFactoryMaybe.get();
@@ -184,15 +178,47 @@ public class FailoverAlgorithm
                         + " because of a network connection error, retries not possible.", e);
             }
         }
-        else if (stickyFactoryMaybe.isPresent())
+        else
         {
-            TransactionPoolMapper.getInstance().purgeMappings(transactionPoolName);
+            LOG.finest(() -> "Current sticky is " + TransactionPoolMapper.getInstance().getPoolNameForCurrentTransaction()
+                    + " but called service=" + serviceName
+                    + " is currently available in pools [" + factories.stream().map(ConnectionFactoryEntry::getJndiName).collect(Collectors.joining(","))
+                    + "]. Will use available pools instead of stickied pool.");
+            return Optional.empty();
         }
+    }
 
-        LOG.finest(() -> "Failed to call service=" + serviceName + " on stickied pool=" + transactionPoolName + ", falling through to normal flow.");
+    private Optional<ConnectionFactoryEntry> getAndSetSticky(String serviceName, List<ConnectionFactoryEntry> validFactories) throws ResourceException
+    {
+        String transactionPoolName = TransactionPoolMapper.getInstance().getPoolNameForCurrentTransaction();
 
-        // Found nothing, empty result should be signal to try normal flow.
-        return Optional.empty();
+        if (transactionPoolName == null)
+        {
+            // Service exists in some pool, pick first one as sticky (would otherwise be picked later in normal flow)
+            ConnectionFactoryEntry newStickyFactory = validFactories.get(0);
+            TransactionPoolMapper.getInstance().setPoolNameForCurrentTransaction(newStickyFactory.getJndiName());
+            LOG.finest(() -> "No sticky present for call to service=" + serviceName + ", setting sticky=" + newStickyFactory.getJndiName());
+            return Optional.of(newStickyFactory);
+        }
+        else
+        {
+            Optional<ConnectionFactoryEntry> stickyMatch = validFactories
+                    .stream()
+                    .filter(connectionFactoryEntry -> transactionPoolName.equals(connectionFactoryEntry.getJndiName()) && connectionFactoryEntry.isValid())
+                    .findFirst();
+
+            if (stickyMatch.isPresent())
+            {
+                LOG.finest(() -> "Using stickied pool=" + transactionPoolName + " for call to service=" + serviceName);
+                validFactories.remove(stickyMatch.get());
+                return stickyMatch;
+            }
+            else
+            {
+                LOG.finest(() -> "There was a sticky=" + transactionPoolName + ", but it did not match the valid factories for the called service=" + serviceName);
+                return Optional.empty();
+            }
+        }
     }
 
 

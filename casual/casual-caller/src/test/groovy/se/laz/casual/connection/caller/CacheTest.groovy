@@ -153,7 +153,7 @@ class CacheTest extends Specification
       instance.store(qInfo, [connectionFactoryEntry])
       def entry = instance.getSingle(qInfo)
       then:
-      entry.isEmpty()
+      !entry.isPresent()
    }
 
    def 'get missing queue entry'()
