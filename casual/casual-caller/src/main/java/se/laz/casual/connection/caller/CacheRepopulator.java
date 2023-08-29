@@ -1,5 +1,6 @@
 package se.laz.casual.connection.caller;
 
+import javax.faces.bean.ApplicationScoped;
 import javax.inject.Inject;
 import javax.resource.ResourceException;
 import se.laz.casual.api.discovery.DiscoveryReturn;
@@ -11,10 +12,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@ApplicationScoped
 public class CacheRepopulator
 {
     private static final Logger LOG = Logger.getLogger(CacheRepopulator.class.getName());
     private Cache cache;
+    private final Object repopulateLock = new Object();
     // WLS - no arg constructor
     public CacheRepopulator()
     {}
@@ -27,10 +30,17 @@ public class CacheRepopulator
 
     public void repopulate(ConnectionFactoryEntry connectionFactoryEntry)
     {
-        Map<CacheType, List<String>> cachedItems = cache.getAll();
-        cache.purge(connectionFactoryEntry);
-        Optional<DiscoveryReturn> maybeDiscoveryReturn = issueDiscovery(cachedItems, connectionFactoryEntry);
-        maybeDiscoveryReturn.ifPresent(discoveryReturn ->  cache.repopulate(discoveryReturn, connectionFactoryEntry));
+        // note:
+        // We only ever want one pool at a time do handle domain discovery.
+        // This so that we do not end up with a scenario where we have multiple discoveries going
+        // and the known state of the world is currently nil when another discovery is issued
+        synchronized (repopulateLock)
+        {
+            Map<CacheType, List<String>> cachedItems = cache.getAll();
+            cache.purge(connectionFactoryEntry);
+            Optional<DiscoveryReturn> maybeDiscoveryReturn = issueDiscovery(cachedItems, connectionFactoryEntry);
+            maybeDiscoveryReturn.ifPresent(discoveryReturn -> cache.repopulate(discoveryReturn, connectionFactoryEntry));
+        }
     }
 
     private Optional<DiscoveryReturn> issueDiscovery(Map<CacheType, List<String>> cachedItems, ConnectionFactoryEntry connectionFactoryEntry)
