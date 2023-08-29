@@ -69,7 +69,7 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
     @Override
     public void topologyChanged(DomainId domainId)
     {
-        topologyChangedHandler.topologyChanged(domainId, connectionFactories);
+        topologyChangedHandler.topologyChanged(domainId);
     }
 
     public void setConnectionObserverHandler(ConnectionObserverHandler connectionObserverHandler)
