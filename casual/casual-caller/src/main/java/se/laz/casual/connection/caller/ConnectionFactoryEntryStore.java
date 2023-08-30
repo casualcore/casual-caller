@@ -58,6 +58,7 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
     public synchronized void initialize()
     {
         connectionFactories = connectionFactoryFinder.findConnectionFactory(getJndiRoot());
+        topologyChangedHandler.setSupplier(this::get);
         connectionFactories.forEach(this::addConnectionObserver);
     }
 
