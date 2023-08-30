@@ -1,5 +1,6 @@
 package se.laz.casual.connection.caller;
 
+import se.laz.casual.connection.caller.config.ConfigurationService;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.jca.DomainId;
 
@@ -49,9 +50,7 @@ public class TopologyChangedHandler
             return;
         }
         changedDomains.add(domainId);
-        // TODO:
-        // Get delay from configuration
-        long delayInMs = 50;
+        long delayInMs = ConfigurationService.getInstance().getConfiguration().getTopologyChangeDelayMillis();
         scheduledExecutorService.schedule( new DiscoveryTask(domainId), delayInMs, TimeUnit.MILLISECONDS);
     }
 
