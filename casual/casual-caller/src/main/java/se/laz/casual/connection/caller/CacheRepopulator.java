@@ -20,7 +20,9 @@ public class CacheRepopulator
     private final Object repopulateLock = new Object();
     // WLS - no arg constructor
     public CacheRepopulator()
-    {}
+    {
+        this.cache = null;
+    }
 
     @Inject
     public CacheRepopulator(Cache cache)

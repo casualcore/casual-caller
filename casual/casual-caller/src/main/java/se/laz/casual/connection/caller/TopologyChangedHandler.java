@@ -23,7 +23,7 @@ public class TopologyChangedHandler
     private static final Logger LOG = Logger.getLogger(TopologyChangedHandler.class.getName());
     @Resource
     private ManagedScheduledExecutorService scheduledExecutorService;
-    private Set<DomainId> changedDomains = ConcurrentHashMap.newKeySet();
+    private final Set<DomainId> changedDomains = ConcurrentHashMap.newKeySet();
     private CacheRepopulator cacheRepopulator;
     private Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier;
 
