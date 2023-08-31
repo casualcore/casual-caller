@@ -1,6 +1,5 @@
 package se.laz.casual.connection.caller;
 
-import javax.resource.ResourceException;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.jca.ConnectionObserver;
 
@@ -22,10 +21,10 @@ public class ConnectionObserverHandler
         {
             casualConnection.addConnectionObserver(connectionObserver);
         }
-        catch (ResourceException e)
+        catch (Exception e)
         {
             // NOP
-            // will be handled when connection is reestablished
+            // will be handled whenever the connection is reestablished
         }
     }
 }

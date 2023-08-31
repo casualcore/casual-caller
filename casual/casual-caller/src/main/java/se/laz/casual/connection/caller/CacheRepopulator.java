@@ -32,8 +32,8 @@ public class CacheRepopulator
     {
         // note:
         // We only ever want one pool at a time do handle domain discovery.
-        // This so that we do not end up with a scenario where we have multiple discoveries going
-        // and the known state of the world is currently nil when another discovery is issued
+        // This so that we do not end up with a scenario where we have multiple discoveries in flight
+        // and the known state of the world, cache, is currently very small when another discovery is issued
         synchronized (repopulateLock)
         {
             Map<CacheType, List<String>> cachedItems = cache.getAll();

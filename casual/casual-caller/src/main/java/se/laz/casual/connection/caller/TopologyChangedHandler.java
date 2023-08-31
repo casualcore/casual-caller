@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -51,34 +52,16 @@ public class TopologyChangedHandler
         }
         changedDomains.add(domainId);
         long delayInMs = ConfigurationService.getInstance().getConfiguration().getTopologyChangeDelayMillis();
-        scheduledExecutorService.schedule( new DiscoveryTask(domainId), delayInMs, TimeUnit.MILLISECONDS);
+        try
+        {
+            scheduledExecutorService.schedule( new DiscoveryTask(domainId), delayInMs, TimeUnit.MILLISECONDS);
+        }
+        catch(RejectedExecutionException e)
+        {
+            LOG.log(Level.WARNING, e, () -> "Could not schedule task to handle topology change for domain: " + domainId);
+        }
     }
 
-    private void handleTopologyChanged(final DomainId domainId)
-    {
-        changedDomains.remove(domainId);
-        Optional<ConnectionFactoryEntry> maybeMatch = connectionFactoryEntrySupplier.get().stream()
-                                                                                    .filter(connectionFactoryEntry -> isSameDomain(domainId, connectionFactoryEntry))
-                                                                                    .findFirst();
-        maybeMatch.ifPresent(cacheRepopulator::repopulate);
-        // if no match, then that connection is gone and the cache will be repopulated once it re-establishes a connection
-    }
-
-    private boolean isSameDomain(DomainId domainId, ConnectionFactoryEntry connectionFactoryEntry)
-    {
-        try(CasualConnection casualConnection = connectionFactoryEntry.getConnectionFactory().getConnection())
-        {
-            if(domainId == casualConnection.getDomainId())
-            {
-                return true;
-            }
-        }
-        catch(ResourceException e)
-        {
-            // NOP
-        }
-        return false;
-    }
 
     private class DiscoveryTask implements Runnable
     {
@@ -99,6 +82,30 @@ public class TopologyChangedHandler
                 // catching since this method lives in a timer that should never ever throw
                 LOG.log(Level.WARNING, e, () -> "Failed handling topology update, most likely connection went away. Cache will not be in a good state until next update or disconnect/reconnect. Domain: " + domainId);
             }
+        }
+        private void handleTopologyChanged(final DomainId domainId)
+        {
+            changedDomains.remove(domainId);
+            Optional<ConnectionFactoryEntry> maybeMatch = connectionFactoryEntrySupplier.get().stream()
+                                                                                        .filter(connectionFactoryEntry -> isSameDomain(domainId, connectionFactoryEntry))
+                                                                                        .findFirst();
+            maybeMatch.ifPresent(cacheRepopulator::repopulate);
+            // if no match, then that connection is gone and the cache will be repopulated once it re-establishes a connection
+        }
+        private boolean isSameDomain(DomainId domainId, ConnectionFactoryEntry connectionFactoryEntry)
+        {
+            try(CasualConnection casualConnection = connectionFactoryEntry.getConnectionFactory().getConnection())
+            {
+                if(domainId == casualConnection.getDomainId())
+                {
+                    return true;
+                }
+            }
+            catch(ResourceException e)
+            {
+                // NOP
+            }
+            return false;
         }
     }
 

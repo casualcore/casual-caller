@@ -188,7 +188,7 @@ public class FailoverAlgorithm
         }
     }
 
-    private Optional<ConnectionFactoryEntry> getAndSetSticky(String serviceName, List<ConnectionFactoryEntry> validFactories) throws ResourceException
+    private Optional<ConnectionFactoryEntry> getAndSetSticky(String serviceName, List<ConnectionFactoryEntry> validFactories)
     {
         String transactionPoolName = TransactionPoolMapper.getInstance().getPoolNameForCurrentTransaction();
 
