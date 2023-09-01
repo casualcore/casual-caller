@@ -13,15 +13,12 @@ import java.util.logging.Logger;
 public class ConnectionValidator
 {
     private static final Logger LOG = Logger.getLogger(ConnectionValidator.class.getName());
-    private final CacheRepopulator repopulator;
-    private final ConnectionFactoryEntryStore connectionFactoryEntryStore;
+    private CacheRepopulator repopulator;
+    private ConnectionFactoryEntryStore connectionFactoryEntryStore;
 
+    // WLS - no arg constructor
     public ConnectionValidator()
-    {
-        // WLS - no arg constructor
-        repopulator = null;
-        connectionFactoryEntryStore = null;
-    }
+    {}
 
     @Inject
     public ConnectionValidator(CacheRepopulator repopulator, ConnectionFactoryEntryStore connectionFactoryEntryStore)
@@ -46,8 +43,7 @@ public class ConnectionValidator
                                    });
     }
 
-
-    public void validate(final ConnectionFactoryEntry connectionFactoryEntry)
+    private void validate(final ConnectionFactoryEntry connectionFactoryEntry)
     {
         boolean invalidBeforeValidation = !connectionFactoryEntry.isValid();
         connectionFactoryEntry.validate();

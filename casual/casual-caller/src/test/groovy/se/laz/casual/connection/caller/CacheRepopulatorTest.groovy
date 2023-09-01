@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2023, The casual project. All rights reserved.
+ *
+ * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
+ */
 package se.laz.casual.connection.caller
 
 import se.laz.casual.api.discovery.DiscoveryReturn
@@ -37,7 +42,7 @@ class CacheRepopulatorTest extends Specification
       when:
       instance.repopulate(entry)
       then:
-      entry.isInvalid()
+      noExceptionThrown()
    }
 
    def 'valid connection when running discovery'()

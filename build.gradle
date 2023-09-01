@@ -12,9 +12,15 @@ buildscript {
     }
 }
 
+/*
 plugins {
     id 'org.sonarqube' version '2.7'
+ }*/
+plugins {
+  //id "jacoco"
+  id "org.sonarqube" version "3.4.0.2513"
 }
+
 
 apply from: 'testsourcesets.gradle'
 
@@ -36,13 +42,12 @@ allprojects{
   }
   repositories {
 	mavenCentral()
-	maven {url 'https://s01.oss.sonatype.org/content/repositories/snapshots' }
-  }
+  }  
 }
 
 subprojects{
   apply from: "$rootProject.projectDir/versions.gradle"
-  apply plugin: 'java-library'
+  apply plugin: 'java-library'  
 }
 
 project.ext {

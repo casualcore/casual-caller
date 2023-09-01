@@ -1,11 +1,15 @@
+/*
+ * Copyright (c) 2023, The casual project. All rights reserved.
+ *
+ * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
+ */
 package se.laz.casual.connection.caller;
 
-import javax.faces.bean.ApplicationScoped;
-import javax.inject.Inject;
-import javax.resource.ResourceException;
 import se.laz.casual.api.discovery.DiscoveryReturn;
 import se.laz.casual.jca.CasualConnection;
 
+import javax.faces.bean.ApplicationScoped;
+import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,9 +24,7 @@ public class CacheRepopulator
     private final Object repopulateLock = new Object();
     // WLS - no arg constructor
     public CacheRepopulator()
-    {
-        this.cache = null;
-    }
+    {}
 
     @Inject
     public CacheRepopulator(Cache cache)
@@ -57,9 +59,8 @@ public class CacheRepopulator
             LOG.finest(() -> "discovery returned: " + discoveryReturn);
             return Optional.of(discoveryReturn);
         }
-        catch (ResourceException e)
+        catch (Exception e)
         {
-            connectionFactoryEntry.invalidate();
             LOG.warning(() -> "failed domain discovery for: " + connectionFactoryEntry + " -> " + e);
             LOG.warning(() -> "services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
         }
