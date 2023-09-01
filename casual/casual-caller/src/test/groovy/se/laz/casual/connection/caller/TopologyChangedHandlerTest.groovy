@@ -57,7 +57,7 @@ class TopologyChangedHandlerTest extends Specification
          }
          0 * setNeedsDomainDiscovery(_)
       }
-      Supplier<List<ConnectionFactoryEntry>> supplier = SupplierProducer.get([connectionFactoryEntry])
+      Supplier<List<ConnectionFactoryEntry>> supplier = {[connectionFactoryEntry]}
       CacheRepopulator cacheRepopulator = Mock(CacheRepopulator){
          1 * repopulate(connectionFactoryEntry)
       }
