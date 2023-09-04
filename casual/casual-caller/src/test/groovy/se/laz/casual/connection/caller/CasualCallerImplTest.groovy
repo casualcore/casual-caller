@@ -59,7 +59,7 @@ class CasualCallerImplTest extends Specification
         transactionManagerProvider = Mock(TransactionManagerProvider)
         transactionManagerProvider.getTransactionManager() >> { transactionManager }
         transactionLess = new TransactionLess(transactionManagerProvider)
-        instance = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess)
+        instance = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler))
     }
 
     def 'construction, no entries found - should throw'()
@@ -68,7 +68,7 @@ class CasualCallerImplTest extends Specification
         ConnectionFactoryEntryStore provider = Mock(ConnectionFactoryEntryStore)
         provider.get() >> []
         when:
-        new CasualCallerImpl(lookup, provider, Mock(TransactionLess))
+        new CasualCallerImpl(lookup, provider, Mock(TransactionLess), Mock(FailedDomainDiscoveryHandler))
         then:
         thrown(CasualCallerException)
     }
@@ -289,7 +289,7 @@ class CasualCallerImplTest extends Specification
        1 * transactionManager.suspend() >> {
           Mock(Transaction)
        }
-       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider))
+       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider), Mock(FailedDomainDiscoveryHandler))
        caller.tpCaller = Mock(TpCallerFailover)
        1 * transactionManager.resume(_)
        when:
@@ -304,7 +304,7 @@ class CasualCallerImplTest extends Specification
       1 * transactionManager.suspend() >> {
          null
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider))
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider), Mock(FailedDomainDiscoveryHandler))
       caller.tpCaller = Mock(TpCallerFailover)
       0 * transactionManager.resume(_)
       when:
@@ -320,7 +320,7 @@ class CasualCallerImplTest extends Specification
       1 * transactionManager.suspend() >> {
          Mock(Transaction)
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider))
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider), Mock(FailedDomainDiscoveryHandler))
       caller.tpCaller = Mock(TpCallerFailover)
       1 * transactionManager.resume(_)
       when:
@@ -335,7 +335,7 @@ class CasualCallerImplTest extends Specification
       1 * transactionManager.suspend() >> {
          null
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider))
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider), Mock(FailedDomainDiscoveryHandler))
       caller.tpCaller = Mock(TpCallerFailover)
       0 * transactionManager.resume(_)
       when:

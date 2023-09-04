@@ -36,16 +36,18 @@ public class CasualCallerImpl implements CasualCaller
     private TpCaller tpCaller = new TpCallerFailover();
     private ConnectionFactoryLookup lookup;
     private TransactionLess transactionLess;
+    private FailedDomainDiscoveryHandler failedDomainDiscoveryHandler;
 
     // NOP constructor needed for WLS
     public CasualCallerImpl()
     {}
 
     @Inject
-    public CasualCallerImpl(ConnectionFactoryLookup lookup, ConnectionFactoryEntryStore connectionFactoryProvider, TransactionLess transactionLess)
+    public CasualCallerImpl(ConnectionFactoryLookup lookup, ConnectionFactoryEntryStore connectionFactoryProvider, TransactionLess transactionLess, FailedDomainDiscoveryHandler failedDomainDiscoveryHandler)
     {
         this.lookup = lookup;
         this.transactionLess = transactionLess;
+        this.failedDomainDiscoveryHandler = failedDomainDiscoveryHandler;
         List<ConnectionFactoryEntry> possibleEntries = connectionFactoryProvider.get();
         if(possibleEntries.isEmpty())
         {
@@ -56,12 +58,14 @@ public class CasualCallerImpl implements CasualCaller
     @Override
     public ServiceReturn<CasualBuffer> tpcall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags)
     {
+        failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         return flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpcall(() -> tpCaller.tpcall(serviceName, data, flags, lookup)) : tpCaller.tpcall(serviceName, data, flags, lookup);
     }
 
     @Override
     public CompletableFuture<ServiceReturn<CasualBuffer>> tpacall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags)
     {
+        failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         return flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpacall(() -> tpCaller.tpacall(serviceName, data, flags, lookup)) : tpCaller.tpacall(serviceName, data, flags, lookup);
     }
 
@@ -80,6 +84,7 @@ public class CasualCallerImpl implements CasualCaller
     @Override
     public EnqueueReturn enqueue(QueueInfo qinfo, QueueMessage msg)
     {
+        failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         Optional<ConnectionFactoryEntry> entry = lookup.get(qinfo);
 
         if (!entry.isPresent())
@@ -100,6 +105,7 @@ public class CasualCallerImpl implements CasualCaller
     @Override
     public DequeueReturn dequeue(QueueInfo qinfo, MessageSelector selector)
     {
+        failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         Optional<ConnectionFactoryEntry> entry = lookup.get(qinfo);
 
         if (!entry.isPresent())

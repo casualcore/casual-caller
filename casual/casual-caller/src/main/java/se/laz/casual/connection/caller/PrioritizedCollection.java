@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 public class PrioritizedCollection<T>
 {
     private final Map<Long, Set<T>> collection = new ConcurrentHashMap<>();
+    private static final String PRIORITY_CAN_NOT_BE_NULL = "priority can not be null";
 
     public List<Long> getPriorities()
     {
@@ -25,7 +26,7 @@ public class PrioritizedCollection<T>
 
     public List<T> get(Long priority)
     {
-        Objects.requireNonNull(priority, "priority can not be null");
+        Objects.requireNonNull(priority, PRIORITY_CAN_NOT_BE_NULL);
         // note:
         // due to threading
         // thread 1 calls getPriorities to get the priorities
@@ -44,7 +45,7 @@ public class PrioritizedCollection<T>
 
     public PrioritizedCollection<T> add(Long priority, T entry)
     {
-        Objects.requireNonNull(priority, "priority can not be null");
+        Objects.requireNonNull(priority, PRIORITY_CAN_NOT_BE_NULL);
         Objects.requireNonNull(entry, "entry can not be null");
         Set<T> factoriesForPriority =
                 collection.computeIfAbsent(priority, mapPriority -> ConcurrentHashMap.newKeySet());
@@ -54,7 +55,7 @@ public class PrioritizedCollection<T>
 
     public PrioritizedCollection<T> add(Long priority, List<T> entries)
     {
-        Objects.requireNonNull(priority, "priority can not be null");
+        Objects.requireNonNull(priority, PRIORITY_CAN_NOT_BE_NULL);
         Objects.requireNonNull(entries, "entries can not be null");
         Set<T> factoriesForPriority =
                 collection.computeIfAbsent(priority, mapPriority -> ConcurrentHashMap.newKeySet());
