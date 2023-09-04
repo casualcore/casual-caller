@@ -10,6 +10,7 @@ import se.laz.casual.jca.CasualConnectionFactory;
 
 import jakarta.resource.ResourceException;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,6 +18,7 @@ public class ConnectionFactoryEntry
 {
     private static final Logger LOG = Logger.getLogger(ConnectionFactoryEntry.class.getName());
     private final ConnectionFactoryProducer connectionFactoryProducer;
+    private final AtomicBoolean needsDomainDiscovery = new AtomicBoolean(false);
 
     /**
      * Connection factory entries should invalidate on connection errors and revalidate as soon as a new valid
@@ -107,5 +109,15 @@ public class ConnectionFactoryEntry
                 "connectionFactoryProducer=" + connectionFactoryProducer +
                 ", valid=" + valid +
                 '}';
+    }
+
+    public void setNeedsDomainDiscovery(boolean value)
+    {
+        needsDomainDiscovery.set(value);
+    }
+
+    public boolean getNeedsDomainDiscovery()
+    {
+        return needsDomainDiscovery.getAndSet(false);
     }
 }
