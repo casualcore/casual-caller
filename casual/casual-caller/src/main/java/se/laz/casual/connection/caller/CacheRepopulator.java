@@ -8,7 +8,7 @@ package se.laz.casual.connection.caller;
 import se.laz.casual.api.discovery.DiscoveryReturn;
 import se.laz.casual.jca.CasualConnection;
 
-import javax.faces.bean.ApplicationScoped;
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
