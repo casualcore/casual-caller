@@ -32,3 +32,12 @@ dependencies {
 jar{
   archiveFileName = 'casual-caller.jar'
 }
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+    }
+}
+
+
+
