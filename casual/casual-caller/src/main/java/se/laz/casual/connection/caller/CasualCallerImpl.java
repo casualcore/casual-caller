@@ -45,7 +45,7 @@ public class CasualCallerImpl implements CasualCaller
     @Inject
     public CasualCallerImpl(ConnectionFactoryLookup lookup, ConnectionFactoryEntryStore connectionFactoryProvider, TransactionLess transactionLess, FailedDomainDiscoveryHandler failedDomainDiscoveryHandler)
     {
-        this.lookup = lookup;
+       this.lookup = lookup;
         this.transactionLess = transactionLess;
         this.failedDomainDiscoveryHandler = failedDomainDiscoveryHandler;
         List<ConnectionFactoryEntry> possibleEntries = connectionFactoryProvider.get();

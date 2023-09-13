@@ -38,7 +38,7 @@ class CacheRepopulatorTest extends Specification
          1 * purge(entry)
          0 * repopulate(_, entry)
       }
-      CacheRepopulator instance = new CacheRepopulator(cache)
+      CacheRepopulator instance = new CacheRepopulator(cache, new TransactionLess())
       when:
       instance.repopulate(entry)
       then:
@@ -81,7 +81,7 @@ class CacheRepopulatorTest extends Specification
          1 * purge(entry)
          1 * repopulate(discoveryReturn, entry)
       }
-      CacheRepopulator instance = new CacheRepopulator(cache)
+      CacheRepopulator instance = new CacheRepopulator(cache, new TransactionLess())
       when:
       instance.repopulate(entry)
       then:
