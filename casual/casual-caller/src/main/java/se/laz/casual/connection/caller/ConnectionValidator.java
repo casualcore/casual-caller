@@ -5,6 +5,7 @@
  */
 
 package se.laz.casual.connection.caller;
+
 import javax.inject.Inject;
 import java.util.logging.Level;
 import java.util.logging.Logger;
