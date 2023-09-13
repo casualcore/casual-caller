@@ -44,7 +44,7 @@ public class CasualCallerImpl implements CasualCaller
     @Inject
     public CasualCallerImpl(ConnectionFactoryLookup lookup, ConnectionFactoryEntryStore connectionFactoryProvider, TransactionLess transactionLess)
     {
-       this.lookup = lookup;
+        this.lookup = lookup;
         this.transactionLess = transactionLess;
         List<ConnectionFactoryEntry> possibleEntries = connectionFactoryProvider.get();
         if(possibleEntries.isEmpty())
