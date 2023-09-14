@@ -77,6 +77,8 @@ class ConnectionFactoryLookupServiceTest extends Specification
     CasualConnection conHigh
     @Shared
     CasualConnection conLow
+    @Shared
+    TransactionLess transactionLess
 
     def setup()
     {
@@ -92,10 +94,12 @@ class ConnectionFactoryLookupServiceTest extends Specification
         connnectionFactoryProvider = Mock(ConnectionFactoryEntryStore)
         cache =  new Cache()
         lookup = Mock(Lookup)
+        transactionLess = new TransactionLess()
         instance = new ConnectionFactoryLookupService()
         instance.connectionFactoryProvider = connnectionFactoryProvider
         instance.cache = cache
         instance.lookup = lookup
+        instance.transactionLess = transactionLess
     }
 
     def 'asssert basic sanity'()
@@ -116,7 +120,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
     {
         given:
         ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(producerTwo)
-        lookup.find(qinfo, _) >> [entry]
+        lookup.find(qinfo, _, transactionLess) >> [entry]
         when:
         def actual = instance.get(qinfo)
         then:
@@ -127,7 +131,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
     def 'qinfo get jndi name, no cached entry - not found'()
     {
         setup:
-        lookup.find(qinfo, _) >> []
+        lookup.find(qinfo, _, transactionLess) >> []
         when:
         def entry = instance.get(qinfo)
         then:
@@ -143,7 +147,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         then:
         entry.isPresent()
         entry.get().jndiName == jndiNameConFactoryTwo
-        0 * lookup.find(qinfo, _)
+        0 * lookup.find(qinfo, _, transactionLess)
     }
 
     def 'service info get jndi name, no cached entry'()
@@ -151,7 +155,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         setup:
         ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(producerTwo)
         connnectionFactoryProvider.get() >> [entry]
-        lookup.find(serviceName, _) >> ConnectionFactoriesByPriority.of([(priority): [entry]])
+        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of([(priority): [entry]])
         when:
         def entries = instance.get(serviceName)
         then:
@@ -163,7 +167,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
     {
         setup:
         connnectionFactoryProvider.get() >> []
-        lookup.find(serviceName, _) >> ConnectionFactoriesByPriority.of([:])
+        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of([:])
         when:
         def entries = instance.get(serviceName)
         then:
@@ -181,7 +185,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         then:
         entries.size() == 1
         entries[0] == entry
-        0 * lookup.find(serviceName, _)
+        0 * lookup.find(serviceName, _, transactionLess)
     }
 
     def "order is randomized"()
@@ -207,7 +211,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
 
         connnectionFactoryProvider.get() >> listOfEntries
 
-        lookup.find(serviceName, _) >> ConnectionFactoriesByPriority.of(lookupMap)
+        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of(lookupMap)
 
         when:
         def result1 = instance.get(serviceName)
@@ -274,7 +278,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         def conFac4Entry = ConnectionFactoryEntry.of(producerFourLocal)
 
         connnectionFactoryProvider.get() >> [conFac1Entry, conFac2Entry, conFac3Entry, conFac4Entry]
-        lookup.find(serviceName, _) >> ConnectionFactoriesByPriority.of([
+        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of([
                 (3L): [conFac1Entry],
                 (2L): [conFac2Entry],
                 (1L): [conFac3Entry],

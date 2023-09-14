@@ -7,29 +7,26 @@
 package se.laz.casual.connection.caller;
 
 import se.laz.casual.api.discovery.DiscoveryReturn;
-import se.laz.casual.jca.CasualConnection;
 
 import javax.inject.Inject;
-import javax.resource.ResourceException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.logging.Logger;
 
 public class ConnectionValidator
 {
-    private static final Logger LOG = Logger.getLogger(ConnectionValidator.class.getName());
-    Cache cache;
+    private Cache cache;
+    private TransactionLess transactionLess;
 
     // WLS - no arg constructor
     public ConnectionValidator()
     {}
 
     @Inject
-    public ConnectionValidator(Cache cache)
+    public ConnectionValidator(Cache cache, TransactionLess transactionLess)
     {
         this.cache = cache;
+        this.transactionLess = transactionLess;
     }
 
     public void validate(final ConnectionFactoryEntry connectionFactoryEntry)
@@ -40,7 +37,7 @@ public class ConnectionValidator
         {
             Map<CacheType, List<String>> cachedItems = cache.getAll();
             cache.purge(connectionFactoryEntry);
-            Optional<DiscoveryReturn> maybeDiscoveryReturn = issueDiscovery(cachedItems, connectionFactoryEntry);
+            Optional<DiscoveryReturn> maybeDiscoveryReturn = transactionLess.discover(connectionFactoryEntry, cachedItems);
             maybeDiscoveryReturn.ifPresent(discoveryReturn ->  cache.repopulate(discoveryReturn, connectionFactoryEntry));
         }
     }
@@ -48,27 +45,6 @@ public class ConnectionValidator
     private boolean connectionReestablished(boolean invalidBeforeRevalidation, boolean valid)
     {
         return invalidBeforeRevalidation && valid;
-    }
-
-    private Optional<DiscoveryReturn> issueDiscovery(Map<CacheType, List<String>> cachedItems, ConnectionFactoryEntry connectionFactoryEntry)
-    {
-        try(CasualConnection connection = connectionFactoryEntry.getConnectionFactory().getConnection())
-        {
-            LOG.finest(() -> "domain discovery for all known services/queues will be issued for " + connectionFactoryEntry );
-            LOG.finest(() -> "all known services/queues being, services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
-            DiscoveryReturn discoveryReturn = connection.discover(UUID.randomUUID(),
-                    cachedItems.get(CacheType.SERVICE),
-                    cachedItems.get(CacheType.QUEUE));
-            LOG.finest(() -> "discovery returned: " + discoveryReturn);
-            return Optional.of(discoveryReturn);
-        }
-        catch (ResourceException e)
-        {
-            connectionFactoryEntry.invalidate();
-            LOG.warning(() -> "failed domain discovery for: " + connectionFactoryEntry + " -> " + e);
-            LOG.warning(() -> "services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
-        }
-        return Optional.empty();
     }
 
 }
