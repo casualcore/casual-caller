@@ -23,7 +23,8 @@ public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
     private Cache cache;
     @Inject
     private Lookup lookup;
-
+    @Inject
+    TransactionLess transactionLess;
     @Override
     public Optional<ConnectionFactoryEntry> get(QueueInfo qinfo)
     {
@@ -33,7 +34,7 @@ public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
         {
             return cachedEntry;
         }
-        List<ConnectionFactoryEntry> newEntries = lookup.find(qinfo, connectionFactoryProvider.get());
+        List<ConnectionFactoryEntry> newEntries = lookup.find(qinfo, connectionFactoryProvider.get(), transactionLess);
         if (!newEntries.isEmpty())
         {
             cache.store(qinfo, newEntries);
@@ -57,7 +58,7 @@ public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
         ConnectionFactoriesByPriority newEntries = lookup.find(serviceName, possibleConnectionFactories
                 .stream()
                 .filter(entry -> !cache.get(serviceName).isResolved(entry.getJndiName()))
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList()), transactionLess);
         if (!newEntries.isEmpty() || newEntries.containsCheckedConnectionFactories())
         {
             cache.store(serviceName, newEntries);
