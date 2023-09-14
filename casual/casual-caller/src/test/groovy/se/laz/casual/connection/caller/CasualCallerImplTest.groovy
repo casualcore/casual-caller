@@ -301,7 +301,7 @@ class CasualCallerImplTest extends Specification
    }
 
 
-   def 'TPNOTRAN tpacall in transaction'()
+   def 'tpacall in transaction'()
    {
       given:
       TransactionLess transactionLess = Mock(TransactionLess) {
