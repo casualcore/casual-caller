@@ -7,7 +7,6 @@
 
 // casual-java group and version
 group = 'se.laz.casual'
-
 version = '3.2.14'
 
 def casual_jca_version = '3.2.25'

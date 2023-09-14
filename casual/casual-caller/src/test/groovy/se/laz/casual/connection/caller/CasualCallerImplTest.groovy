@@ -6,19 +6,14 @@ import se.laz.casual.api.flags.AtmiFlags
 import se.laz.casual.api.flags.ErrorState
 import se.laz.casual.api.flags.Flag
 import se.laz.casual.api.flags.ServiceReturnState
-import se.laz.casual.api.queue.DequeueReturn
-import se.laz.casual.api.queue.EnqueueReturn
-import se.laz.casual.api.queue.MessageSelector
-import se.laz.casual.api.queue.QueueInfo
-import se.laz.casual.api.queue.QueueMessage
+import se.laz.casual.api.queue.*
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
 import spock.lang.Specification
 
+
 import jakarta.resource.ResourceException
 import jakarta.resource.spi.EISSystemException
-import jakarta.transaction.Transaction
-import jakarta.transaction.TransactionManager
 import java.util.concurrent.CompletableFuture
 
 class CasualCallerImplTest extends Specification
@@ -28,13 +23,10 @@ class CasualCallerImplTest extends Specification
     ConnectionFactoryEntryStore connectionFactoryProvider
     CasualConnectionFactory fallBackConnectionFactory
     ConnectionFactoryEntry fallBackEntry
-    TransactionManager transactionManager
-    TransactionManagerProvider transactionManagerProvider
     TransactionLess transactionLess
 
     def setup()
     {
-        transactionManager = Mock(TransactionManager)
         fallBackConnectionFactory = Mock(CasualConnectionFactory)
         def fallbackConnection = Mock(CasualConnection)
         fallbackConnection.tpcall('does not exist', _, _) >> {
@@ -56,9 +48,7 @@ class CasualCallerImplTest extends Specification
         connectionFactoryProvider.get() >> {
             [fallBackEntry]
         }
-        transactionManagerProvider = Mock(TransactionManagerProvider)
-        transactionManagerProvider.getTransactionManager() >> { transactionManager }
-        transactionLess = new TransactionLess(transactionManagerProvider)
+        transactionLess = new TransactionLess()
         instance = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler))
     }
 
@@ -68,7 +58,7 @@ class CasualCallerImplTest extends Specification
         ConnectionFactoryEntryStore provider = Mock(ConnectionFactoryEntryStore)
         provider.get() >> []
         when:
-        new CasualCallerImpl(lookup, provider, Mock(TransactionLess), Mock(FailedDomainDiscoveryHandler))
+        new CasualCallerImpl(lookup, provider, new TransactionLess(), Mock(FailedDomainDiscoveryHandler))
         then:
         thrown(CasualCallerException)
     }
@@ -283,17 +273,16 @@ class CasualCallerImplTest extends Specification
         actual == future
     }
 
-    def 'TPNOTRAN tpcall, in transaction'()
+    def 'tpcall, in transaction'()
     {
        given:
-       1 * transactionManager.suspend() >> {
-          Mock(Transaction)
+       TransactionLess transactionLess = Mock(TransactionLess) {
+          0 * tpcall(_)
        }
-       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider), Mock(FailedDomainDiscoveryHandler))
+       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler))
        caller.tpCaller = Mock(TpCallerFailover)
-       1 * transactionManager.resume(_)
        when:
-       caller.tpcall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.TPNOTRAN))
+       caller.tpcall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.NOFLAG))
        then:
        noExceptionThrown()
     }
@@ -301,12 +290,11 @@ class CasualCallerImplTest extends Specification
    def 'TPNOTRAN tpcall, no transaction'()
    {
       given:
-      1 * transactionManager.suspend() >> {
-         null
+      TransactionLess transactionLess = Mock(TransactionLess) {
+         1 * tpcall(_)
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider), Mock(FailedDomainDiscoveryHandler))
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler))
       caller.tpCaller = Mock(TpCallerFailover)
-      0 * transactionManager.resume(_)
       when:
       caller.tpcall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.TPNOTRAN))
       then:
@@ -314,17 +302,16 @@ class CasualCallerImplTest extends Specification
    }
 
 
-   def 'TPNOTRAN tpacall in transaction'()
+   def 'tpacall in transaction'()
    {
       given:
-      1 * transactionManager.suspend() >> {
-         Mock(Transaction)
+      TransactionLess transactionLess = Mock(TransactionLess) {
+         0 * tpacall(_)
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider), Mock(FailedDomainDiscoveryHandler))
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler))
       caller.tpCaller = Mock(TpCallerFailover)
-      1 * transactionManager.resume(_)
       when:
-      caller.tpacall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.TPNOTRAN))
+      caller.tpacall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.NOFLAG))
       then:
       noExceptionThrown()
    }
@@ -332,12 +319,11 @@ class CasualCallerImplTest extends Specification
    def 'TPNOTRAN tpacall no transaction'()
    {
       given:
-      1 * transactionManager.suspend() >> {
-         null
+      TransactionLess transactionLess = Mock(TransactionLess) {
+         1 * tpacall(_)
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, new TransactionLess(transactionManagerProvider), Mock(FailedDomainDiscoveryHandler))
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler))
       caller.tpCaller = Mock(TpCallerFailover)
-      0 * transactionManager.resume(_)
       when:
       caller.tpacall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.TPNOTRAN))
       then:
