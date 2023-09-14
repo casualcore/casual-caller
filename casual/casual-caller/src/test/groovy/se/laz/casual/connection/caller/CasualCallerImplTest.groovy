@@ -272,7 +272,7 @@ class CasualCallerImplTest extends Specification
         actual == future
     }
 
-    def 'TPNOTRAN tpcall, in transaction'()
+    def 'tpcall, in transaction'()
     {
        given:
        TransactionLess transactionLess = Mock(TransactionLess) {
