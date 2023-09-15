@@ -82,7 +82,7 @@ class LookupTest extends Specification
         con.queueExists(qinfo) >> false
         conTwo.queueExists(qinfo) >> true
         when:
-        def entries = instance.find(qinfo, cacheEntries)
+        def entries = instance.find(qinfo, cacheEntries, new TransactionLess())
         then:
         !entries.isEmpty()
         entries[0].jndiName == jndiNameTwo
@@ -96,7 +96,7 @@ class LookupTest extends Specification
         con.queueExists(qinfo) >> false
         conTwo.queueExists(qinfo) >> false
         when:
-        def entries = instance.find(qinfo, cacheEntries)
+        def entries = instance.find(qinfo, cacheEntries, new TransactionLess())
         then:
         entries.isEmpty()
     }
@@ -110,7 +110,7 @@ class LookupTest extends Specification
         con.serviceExists(serviceName) >> false
         conTwo.serviceExists(serviceName) >> true
         when:
-        def entries = instance.find(serviceName, cacheEntries)
+        def entries = instance.find(serviceName, cacheEntries, new TransactionLess())
         then:
         !entries.isEmpty()
         entries.getForPriority(priority)[0].jndiName == jndiNameTwo
@@ -125,7 +125,7 @@ class LookupTest extends Specification
         con.serviceExists(serviceName) >> false
         conTwo.serviceExists(serviceName) >> false
         when:
-        def entries = instance.find(serviceName, cacheEntries)
+        def entries = instance.find(serviceName, cacheEntries, new TransactionLess())
         then:
         entries.isEmpty()
     }
