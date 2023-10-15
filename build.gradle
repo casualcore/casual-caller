@@ -7,7 +7,7 @@
 //-*- coding: utf-8 -*-
 buildscript {
     repositories {
-        mavenCentral()
+	mavenCentral()
         maven { url 'https://repo.spring.io/plugins-release' }
     }
 }
@@ -34,14 +34,21 @@ allprojects{
     targetCompatibility = JavaVersion.VERSION_17
     options.compilerArgs << "-Xlint:all" << "-Werror"
   }
-  repositories {
-    mavenCentral()
+    repositories {
+	maven {url 'https://s01.oss.sonatype.org/content/repositories/snapshots' }
+	mavenCentral()
   }
 }
 
 subprojects{
   apply from: "$rootProject.projectDir/versions.gradle"
   apply plugin: 'java-library'
+  test {
+    useJUnitPlatform()
+      testLogging {
+	events "passed", "skipped", "failed"
+      }
+  }
 }
 
 project.ext {

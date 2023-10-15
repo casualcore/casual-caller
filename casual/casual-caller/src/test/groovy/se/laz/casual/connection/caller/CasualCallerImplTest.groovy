@@ -1,7 +1,9 @@
 package se.laz.casual.connection.caller
 
+import se.laz.casual.api.Conversation
 import se.laz.casual.api.buffer.CasualBuffer
 import se.laz.casual.api.buffer.ServiceReturn
+import se.laz.casual.api.conversation.TpConnectReturn
 import se.laz.casual.api.flags.AtmiFlags
 import se.laz.casual.api.flags.ErrorState
 import se.laz.casual.api.flags.Flag
@@ -328,6 +330,46 @@ class CasualCallerImplTest extends Specification
       caller.tpacall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.TPNOTRAN))
       then:
       noExceptionThrown()
+   }
+
+   def 'tpconnect ok'()
+   {
+      given:
+      def serviceName = 'echo'
+      def connectionFactory = Mock(CasualConnectionFactory)
+      def callingBuffer = Mock(CasualBuffer)
+      def conversation = Mock(Conversation){
+         1 * close()
+      }
+      def someTpConnectReturn = TpConnectReturn.of(conversation)
+      def flags = Flag.of(AtmiFlags.TPRECVONLY)
+      connectionFactory.getConnection() >> {
+         def connection = Mock(CasualConnection)
+         1 * connection.tpconnect(serviceName, callingBuffer, flags) >> someTpConnectReturn
+         1 * connection.close()
+         return connection
+      }
+      def producer = Mock(ConnectionFactoryProducer) {
+         getConnectionFactory() >> {
+            connectionFactory
+         }
+         getJndiName() >> {
+            'someJndiName'
+         }
+      }
+      def entries = [ConnectionFactoryEntry.of(producer)]
+      lookup.get(serviceName) >> {
+         entries
+      }
+      when:
+      TpConnectReturn actual
+      instance.tpconnect(serviceName, callingBuffer, flags).withCloseable {tpConnectReturn ->
+         actual = tpConnectReturn
+      }
+      then:
+      noExceptionThrown()
+      actual.getErrorState() == ErrorState.OK
+      actual.getConversation().orElseThrow({'no conversation!'}) != null
    }
 
     def 'enqueue ok'()
