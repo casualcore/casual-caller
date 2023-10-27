@@ -59,11 +59,11 @@ public class FailoverAlgorithm
         return result;
     }
 
-    public CompletableFuture<ServiceReturn<CasualBuffer>> tpacallWithFailover(
+    public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacallWithFailover(
             String serviceName,
             ConnectionFactoryLookup lookup,
-            FunctionThrowsResourceException<CasualConnection, CompletableFuture<ServiceReturn<CasualBuffer>>> doCall,
-            FunctionNoArg<CompletableFuture<ServiceReturn<CasualBuffer>>> doTpenoent)
+            FunctionThrowsResourceException<CasualConnection, CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doCall,
+            FunctionNoArg<CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doTpenoent)
     {
         List<ConnectionFactoryEntry> validEntries = getFoundAndValidEntries(lookup, serviceName);
 

@@ -14,6 +14,7 @@ import se.laz.casual.api.flags.ErrorState;
 import se.laz.casual.api.flags.Flag;
 import se.laz.casual.api.flags.ServiceReturnState;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -44,7 +45,7 @@ public class TpCallerFailover implements TpCaller
     }
 
     @Override
-    public CompletableFuture<ServiceReturn<CasualBuffer>> tpacall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags, ConnectionFactoryLookup lookup)
+    public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags, ConnectionFactoryLookup lookup)
     {
         return algorithm.tpacallWithFailover(
                 serviceName,
@@ -52,8 +53,13 @@ public class TpCallerFailover implements TpCaller
                 // How to call service
                 con -> con.tpacall(serviceName, data, flags),
                 // What to do if the cache has no entries
-                () -> CompletableFuture.supplyAsync(this::tpenoentReply)
+                () -> CompletableFuture.supplyAsync(this::optionalTpenoentReply)
         );
+    }
+
+    private Optional<ServiceReturn<CasualBuffer>> optionalTpenoentReply()
+    {
+        return Optional.of(new ServiceReturn<>(ServiceBuffer.empty(), ServiceReturnState.TPFAIL, ErrorState.TPENOENT, 0L));
     }
 
     private ServiceReturn<CasualBuffer> tpenoentReply()

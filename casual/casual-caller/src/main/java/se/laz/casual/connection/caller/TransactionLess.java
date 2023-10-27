@@ -32,7 +32,7 @@ public class TransactionLess
     }
 
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
-    public CompletableFuture<ServiceReturn<CasualBuffer>> tpacall(Supplier<CompletableFuture<ServiceReturn<CasualBuffer>>> supplier)
+    public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacall(Supplier<CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> supplier)
     {
         return supplier.get();
     }
