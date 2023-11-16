@@ -57,13 +57,13 @@ public class TpCallerFailover implements TpCaller
         );
     }
 
-    private Optional<ServiceReturn<CasualBuffer>> optionalTpenoentReply()
-    {
-        return Optional.of(new ServiceReturn<>(ServiceBuffer.empty(), ServiceReturnState.TPFAIL, ErrorState.TPENOENT, 0L));
-    }
-
     private ServiceReturn<CasualBuffer> tpenoentReply()
     {
         return new ServiceReturn<>(ServiceBuffer.empty(), ServiceReturnState.TPFAIL, ErrorState.TPENOENT, 0L);
+    }
+
+    private Optional<ServiceReturn<CasualBuffer>> optionalTpenoentReply()
+    {
+        return Optional.of(tpenoentReply());
     }
 }
