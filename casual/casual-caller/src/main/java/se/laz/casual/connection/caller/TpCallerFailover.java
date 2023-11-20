@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, The casual project. All rights reserved.
+ * Copyright (c) 2021 - 2023, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -14,6 +14,7 @@ import se.laz.casual.api.flags.ErrorState;
 import se.laz.casual.api.flags.Flag;
 import se.laz.casual.api.flags.ServiceReturnState;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -44,7 +45,7 @@ public class TpCallerFailover implements TpCaller
     }
 
     @Override
-    public CompletableFuture<ServiceReturn<CasualBuffer>> tpacall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags, ConnectionFactoryLookup lookup)
+    public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags, ConnectionFactoryLookup lookup)
     {
         return algorithm.tpacallWithFailover(
                 serviceName,
@@ -52,12 +53,17 @@ public class TpCallerFailover implements TpCaller
                 // How to call service
                 con -> con.tpacall(serviceName, data, flags),
                 // What to do if the cache has no entries
-                () -> CompletableFuture.supplyAsync(this::tpenoentReply)
+                () -> CompletableFuture.supplyAsync(this::optionalTpenoentReply)
         );
     }
 
     private ServiceReturn<CasualBuffer> tpenoentReply()
     {
         return new ServiceReturn<>(ServiceBuffer.empty(), ServiceReturnState.TPFAIL, ErrorState.TPENOENT, 0L);
+    }
+
+    private Optional<ServiceReturn<CasualBuffer>> optionalTpenoentReply()
+    {
+        return Optional.of(tpenoentReply());
     }
 }

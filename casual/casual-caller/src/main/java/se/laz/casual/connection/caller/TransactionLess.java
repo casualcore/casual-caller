@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, The casual project. All rights reserved.
+ * Copyright (c) 2022 - 2023, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -32,7 +32,7 @@ public class TransactionLess
     }
 
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
-    public CompletableFuture<ServiceReturn<CasualBuffer>> tpacall(Supplier<CompletableFuture<ServiceReturn<CasualBuffer>>> supplier)
+    public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacall(Supplier<CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> supplier)
     {
         return supplier.get();
     }
