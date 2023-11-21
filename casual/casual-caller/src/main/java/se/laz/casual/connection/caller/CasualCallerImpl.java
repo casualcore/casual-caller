@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, The casual project. All rights reserved.
+ * Copyright (c) 2021 - 2023, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -63,7 +63,7 @@ public class CasualCallerImpl implements CasualCaller
     }
 
     @Override
-    public CompletableFuture<ServiceReturn<CasualBuffer>> tpacall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags)
+    public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags)
     {
         failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         return flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpacall(() -> tpCaller.tpacall(serviceName, data, flags, lookup)) : tpCaller.tpacall(serviceName, data, flags, lookup);
