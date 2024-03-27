@@ -1,14 +1,16 @@
 
 /*
- * Copyright (c) 2021, The casual project. All rights reserved.
+ * Copyright (c) 2021 - 2024, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
 
-package se.laz.casual.connection.caller;
+package se.laz.casual.connection.caller.validation;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
+import jakarta.ejb.Lock;
+import jakarta.ejb.LockType;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
 import jakarta.ejb.Timeout;
@@ -32,7 +34,7 @@ public class ConnectionFactoryEntryValidationTimer
     private TimerService timerService;
 
     @Inject
-    ConnectionValidator connectionValidator;
+    TimerWork work;
 
     @PostConstruct
     private void setup()
@@ -45,13 +47,14 @@ public class ConnectionFactoryEntryValidationTimer
         timerService.createIntervalTimer(0, interval, config);
     }
 
+    @Lock(LockType.READ)
     @Timeout
     public void validateConnectionFactories()
     {
         LOG.finest("Running ConnectionFactoryEntryValidationTimer");
         try
         {
-            connectionValidator.validateAllConnections();
+            work.work();
         }
         catch(Exception e)
         {
