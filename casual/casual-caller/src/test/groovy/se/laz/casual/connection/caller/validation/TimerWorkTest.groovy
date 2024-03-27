@@ -47,8 +47,8 @@ class TimerWorkTest extends Specification
         barrier.complete(true)
         // the next call also fine - also releases the wait condition
         // unfortunately, we do need the sleep here since we need the method to exit before
-        // we submit the next unit of work, else that would also just return as it still be busy
-        sleep(500)
+        // we submit the next unit of work, else that would also just return as it would still be busy
+        sleep(100)
         executorService.submit ({work.work()})
         testWaitCondition.join()
         then:
