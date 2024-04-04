@@ -32,9 +32,16 @@ public class ConnectionFactoryEntryValidationTimer
 
     @Resource
     private TimerService timerService;
+    private TimerWork work;
+
+    public ConnectionFactoryEntryValidationTimer()
+    {}
 
     @Inject
-    TimerWork work;
+    public ConnectionFactoryEntryValidationTimer(TimerWork work)
+    {
+        this.work = work;
+    }
 
     @PostConstruct
     private void setup()
