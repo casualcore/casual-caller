@@ -9,8 +9,6 @@ package se.laz.casual.connection.caller.validation;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
-import jakarta.ejb.Lock;
-import jakarta.ejb.LockType;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
 import jakarta.ejb.Timeout;
@@ -19,6 +17,7 @@ import jakarta.ejb.TimerService;
 import jakarta.ejb.TransactionAttribute;
 import jakarta.ejb.TransactionAttributeType;
 import jakarta.inject.Inject;
+import se.laz.casual.connection.caller.ConnectionValidator;
 import se.laz.casual.connection.caller.config.ConfigurationService;
 
 import java.util.logging.Logger;
@@ -32,40 +31,48 @@ public class ConnectionFactoryEntryValidationTimer
 
     @Resource
     private TimerService timerService;
-    private TimerWork work;
+    private ConnectionValidator connectionValidator;
+    private TimerConfig config;
+    private long interval;
 
     public ConnectionFactoryEntryValidationTimer()
     {}
 
     @Inject
-    public ConnectionFactoryEntryValidationTimer(TimerWork work)
+    public ConnectionFactoryEntryValidationTimer(ConnectionValidator connectionValidator)
     {
-        this.work = work;
+        this.connectionValidator = connectionValidator;
     }
 
     @PostConstruct
     private void setup()
     {
-        long interval = ConfigurationService.getInstance().getConfiguration().getValidationIntervalMillis();
-
+        interval = ConfigurationService.getInstance().getConfiguration().getValidationIntervalMillis();
         // Setup timer
-        TimerConfig config = new TimerConfig();
+        config = new TimerConfig();
         config.setPersistent(false);
-        timerService.createIntervalTimer(0, interval, config);
+        timerService.createSingleActionTimer(interval, config);
     }
 
-    @Lock(LockType.READ)
     @Timeout
     public void validateConnectionFactories()
     {
         LOG.finest("Running ConnectionFactoryEntryValidationTimer");
         try
         {
-            work.work();
+            connectionValidator.validateAllConnections();
         }
         catch(Exception e)
         {
             LOG.warning(() -> "failed validating connection factories: " + e);
+        }
+        finally
+        {
+            // To avoid overlapping timeouts, we reschedule only when work is done
+            // This since, for instance on wildfly, it checks if the timeout is currently running and logs
+            // a warning if that is the case - before actually calling the timeout method
+            // If it did not do that, we could have made another work around to get rid of that
+            timerService.createSingleActionTimer(interval, config);
         }
     }
 }
