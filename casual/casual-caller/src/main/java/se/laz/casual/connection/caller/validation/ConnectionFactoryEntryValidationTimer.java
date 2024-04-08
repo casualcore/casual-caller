@@ -1,11 +1,13 @@
 /*
- * Copyright (c) 2021, The casual project. All rights reserved.
+ * Copyright (c) 2021 - 2024, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
 
-package se.laz.casual.connection.caller;
+package se.laz.casual.connection.caller.validation;
 
+
+import se.laz.casual.connection.caller.ConnectionValidator;
 import se.laz.casual.connection.caller.config.ConfigurationService;
 
 import javax.annotation.PostConstruct;
@@ -29,19 +31,27 @@ public class ConnectionFactoryEntryValidationTimer
 
     @Resource
     private TimerService timerService;
+    private ConnectionValidator connectionValidator;
+    private TimerConfig config;
+    private long interval;
+
+    public ConnectionFactoryEntryValidationTimer()
+    {}
 
     @Inject
-    ConnectionValidator connectionValidator;
+    public ConnectionFactoryEntryValidationTimer(ConnectionValidator connectionValidator)
+    {
+        this.connectionValidator = connectionValidator;
+    }
 
     @PostConstruct
     private void setup()
     {
-        long interval = ConfigurationService.getInstance().getConfiguration().getValidationIntervalMillis();
-
+        interval = ConfigurationService.getInstance().getConfiguration().getValidationIntervalMillis();
         // Setup timer
-        TimerConfig config = new TimerConfig();
+        config = new TimerConfig();
         config.setPersistent(false);
-        timerService.createIntervalTimer(0, interval, config);
+        timerService.createSingleActionTimer(interval, config);
     }
 
     @Timeout
@@ -55,6 +65,14 @@ public class ConnectionFactoryEntryValidationTimer
         catch(Exception e)
         {
             LOG.warning(() -> "failed validating connection factories: " + e);
+        }
+        finally
+        {
+            // To avoid overlapping timeouts, we reschedule only when work is done
+            // This since, for instance on wildfly, it checks if the timeout is currently running and logs
+            // a warning if that is the case - before actually calling the timeout method
+            // If it did not do that, we could have made another work around to get rid of that
+            timerService.createSingleActionTimer(interval, config);
         }
     }
 }
