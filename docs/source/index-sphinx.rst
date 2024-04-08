@@ -10,4 +10,4 @@ casual-caller documentation
    :titlesonly:
    
    Casual caller <casual-docs/README>
-   javadoc <index>
+   Javadoc <index>
