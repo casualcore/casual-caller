@@ -119,7 +119,7 @@ that contains the following:
 </jboss-ejb-client>
 ```
 
-# Transaction pool sticky
+## Transaction pool sticky
 
 Casual caller has an optional feature to sticky calls from a specific transaction to a specific casual pool. It will only sticky the first pool it sees for a given transaction and if the stickied pool is unavailable or does not serve a specific service the normal casual caller flow will be used.
 
