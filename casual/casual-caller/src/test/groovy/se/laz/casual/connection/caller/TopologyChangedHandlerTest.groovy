@@ -6,6 +6,7 @@
 package se.laz.casual.connection.caller
 
 import se.laz.casual.connection.caller.config.ConfigurationService
+import se.laz.casual.connection.caller.topologychanged.TopologyChangedHandler
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
 import se.laz.casual.jca.DomainId
