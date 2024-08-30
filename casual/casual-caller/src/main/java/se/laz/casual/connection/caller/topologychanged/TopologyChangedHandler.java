@@ -70,6 +70,7 @@ public class TopologyChangedHandler
     private void scheduleDiscovery(DomainId domainId)
     {
         long delayInMs = ConfigurationService.getInstance().getConfiguration().getTopologyChangeDelayMillis();
+        LOG.finest(() -> "scheduling domain discovery for domain: " + domainId);
         try
         {
             DiscoveryTask task = new DiscoveryTask(domainId, connectionFactoryEntrySupplier, cacheRepopulator);
@@ -121,7 +122,9 @@ public class TopologyChangedHandler
             Optional<ConnectionFactoryEntry> maybeMatch = connectionFactoryEntrySupplier.get().stream()
                                                                                         .filter(connectionFactoryEntry -> DomainIdChecker.isSameDomain(domainId, connectionFactoryEntry))
                                                                                         .findFirst();
+            LOG.finest(() -> "will issue domain discovery for domain: " + domainId);
             maybeMatch.ifPresent(cacheRepopulator::repopulate);
+            LOG.finest(() -> "domain discovery finished for domain: " + domainId);
             // if no match, then that connection is gone and the cache will be repopulated once it re-establishes a connection
             TopologyChangedDoneHandler.execute(TopologyChangedDoneData.createBuilder()
                                                                       .withWasUpdatedDuringDiscovery(updateRequestDuringDiscovery::contains)
