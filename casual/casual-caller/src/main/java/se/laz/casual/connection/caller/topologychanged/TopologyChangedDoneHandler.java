@@ -7,12 +7,16 @@ package se.laz.casual.connection.caller.topologychanged;
 
 import se.laz.casual.jca.DomainId;
 
+import java.util.Objects;
+
 public final class TopologyChangedDoneHandler
 {
     private TopologyChangedDoneHandler()
     {}
     public static void execute(TopologyChangedDoneData changedData, DomainId domainId)
     {
+        Objects.requireNonNull(changedData, "changedData can not be null");
+        Objects.requireNonNull(domainId, "domainId can not be null");
         if(changedData.getWasUpdatedDuringDiscovery().test(domainId))
         {
             // at least one, topology update while domain discovery was running thus we schedule another domain discovery
