@@ -6,13 +6,18 @@
 package se.laz.casual.connection.caller
 
 import se.laz.casual.connection.caller.config.ConfigurationService
+import se.laz.casual.connection.caller.topologychanged.TopologyChangedHandler
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
 import se.laz.casual.jca.DomainId
 import spock.lang.Specification
 
 import javax.enterprise.concurrent.ManagedScheduledExecutorService
-import java.util.concurrent.*
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
 
 class TopologyChangedHandlerTest extends Specification
