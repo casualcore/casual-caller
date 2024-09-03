@@ -7,9 +7,9 @@
 
 // casual-java group and version
 group = 'se.laz.casual'
-version = '3.2.18'
+version = '3.2.19'
 
-def casual_jca_version = '3.2.32'
+def casual_jca_version = '3.2.42'
 def gson_version = '2.10.1'
 
 ext.libs = [
