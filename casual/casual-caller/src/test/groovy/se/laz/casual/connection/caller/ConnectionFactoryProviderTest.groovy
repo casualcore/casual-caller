@@ -5,6 +5,7 @@
  */
 package se.laz.casual.connection.caller
 
+import se.laz.casual.connection.caller.topologychanged.TopologyChangedHandler
 import se.laz.casual.connection.caller.util.ConnectionFactoryFinder
 import spock.lang.Specification
 
