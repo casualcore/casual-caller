@@ -3,9 +3,11 @@
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
-package se.laz.casual.connection.caller;
+package se.laz.casual.connection.caller.topologychanged;
 
-
+import se.laz.casual.connection.caller.CacheRepopulator;
+import se.laz.casual.connection.caller.ConnectionFactoryEntry;
+import se.laz.casual.connection.caller.DomainIdChecker;
 import se.laz.casual.connection.caller.config.ConfigurationService;
 import se.laz.casual.jca.DomainId;
 
@@ -19,7 +21,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,6 +32,7 @@ public class TopologyChangedHandler
     @Resource
     private ManagedScheduledExecutorService scheduledExecutorService;
     private final Set<DomainId> changedDomains = ConcurrentHashMap.newKeySet();
+    private final Set<DomainId> updateRequestDuringDiscovery = ConcurrentHashMap.newKeySet();
     private CacheRepopulator cacheRepopulator;
     private Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier;
 
@@ -53,13 +55,25 @@ public class TopologyChangedHandler
     {
         if(changedDomains.contains(domainId))
         {
+            updateRequestDuringDiscovery.add(domainId);
             return;
         }
         changedDomains.add(domainId);
+        scheduleDiscovery(domainId);
+    }
+
+    public void setManagedScheduledExecutorService(ManagedScheduledExecutorService scheduledExecutorService)
+    {
+        this.scheduledExecutorService = scheduledExecutorService;
+    }
+
+    private void scheduleDiscovery(DomainId domainId)
+    {
         long delayInMs = ConfigurationService.getInstance().getConfiguration().getTopologyChangeDelayMillis();
+        LOG.finest(() -> "scheduling domain discovery for domain: " + domainId);
         try
         {
-            DiscoveryTask task = new DiscoveryTask(domainId, changedDomains::remove, connectionFactoryEntrySupplier, cacheRepopulator);
+            DiscoveryTask task = new DiscoveryTask(domainId, connectionFactoryEntrySupplier, cacheRepopulator);
             scheduledExecutorService.schedule( task, delayInMs, TimeUnit.MILLISECONDS);
         }
         catch(RejectedExecutionException e)
@@ -68,11 +82,6 @@ public class TopologyChangedHandler
             markForLaterDomainDiscovery(domainId);
             LOG.log(Level.WARNING, e, () -> "Could not schedule task to handle topology change for domain: " + domainId + " it will be handled on the next tpcall/tpacall or enqueue/dequeue call");
         }
-    }
-
-    public void setManagedScheduledExecutorService(ManagedScheduledExecutorService scheduledExecutorService)
-    {
-        this.scheduledExecutorService = scheduledExecutorService;
     }
 
     private void markForLaterDomainDiscovery(DomainId domainId)
@@ -86,13 +95,11 @@ public class TopologyChangedHandler
     private class DiscoveryTask implements Runnable
     {
         private final DomainId domainId;
-        private final Consumer<DomainId> topologyChangeHandledConsumer;
         private final Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier;
         private final CacheRepopulator cacheRepopulator;
-        public DiscoveryTask(DomainId domainId, Consumer<DomainId> topologyChangeHandledConsumer, Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier, CacheRepopulator cacheRepopulator)
+        public DiscoveryTask(DomainId domainId, Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier, CacheRepopulator cacheRepopulator)
         {
             this.domainId = domainId;
-            this.topologyChangeHandledConsumer = topologyChangeHandledConsumer;
             this.connectionFactoryEntrySupplier = connectionFactoryEntrySupplier;
             this.cacheRepopulator = cacheRepopulator;
         }
@@ -112,12 +119,19 @@ public class TopologyChangedHandler
         }
         private void handleTopologyChanged(final DomainId domainId)
         {
-            topologyChangeHandledConsumer.accept(domainId);
             Optional<ConnectionFactoryEntry> maybeMatch = connectionFactoryEntrySupplier.get().stream()
                                                                                         .filter(connectionFactoryEntry -> DomainIdChecker.isSameDomain(domainId, connectionFactoryEntry))
                                                                                         .findFirst();
+            LOG.finest(() -> "will issue domain discovery for domain: " + domainId);
             maybeMatch.ifPresent(cacheRepopulator::repopulate);
+            LOG.finest(() -> "domain discovery finished for domain: " + domainId);
             // if no match, then that connection is gone and the cache will be repopulated once it re-establishes a connection
+            TopologyChangedDoneHandler.execute(TopologyChangedDoneData.createBuilder()
+                                                                      .withWasUpdatedDuringDiscovery(updateRequestDuringDiscovery::contains)
+                                                                      .withUpdatedDuringDiscoveryConsumer(updateRequestDuringDiscovery::remove)
+                                                                      .withTopologyChangeHandledConsumer(changedDomains::remove)
+                                                                      .withScheduleFunction(TopologyChangedHandler.this::scheduleDiscovery)
+                                                                      .build(), domainId);
         }
     }
 
