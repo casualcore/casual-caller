@@ -10,6 +10,8 @@ import jakarta.resource.ResourceException;
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.ServiceReturn;
 import se.laz.casual.api.flags.ErrorState;
+import se.laz.casual.connection.caller.functions.FunctionNoArg;
+import se.laz.casual.connection.caller.functions.FunctionThrowsResourceException;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.network.connection.CasualConnectionException;
 import se.laz.casual.network.connection.DomainDisconnectedException;
@@ -29,7 +31,7 @@ public class FailoverAlgorithm
     public ServiceReturn<CasualBuffer> tpcallWithFailover(
             String serviceName,
             ConnectionFactoryLookup lookup,
-            FunctionThrowsResourceException<CasualConnection, ServiceReturn<CasualBuffer>> doCall,
+            FunctionThrowsResourceException<ServiceReturn<CasualBuffer>> doCall,
             FunctionNoArg<ServiceReturn<CasualBuffer>> doTpenoent)
     {
         List<ConnectionFactoryEntry> validEntries = getFoundAndValidEntries(lookup, serviceName);
@@ -63,7 +65,7 @@ public class FailoverAlgorithm
     public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacallWithFailover(
             String serviceName,
             ConnectionFactoryLookup lookup,
-            FunctionThrowsResourceException<CasualConnection, CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doCall,
+            FunctionThrowsResourceException<CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doCall,
             FunctionNoArg<CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doTpenoent)
     {
         List<ConnectionFactoryEntry> validEntries = getFoundAndValidEntries(lookup, serviceName);
@@ -86,14 +88,14 @@ public class FailoverAlgorithm
         return validEntries;
     }
 
-    private <T> T issueCall(String serviceName, List<ConnectionFactoryEntry> validEntries, FunctionThrowsResourceException<CasualConnection, T> doCall)
+    private <T> T issueCall(String serviceName, List<ConnectionFactoryEntry> validEntries, FunctionThrowsResourceException<T> doCall)
     {
         Exception thrownException = null;
 
         // Sticky transaction handling
         try
         {
-            Optional<T> stickyMaybe = handleTransactionSticky(serviceName, validEntries, doCall);
+            Optional<T> stickyMaybe = StickyTransactionHandler.handleTransactionSticky(serviceName, validEntries, doCall, TransactionPoolMapper::getInstance);
 
             if (stickyMaybe.isPresent())
             {
@@ -136,100 +138,4 @@ public class FailoverAlgorithm
         throw new CasualResourceException("Call failed to all " + validEntries.size() + " available casual connections.", thrownException);
     }
 
-    /**
-     * Try to use a stickied pool if pool stickiness is configured and any stickied pool is available and serves the requested service
-     *
-     * @param serviceName Service to call
-     * @param factories   Currently available factories for service to call
-     * @param doCall      Provided service call procedure
-     * @return Optional ServiceReturn. An empty result could indicate that stickiness isn't enabled, sticky isn't set yet for the current transaction (which will be the case for the first call) or the stickied pool was unavailable so call to sticky was skipped. Empty should always lead to retry down the line if possible, otherwise a TPENOENT response.
-     * @throws ResourceException Some softer errors are reported as resource exceptions. If these are thrown later retries with other pools is possible.
-     */
-    private <T> Optional<T> handleTransactionSticky(
-            String serviceName,
-            List<ConnectionFactoryEntry> factories,
-            FunctionThrowsResourceException<CasualConnection, T> doCall) throws ResourceException
-    {
-        if (!TransactionPoolMapper.getInstance().isPoolMappingActive())
-        {
-            return Optional.empty();
-        }
-
-        Optional<StickiedCallInfo> stickyMaybe = getAndSetSticky(serviceName, factories);
-
-        if (stickyMaybe.isPresent())
-        {
-            // We have a specific stickied pool to use that looks usable, try to use it
-            StickiedCallInfo sticky = stickyMaybe.get();
-            factories.remove(sticky.connectionFactoryEntry()); // If we later need to do failover stuff we don't want to retry with this one
-            LOG.finest(() -> "Attempting to use pool=" + sticky.connectionFactoryEntry().getJndiName() + " with sticky to current transaction.");
-            try (CasualConnection con = sticky.connectionFactoryEntry().getConnectionFactory().getConnection())
-            {
-                return Optional.of(doCall.apply(con, sticky.execution()));
-            }
-            catch (CasualConnectionException e)
-            {
-                //This error branch will most likely happen if there are connection errors during a service call
-                sticky.connectionFactoryEntry().invalidate();
-
-                // These exceptions are rollback-only, do not attempt any retries.
-                throw new CasualResourceException("Call failed during execution to service=" + serviceName
-                        + " on connection=" + sticky.connectionFactoryEntry().getJndiName()
-                        + " because of a network connection error, retries not possible.", e);
-            }
-        }
-        else
-        {
-            LOG.finest(() -> "Current sticky is " + TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction()
-                    + " but called service=" + serviceName
-                    + " is currently available in pools [" + factories.stream().map(ConnectionFactoryEntry::getJndiName).collect(Collectors.joining(","))
-                    + "]. Will use available pools instead of stickied pool.");
-            return Optional.empty();
-        }
-    }
-
-    private Optional<StickiedCallInfo> getAndSetSticky(String serviceName, List<ConnectionFactoryEntry> validFactories)
-    {
-        StickyInformation stickyInformation = TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction();
-
-        if (stickyInformation == null)
-        {
-            // Service exists in some pool, pick first one as sticky (would otherwise be picked later in normal flow)
-            ConnectionFactoryEntry newStickyFactory = validFactories.get(0);
-            StickyInformation newStickyInformation = new StickyInformation(newStickyFactory.getJndiName(), UUID.randomUUID());
-            TransactionPoolMapper.getInstance().setStickyInformationForCurrentTransaction(newStickyInformation);
-            LOG.finest(() -> "No sticky present for call to service=" + serviceName + ", setting sticky=" + newStickyFactory.getJndiName() + " with=" + newStickyInformation);
-            return Optional.of(new StickiedCallInfo(newStickyFactory, newStickyInformation.execution()));
-        }
-        else
-        {
-            Optional<ConnectionFactoryEntry> stickyMatch = validFactories
-                    .stream()
-                    .filter(connectionFactoryEntry -> stickyInformation.poolName().equals(connectionFactoryEntry.getJndiName()) && connectionFactoryEntry.isValid())
-                    .findFirst();
-
-            if (stickyMatch.isPresent())
-            {
-                LOG.finest(() -> "Using stickied pool=" + stickyInformation + " for call to service=" + serviceName);
-                ConnectionFactoryEntry stickyEntry = stickyMatch.get();
-                validFactories.remove(stickyEntry);
-                return Optional.of(new StickiedCallInfo(stickyEntry, stickyInformation.execution()));
-            }
-            else
-            {
-                LOG.finest(() -> "There was a sticky=" + stickyInformation + ", but it did not match the valid factories for the called service=" + serviceName);
-                return Optional.empty();
-            }
-        }
-    }
-
-    public interface FunctionNoArg<R>
-    {
-        R apply();
-    }
-
-    public interface FunctionThrowsResourceException<I, R>
-    {
-        R apply(I input, UUID Execution) throws ResourceException;
-    }
 }
