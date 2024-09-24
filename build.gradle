@@ -35,7 +35,8 @@ allprojects{
     options.compilerArgs << "-Xlint:all" << "-Werror"
   }
   repositories {
-    mavenCentral()
+        mavenCentral()
+        maven {url 'https://s01.oss.sonatype.org/content/repositories/snapshots' }
   }
 }
 

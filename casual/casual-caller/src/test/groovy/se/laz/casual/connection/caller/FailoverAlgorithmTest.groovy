@@ -183,7 +183,7 @@ class FailoverAlgorithmTest extends Specification
       response2.errorState == ErrorState.OK
 
       TransactionPoolMapper.getInstance().getNumberOfTrackedTransactions() == 1
-      TransactionPoolMapper.getInstance().getPoolNameForCurrentTransaction() == pool1name
+      TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction() == pool1name
    }
 
    def 'stickies, failover: when calling stickied service failover is possible to other non-stickied pool'()
@@ -215,7 +215,7 @@ class FailoverAlgorithmTest extends Specification
       then:
       response1.errorState == ErrorState.OK
       TransactionPoolMapper.getInstance().getNumberOfTrackedTransactions() == 1
-      TransactionPoolMapper.getInstance().getPoolNameForCurrentTransaction() == pool1name
+      TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction() == pool1name
    }
 
    private ConnectionFactoryEntry getFactoryMockServiceReturn(String jndiName, ServiceReturn<CasualBuffer> expectedReturn)

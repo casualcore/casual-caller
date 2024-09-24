@@ -26,6 +26,7 @@ import jakarta.inject.Inject;
 import jakarta.resource.ResourceException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Remote(CasualCaller.class)
@@ -63,10 +64,22 @@ public class CasualCallerImpl implements CasualCaller
     }
 
     @Override
+    public ServiceReturn<CasualBuffer> tpcall(String s, CasualBuffer casualBuffer, Flag<AtmiFlags> flag, UUID execution)
+    {
+        throw new UnsupportedOperationException("Casual caller does not support tpcall with execution");
+    }
+
+    @Override
     public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags)
     {
         failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         return flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpacall(() -> tpCaller.tpacall(serviceName, data, flags, lookup)) : tpCaller.tpacall(serviceName, data, flags, lookup);
+    }
+
+    @Override
+    public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacall(String s, CasualBuffer casualBuffer, Flag<AtmiFlags> flag, UUID uuid)
+    {
+        throw new UnsupportedOperationException("Casual caller does not support tpacall with execution");
     }
 
     @Override

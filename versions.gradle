@@ -9,7 +9,7 @@
 group = 'se.laz.casual'
 version = '3.2.19'
 
-def casual_jca_version = '3.2.42'
+def casual_jca_version = '3.2.44-SNAPSHOT'
 def gson_version = '2.10.1'
 
 ext.libs = [

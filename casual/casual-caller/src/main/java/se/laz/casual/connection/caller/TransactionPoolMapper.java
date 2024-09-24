@@ -27,7 +27,7 @@ import java.util.logging.Logger;
 public final class TransactionPoolMapper
 {
     private static final Logger LOG = Logger.getLogger(TransactionPoolMapper.class.getName());
-    private final Map<Transaction, String> transactionStickies = new ConcurrentHashMap<>();
+    private final Map<Transaction, StickyInformation> transactionStickies = new ConcurrentHashMap<>();
 
     private boolean stickyEnabled = ConfigurationService.getInstance().getConfiguration().isTransactionStickyEnabled();
     private final Object lock = new Object();
@@ -69,7 +69,7 @@ public final class TransactionPoolMapper
         return instance;
     }
 
-    public String getPoolNameForCurrentTransaction()
+    public StickyInformation getStickyInformationForCurrentTransaction()
     {
         if (!stickyEnabled)
         {
@@ -80,7 +80,7 @@ public final class TransactionPoolMapper
         return transactionMaybe.map(transactionStickies::get).orElse(null);
     }
 
-    public void setPoolNameForCurrentTransaction(String poolName)
+    public void setStickyInformationForCurrentTransaction(StickyInformation stickyInformation)
     {
         if (!stickyEnabled)
         {
@@ -96,12 +96,12 @@ public final class TransactionPoolMapper
                 if (transactionStickies.containsKey(transaction))
                 {
                     throw new CasualRuntimeException("Attempted to set a pool sticky ("
-                            + poolName + ") for a transaction that was already stickied to another pool ("
+                            + stickyInformation + ") for a transaction that was already stickied to another pool ("
                             + transactionStickies.get(transaction) + ").");
                 }
                 else
                 {
-                    transactionStickies.put(transaction, poolName);
+                    transactionStickies.put(transaction, stickyInformation);
                     ensureTransactionPruningOnCompletion(transaction);
                 }
             }
@@ -214,8 +214,8 @@ public final class TransactionPoolMapper
             Set<Transaction> keys = transactionStickies.keySet();
             for (Transaction key : keys)
             {
-                String entry = transactionStickies.get(key);
-                if (poolName.equals(entry))
+                StickyInformation entry = transactionStickies.get(key);
+                if (poolName.equals(entry.poolName()))
                 {
                     transactionStickies.remove(key);
                 }

@@ -46,10 +46,10 @@ class TransactionPoolMapperTest extends Specification
         transactionManager.setCurrentTransaction(transaction)
 
         String actualPoolName = "hello, world!"
-        TransactionPoolMapper.getInstance().setPoolNameForCurrentTransaction(actualPoolName)
+        TransactionPoolMapper.getInstance().setStickyInformationForCurrentTransaction(actualPoolName)
 
         expect:
-        TransactionPoolMapper.getInstance().getPoolNameForCurrentTransaction() == actualPoolName
+        TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction() == actualPoolName
         TransactionPoolMapper.getInstance().getNumberOfTrackedTransactions() == 1
     }
 
@@ -61,7 +61,7 @@ class TransactionPoolMapperTest extends Specification
         for (int i = 0; i < transactions; i++)
         {
             transactionManager.setCurrentTransaction(new TransactionImpl(Status.STATUS_ACTIVE))
-            TransactionPoolMapper.getInstance().setPoolNameForCurrentTransaction("hello transaction " + i)
+            TransactionPoolMapper.getInstance().setStickyInformationForCurrentTransaction("hello transaction " + i)
         }
 
         expect:
@@ -73,10 +73,10 @@ class TransactionPoolMapperTest extends Specification
         given:
         transactionManager.setCurrentTransaction(new TransactionImpl(Status.STATUS_ACTIVE))
 
-        TransactionPoolMapper.getInstance().setPoolNameForCurrentTransaction("eis/myPool")
+        TransactionPoolMapper.getInstance().setStickyInformationForCurrentTransaction("eis/myPool")
 
         when:
-        TransactionPoolMapper.getInstance().setPoolNameForCurrentTransaction("eis/whateverPool")
+        TransactionPoolMapper.getInstance().setStickyInformationForCurrentTransaction("eis/whateverPool")
 
         then:
         def e = thrown(CasualRuntimeException)

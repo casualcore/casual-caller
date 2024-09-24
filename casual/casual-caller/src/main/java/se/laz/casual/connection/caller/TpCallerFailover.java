@@ -38,7 +38,7 @@ public class TpCallerFailover implements TpCaller
                 serviceName,
                 lookup,
                 // How to call service
-                con -> con.tpcall(serviceName, data, flags),
+                (con, execution) -> con.tpcall(serviceName, data, flags, execution),
                 // What to do if the cache has no entries
                 this::tpenoentReply
         );
@@ -51,7 +51,7 @@ public class TpCallerFailover implements TpCaller
                 serviceName,
                 lookup,
                 // How to call service
-                con -> con.tpacall(serviceName, data, flags),
+                (con, execution) -> con.tpacall(serviceName, data, flags, execution),
                 // What to do if the cache has no entries
                 () -> CompletableFuture.supplyAsync(this::optionalTpenoentReply)
         );
