@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public final class TransactionPoolMapper
+public class TransactionPoolMapper
 {
     private static final Logger LOG = Logger.getLogger(TransactionPoolMapper.class.getName());
     private final Map<Transaction, StickyInformation> transactionStickies = new ConcurrentHashMap<>();
