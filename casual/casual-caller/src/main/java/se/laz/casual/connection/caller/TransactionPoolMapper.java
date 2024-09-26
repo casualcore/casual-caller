@@ -177,7 +177,7 @@ public class TransactionPoolMapper
     public int getNumberOfTrackedTransactions(String poolName)
     {
         Objects.requireNonNull(poolName, "poolName must have a value");
-        return (int) transactionStickies.values().stream().filter(s -> s.equals(poolName)).count();
+        return (int) transactionStickies.values().stream().filter(s -> s.poolName().equals(poolName)).count();
     }
 
     /**

@@ -21,6 +21,9 @@ import se.laz.casual.network.connection.CasualConnectionException;
 public class StickyTransactionHandler
 {
     private static final Logger LOG = Logger.getLogger(StickyTransactionHandler.class.getName());
+
+    private StickyTransactionHandler()
+    {}
     /**
      * Try to use a stickied pool if pool stickiness is configured and any stickied pool is available and serves the requested service
      *

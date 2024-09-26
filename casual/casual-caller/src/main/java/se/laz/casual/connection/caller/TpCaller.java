@@ -12,7 +12,6 @@ import se.laz.casual.api.flags.AtmiFlags;
 import se.laz.casual.api.flags.Flag;
 
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public interface TpCaller
