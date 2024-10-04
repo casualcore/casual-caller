@@ -27,13 +27,13 @@ public class TransactionManagerImpl implements TransactionManager
     @Override
     public void begin() throws NotSupportedException, SystemException
     {
-
+        throw new UnsupportedOperationException("begin() not supported");
     }
 
     @Override
     public void commit() throws RollbackException, HeuristicMixedException, HeuristicRollbackException, SecurityException, IllegalStateException, SystemException
     {
-
+        throw new UnsupportedOperationException("commit() not supported");
     }
 
     @Override
@@ -51,25 +51,25 @@ public class TransactionManagerImpl implements TransactionManager
     @Override
     public void resume(Transaction tobj) throws InvalidTransactionException, IllegalStateException, SystemException
     {
-
+        throw new UnsupportedOperationException("resume() not supported");
     }
 
     @Override
     public void rollback() throws IllegalStateException, SecurityException, SystemException
     {
-
+        throw new UnsupportedOperationException("rollback() not supported");
     }
 
     @Override
     public void setRollbackOnly() throws IllegalStateException, SystemException
     {
-
+        throw new UnsupportedOperationException("setRollbackOnly() not supported");
     }
 
     @Override
     public void setTransactionTimeout(int seconds) throws SystemException
     {
-
+        throw new UnsupportedOperationException("setTransactionTimeout() not supported");
     }
 
     @Override

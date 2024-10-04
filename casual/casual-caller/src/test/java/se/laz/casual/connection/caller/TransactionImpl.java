@@ -51,6 +51,7 @@ public class TransactionImpl implements Transaction
     @Override
     public void registerSynchronization(Synchronization sync) throws RollbackException, IllegalStateException, SystemException
     {
+        throw new UnsupportedOperationException("Synchronization not supported");
     }
 
     @Override

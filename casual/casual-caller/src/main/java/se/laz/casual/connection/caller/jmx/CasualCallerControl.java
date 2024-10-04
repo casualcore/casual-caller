@@ -16,7 +16,6 @@ import se.laz.casual.connection.caller.config.ConfigurationService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class CasualCallerControl implements CasualCallerControlMBean
 {
@@ -36,7 +35,7 @@ public class CasualCallerControl implements CasualCallerControlMBean
                 .stream()
                 .filter(ConnectionFactoryEntry::isValid)
                 .map(ConnectionFactoryEntry::getJndiName)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -46,7 +45,7 @@ public class CasualCallerControl implements CasualCallerControlMBean
                 .stream()
                 .filter(ConnectionFactoryEntry::isInvalid)
                 .map(ConnectionFactoryEntry::getJndiName)
-                .collect(Collectors.toList());
+                .toList();
     }
 
 
@@ -91,7 +90,7 @@ public class CasualCallerControl implements CasualCallerControlMBean
                 .stream()
                 .map(ConnectionFactoryEntry::getJndiName)
                 .sorted()
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -102,7 +101,7 @@ public class CasualCallerControl implements CasualCallerControlMBean
                 .stream()
                 .map(ConnectionFactoryEntry::getJndiName)
                 .sorted()
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

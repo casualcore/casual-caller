@@ -15,7 +15,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class QueueCache
 {
@@ -53,7 +52,7 @@ public class QueueCache
                 List<ConnectionFactoryEntry> cachedForQueue = cacheMap.get(queueName)
                         .stream()
                         .filter(ConnectionFactoryEntry::isValid)
-                        .collect(Collectors.toList());
+                        .toList();
 
                 if(cachedForQueue.isEmpty())
                 {
