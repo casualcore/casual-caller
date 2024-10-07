@@ -221,7 +221,7 @@ class CasualCallerImplTest extends Specification
         def flags = Flag.of(AtmiFlags.NOFLAG)
         connectionFactory.getConnection() >> {
             def connection = Mock(CasualConnection)
-            1 * connection.tpcall(serviceName, callingBuffer, flags) >> serviceReturn
+            1 * connection.tpcall(serviceName, callingBuffer, flags, _ as UUID) >> serviceReturn
             return connection
         }
         def producer = Mock(ConnectionFactoryProducer){
@@ -252,7 +252,7 @@ class CasualCallerImplTest extends Specification
         def flags = Flag.of(AtmiFlags.NOFLAG)
         connectionFactory.getConnection() >> {
             def connection = Mock(CasualConnection)
-            1 * connection.tpacall(serviceName, callingBuffer, flags) >> future
+            1 * connection.tpacall(serviceName, callingBuffer, flags, _ as UUID) >> future
             return connection
         }
         def producer = Mock(ConnectionFactoryProducer){

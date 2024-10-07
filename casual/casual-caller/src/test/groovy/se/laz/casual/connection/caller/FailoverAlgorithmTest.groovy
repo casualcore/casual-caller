@@ -74,7 +74,7 @@ class FailoverAlgorithmTest extends Specification
       ServiceReturn<CasualBuffer> response = failoverAlgorithm.tpcallWithFailover(
               service,
               lookup,
-              {con -> con.tpcall(service, ServiceBuffer.empty(), Flag.of())},
+              {con,execution -> con.tpcall(service, ServiceBuffer.empty(), Flag.of(), execution)},
               {serviceReturnTpenoent})
 
       then:
@@ -104,7 +104,7 @@ class FailoverAlgorithmTest extends Specification
       ServiceReturn<CasualBuffer> response = failoverAlgorithm.tpcallWithFailover(
               service,
               lookup,
-              {con -> con.tpcall(service, ServiceBuffer.empty(), Flag.of())},
+              {con, execution -> con.tpcall(service, ServiceBuffer.empty(), Flag.of(), execution)},
               {serviceReturnTpenoent})
 
       then:
@@ -134,7 +134,7 @@ class FailoverAlgorithmTest extends Specification
       ServiceReturn<CasualBuffer> response = failoverAlgorithm.tpcallWithFailover(
               service,
               lookup,
-              {con -> con.tpcall(service, ServiceBuffer.empty(), Flag.of())},
+              {con, execution -> con.tpcall(service, ServiceBuffer.empty(), Flag.of(), execution)},
               {serviceReturnTpenoent})
 
       then:
@@ -169,13 +169,13 @@ class FailoverAlgorithmTest extends Specification
       ServiceReturn<CasualBuffer> response1 = failoverAlgorithm.tpcallWithFailover(
               service1,
               lookup,
-              {con -> con.tpcall(service1, ServiceBuffer.empty(), Flag.of())},
+              {con, execution -> con.tpcall(service1, ServiceBuffer.empty(), Flag.of(), execution)},
               {serviceReturnTpenoent})
 
       ServiceReturn<CasualBuffer> response2 = failoverAlgorithm.tpcallWithFailover(
               service2,
               lookup,
-              {con -> con.tpcall(service2, ServiceBuffer.empty(), Flag.of())},
+              {con, execution -> con.tpcall(service2, ServiceBuffer.empty(), Flag.of(), execution)},
               {serviceReturnTpenoent})
 
       then:
@@ -183,7 +183,7 @@ class FailoverAlgorithmTest extends Specification
       response2.errorState == ErrorState.OK
 
       TransactionPoolMapper.getInstance().getNumberOfTrackedTransactions() == 1
-      TransactionPoolMapper.getInstance().getPoolNameForCurrentTransaction() == pool1name
+      TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction().poolName() == pool1name
    }
 
    def 'stickies, failover: when calling stickied service failover is possible to other non-stickied pool'()
@@ -209,13 +209,13 @@ class FailoverAlgorithmTest extends Specification
       ServiceReturn<CasualBuffer> response1 = failoverAlgorithm.tpcallWithFailover(
               service1,
               lookup,
-              {con -> con.tpcall(service1, ServiceBuffer.empty(), Flag.of())},
+              {con, execution -> con.tpcall(service1, ServiceBuffer.empty(), Flag.of(), execution)},
               {serviceReturnTpenoent})
 
       then:
       response1.errorState == ErrorState.OK
       TransactionPoolMapper.getInstance().getNumberOfTrackedTransactions() == 1
-      TransactionPoolMapper.getInstance().getPoolNameForCurrentTransaction() == pool1name
+      TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction().poolName() == pool1name
    }
 
    private ConnectionFactoryEntry getFactoryMockServiceReturn(String jndiName, ServiceReturn<CasualBuffer> expectedReturn)

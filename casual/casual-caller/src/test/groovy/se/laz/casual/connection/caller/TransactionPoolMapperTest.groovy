@@ -46,10 +46,13 @@ class TransactionPoolMapperTest extends Specification
         transactionManager.setCurrentTransaction(transaction)
 
         String actualPoolName = "hello, world!"
-        TransactionPoolMapper.getInstance().setPoolNameForCurrentTransaction(actualPoolName)
+        UUID execution = UUID.randomUUID()
+        StickyInformation stickyInformation = new StickyInformation(actualPoolName, execution)
+        TransactionPoolMapper.getInstance().setStickyInformationForCurrentTransaction(stickyInformation)
 
         expect:
-        TransactionPoolMapper.getInstance().getPoolNameForCurrentTransaction() == actualPoolName
+        TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction().poolName() == actualPoolName
+        TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction().execution() == execution
         TransactionPoolMapper.getInstance().getNumberOfTrackedTransactions() == 1
     }
 
@@ -61,7 +64,8 @@ class TransactionPoolMapperTest extends Specification
         for (int i = 0; i < transactions; i++)
         {
             transactionManager.setCurrentTransaction(new TransactionImpl(Status.STATUS_ACTIVE))
-            TransactionPoolMapper.getInstance().setPoolNameForCurrentTransaction("hello transaction " + i)
+            StickyInformation stickyInformation = new StickyInformation("hello transaction " + i, UUID.randomUUID())
+            TransactionPoolMapper.getInstance().setStickyInformationForCurrentTransaction(stickyInformation)
         }
 
         expect:
@@ -73,10 +77,11 @@ class TransactionPoolMapperTest extends Specification
         given:
         transactionManager.setCurrentTransaction(new TransactionImpl(Status.STATUS_ACTIVE))
 
-        TransactionPoolMapper.getInstance().setPoolNameForCurrentTransaction("eis/myPool")
+        StickyInformation stickyInformation = new StickyInformation("eis/myPool", UUID.randomUUID())
+        TransactionPoolMapper.getInstance().setStickyInformationForCurrentTransaction(stickyInformation)
 
         when:
-        TransactionPoolMapper.getInstance().setPoolNameForCurrentTransaction("eis/whateverPool")
+        TransactionPoolMapper.getInstance().setStickyInformationForCurrentTransaction(new StickyInformation("eis/whateverPool", UUID.randomUUID()))
 
         then:
         def e = thrown(CasualRuntimeException)

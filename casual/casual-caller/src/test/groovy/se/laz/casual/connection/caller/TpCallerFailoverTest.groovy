@@ -112,8 +112,8 @@ class TpCallerFailoverTest extends Specification
 
         then:
         1 * conFacHigh.getConnection() >> {exception()}
-        0 * conHigh.tpcall(serviceName, data, flags) >> {throw new RuntimeException("This should not happen because getConnection should fail")}
-        1 * conLow.tpcall(serviceName, data, flags) >> someServiceReturn
+        0 * conHigh.tpcall(serviceName, data, flags, _ as UUID) >> {throw new RuntimeException("This should not happen because getConnection should fail")}
+        1 * conLow.tpcall(serviceName, data, flags, _ as UUID) >> someServiceReturn
         result == someServiceReturn
 
         where:
@@ -225,7 +225,7 @@ class TpCallerFailoverTest extends Specification
 
         then:
         (priorities*entriesPerPriority) * conFacHigh.getConnection() >> {throw new ResourceException(failMessage)}
-        (1) * conLow.tpcall(serviceName, data, flags) >> someServiceReturn
+        (1) * conLow.tpcall(serviceName, data, flags, _ as UUID) >> someServiceReturn
         result == someServiceReturn
     }
 
@@ -251,7 +251,7 @@ class TpCallerFailoverTest extends Specification
        def result = tpCaller.tpcall(serviceName, data, flags, lookupService)
        def subsequentResult = tpCaller.tpcall(serviceName, data, flags, lookupService)
        then:
-       3 * conLow.tpcall(serviceName, data, flags) >>> [someServiceReturn, tpenoentServiceReturn, someServiceReturn]
+       3 * conLow.tpcall(serviceName, data, flags, _ as UUID) >>> [someServiceReturn, tpenoentServiceReturn, someServiceReturn]
        !cache.get(serviceName).empty
        result == someServiceReturn
        subsequentResult == someServiceReturn
