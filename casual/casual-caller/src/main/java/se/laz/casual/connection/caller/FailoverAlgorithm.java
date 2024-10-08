@@ -79,6 +79,8 @@ public class FailoverAlgorithm
         return issueCall(serviceName, validEntries, doCall);
     }
 
+    // list needs to be mutable
+    @SuppressWarnings("java:S6204")
     private List<ConnectionFactoryEntry> getFoundAndValidEntries(ConnectionFactoryLookup lookup, String serviceName)
     {
         // This is always through the cache, either it was already there or a lookup was issued and then stored

@@ -6,10 +6,10 @@
 
 package se.laz.casual.connection.caller;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import se.laz.casual.api.discovery.DiscoveryReturn;
 import se.laz.casual.api.queue.QueueInfo;
 
-import jakarta.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class Cache
@@ -58,7 +57,7 @@ public class Cache
         // This since it should be possible to remove entries from the list
         // If the caller would use Arrays.asList, and we just stored the list value -
         // remove would throw UnsupportedOperationException
-        queueCache.store(qinfo, entries.stream().collect(Collectors.toList()));
+        queueCache.store(qinfo, new ArrayList<>(entries));
     }
 
     public void purgeServices()

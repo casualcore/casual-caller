@@ -6,25 +6,31 @@
 
 package se.laz.casual.connection.caller;
 
+import jakarta.inject.Inject;
 import se.laz.casual.api.queue.QueueInfo;
 
-import jakarta.inject.Inject;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
 {
-    @Inject
     private ConnectionFactoryEntryStore connectionFactoryProvider;
-    @Inject
     private Cache cache;
-    @Inject
     private Lookup lookup;
+    private TransactionLess transactionLess;
+
     @Inject
-    TransactionLess transactionLess;
+    public ConnectionFactoryLookupService(ConnectionFactoryEntryStore connectionFactoryProvider, Cache cache, Lookup lookup,
+                                          TransactionLess transactionLess)
+    {
+        this.connectionFactoryProvider = connectionFactoryProvider;
+        this.cache = cache;
+        this.lookup = lookup;
+        this.transactionLess = transactionLess;
+    }
+
     @Override
     public Optional<ConnectionFactoryEntry> get(QueueInfo qinfo)
     {
@@ -58,7 +64,7 @@ public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
         ConnectionFactoriesByPriority newEntries = lookup.find(serviceName, possibleConnectionFactories
                 .stream()
                 .filter(entry -> !cache.get(serviceName).isResolved(entry.getJndiName()))
-                .collect(Collectors.toList()), transactionLess);
+                .toList(), transactionLess);
         if (!newEntries.isEmpty() || newEntries.containsCheckedConnectionFactories())
         {
             cache.store(serviceName, newEntries);

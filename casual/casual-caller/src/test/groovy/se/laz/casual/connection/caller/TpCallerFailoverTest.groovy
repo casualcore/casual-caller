@@ -70,11 +70,8 @@ class TpCallerFailoverTest extends Specification
         connectionFactoryProvider = Mock(ConnectionFactoryEntryStore)
         cache =  new Cache()
         lookup = Mock(Lookup)
-        lookupService = new ConnectionFactoryLookupService()
-        lookupService.connectionFactoryProvider = connectionFactoryProvider
-        lookupService.cache = cache
-        lookupService.lookup = lookup
-        lookupService.transactionLess = transactionLess
+        lookupService = new ConnectionFactoryLookupService(connectionFactoryProvider, cache,
+                                                           lookup, transactionLess)
        connectionFactoryProducerHigh = Mock(ConnectionFactoryProducer)
        connectionFactoryProducerHigh.getConnectionFactory() >> {
           conFacHigh

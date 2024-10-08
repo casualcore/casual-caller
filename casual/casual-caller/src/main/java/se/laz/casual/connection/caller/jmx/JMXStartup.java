@@ -32,11 +32,15 @@ public class JMXStartup
     private static final Logger LOG = Logger.getLogger(JMXStartup.class.getName());
     private static final String NAME = "se.laz.casual.caller:type=CasualCallerControl";
 
-    @Inject
-    Cache cache;
+    private Cache cache;
+    private ConnectionFactoryEntryStore connectionFactoryEntryStore;
 
     @Inject
-    ConnectionFactoryEntryStore connectionFactoryEntryStore;
+    public JMXStartup(Cache cache, ConnectionFactoryEntryStore connectionFactoryEntryStore)
+    {
+        this.cache = cache;
+        this.connectionFactoryEntryStore = connectionFactoryEntryStore;
+    }
 
     @PostConstruct
     void initJmx()

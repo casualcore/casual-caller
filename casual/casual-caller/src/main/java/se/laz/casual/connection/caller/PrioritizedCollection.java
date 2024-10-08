@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public class PrioritizedCollection<T>
 {
@@ -21,7 +20,7 @@ public class PrioritizedCollection<T>
 
     public List<Long> getPriorities()
     {
-        return collection.keySet().stream().sorted().collect(Collectors.toList());
+        return collection.keySet().stream().sorted().toList();
     }
 
     public List<T> get(Long priority)

@@ -95,11 +95,9 @@ class ConnectionFactoryLookupServiceTest extends Specification
         cache =  new Cache()
         lookup = Mock(Lookup)
         transactionLess = new TransactionLess()
-        instance = new ConnectionFactoryLookupService()
-        instance.connectionFactoryProvider = connnectionFactoryProvider
-        instance.cache = cache
-        instance.lookup = lookup
-        instance.transactionLess = transactionLess
+        instance = new ConnectionFactoryLookupService(connnectionFactoryProvider, cache,
+                                                      lookup,
+                                                      transactionLess)
     }
 
     def 'asssert basic sanity'()
