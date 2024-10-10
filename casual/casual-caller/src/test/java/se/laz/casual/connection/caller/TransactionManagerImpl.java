@@ -19,11 +19,6 @@ public class TransactionManagerImpl implements TransactionManager
 {
     private Transaction currentTransaction;
 
-    public Transaction getCurrentTransaction()
-    {
-        return currentTransaction;
-    }
-
     public void setCurrentTransaction(Transaction currentTransaction)
     {
         this.currentTransaction = currentTransaction;

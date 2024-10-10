@@ -7,6 +7,8 @@ Casual caller provides an abstraction for outbound connections on top of casual-
 
 This is just a convenience layer for applications to make use, it does not in any way impact the casual-jca implementation.
 
+## casual jca version dependency
+```casual-caller``` v2.2.20+ needs ```casual-jca``` version 2.2.34+
 
 ## Requirements on setup of connection pools
 
