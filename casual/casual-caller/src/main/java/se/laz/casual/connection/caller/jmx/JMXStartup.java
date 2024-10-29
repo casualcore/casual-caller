@@ -31,9 +31,13 @@ public class JMXStartup
 {
     private static final Logger LOG = Logger.getLogger(JMXStartup.class.getName());
     private static final String NAME = "se.laz.casual.caller:type=CasualCallerControl";
-
     private Cache cache;
     private ConnectionFactoryEntryStore connectionFactoryEntryStore;
+
+    public JMXStartup()
+    {
+        // NOP constructor needed for CDI
+    }
 
     @Inject
     public JMXStartup(Cache cache, ConnectionFactoryEntryStore connectionFactoryEntryStore)
