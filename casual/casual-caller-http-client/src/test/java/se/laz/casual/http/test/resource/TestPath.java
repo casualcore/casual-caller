@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2024, The casual project. All rights reserved.
+ *
+ * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
+ */
 package se.laz.casual.http.test.resource;
 
 import java.util.Arrays;
@@ -27,6 +32,6 @@ public enum TestPath
         return Arrays.stream(values())
                      .filter(v -> v.getPath().equals(path))
                      .findFirst()
-                     .orElseThrow(() -> new IllegalArgumentException(path + " not found"));
+                     .orElse(NOT_FOUND);
     }
 }
