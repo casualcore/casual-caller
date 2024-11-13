@@ -15,11 +15,13 @@ public class Configuration
     public static final String CASUAL_CALLER_VALIDATION_INTERVAL_ENV_NAME = "CASUAL_CALLER_VALIDATION_INTERVAL";
     public static final String CASUAL_CALLER_TRANSACTION_STICKY_ENV_NAME = "CASUAL_CALLER_TRANSACTION_STICKY";
     public static final String CASUAL_CALLER_TOPOLOGY_CHANGED_DELAY_ENV_NAME = "CASUAL_CALLER_TOPOLOGY_CHANGED_DELAY";
+    public static final String ROUTE_FILE_ENV_NAME="CASUAL_CALLER_SERVICE_ROUTES_FILE";
 
     private String jndiSearchRoot;
     private Integer validationIntervalMillis;
     private Boolean transactionStickyEnabled;
     private Long topologyChangeDelayMillis;
+    private String routeFileName;
 
     private static final String DEFAULT_JNDI_SEARCH_ROOT = "eis";
     private static final String DEFAULT_VALIDATION_INTERVAL_MILLIS = "5000";
@@ -61,6 +63,15 @@ public class Configuration
         return topologyChangeDelayMillis;
     }
 
+    public Optional<String> getRouteFileName()
+    {
+        if(null == routeFileName)
+        {
+            routeFileName = getRouteFilenameFromEnv();
+        }
+        return Optional.ofNullable(routeFileName);
+    }
+
     public static Configuration fromEnvOrDefaults()
     {
         return builder()
@@ -68,7 +79,13 @@ public class Configuration
                 .validationIntervalMillis(getValidationIntervalMillisFromEnv())
                 .transactionStickyEnabled(isTransactionStickyEnabledFromEnv())
                 .topologyChangeDelayMillis(getTopologyChangeDelayMillisFromEnv())
+                .routeFilename(getRouteFilenameFromEnv())
                 .build();
+    }
+
+    private static String getRouteFilenameFromEnv()
+    {
+        return System.getenv(ROUTE_FILE_ENV_NAME);
     }
 
     private static String getJndiSearchRootFromEnv()
@@ -110,13 +127,18 @@ public class Configuration
             return false;
         }
         Configuration that = (Configuration) o;
-        return Objects.equals(getJndiSearchRoot(), that.getJndiSearchRoot()) && Objects.equals(getValidationIntervalMillis(), that.getValidationIntervalMillis()) && Objects.equals(isTransactionStickyEnabled(), that.isTransactionStickyEnabled()) && Objects.equals(getTopologyChangeDelayMillis(), that.getTopologyChangeDelayMillis());
+        return Objects.equals(getJndiSearchRoot(), that.getJndiSearchRoot()) &&
+                Objects.equals(getValidationIntervalMillis(), that.getValidationIntervalMillis()) &&
+                Objects.equals(isTransactionStickyEnabled(), that.isTransactionStickyEnabled()) &&
+                Objects.equals(getTopologyChangeDelayMillis(), that.getTopologyChangeDelayMillis()) &&
+                Objects.equals(getRouteFileName(), that.getRouteFileName());
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(getJndiSearchRoot(), getValidationIntervalMillis(), isTransactionStickyEnabled(), getTopologyChangeDelayMillis());
+        return Objects.hash(getJndiSearchRoot(), getValidationIntervalMillis(),
+                isTransactionStickyEnabled(), getTopologyChangeDelayMillis(), getRouteFileName());
     }
 
     @Override
@@ -127,6 +149,7 @@ public class Configuration
                 ", validationIntervalMillis=" + getValidationIntervalMillis() +
                 ", transactionStickyEnabled=" + isTransactionStickyEnabled() +
                 ", topologyChangeDelayMillis=" + getTopologyChangeDelayMillis() +
+                ", routeFileName='" + getRouteFileName() +
                 '}';
     }
 
@@ -141,6 +164,7 @@ public class Configuration
         private Integer validationIntervalMillis;
         private Boolean transactionStickyEnabled;
         private Long topologyChangeDelayMillis;
+        private String routeFilename;
 
         public Configuration build()
         {
@@ -168,6 +192,12 @@ public class Configuration
         public Builder topologyChangeDelayMillis(Long domainDiscoveryOnTopologyChangeDelayMillis)
         {
             this.topologyChangeDelayMillis = domainDiscoveryOnTopologyChangeDelayMillis;
+            return this;
+        }
+
+        public Builder routeFilename(String routeFilename)
+        {
+            this.routeFilename = routeFilename;
             return this;
         }
     }

@@ -16,6 +16,8 @@ import se.laz.casual.api.queue.MessageSelector;
 import se.laz.casual.api.queue.QueueInfo;
 import se.laz.casual.api.queue.QueueMessage;
 import se.laz.casual.api.service.ServiceDetails;
+import se.laz.casual.connection.caller.services.ServiceRoutes;
+import se.laz.casual.http.HttpClient;
 import se.laz.casual.jca.CasualConnection;
 
 import jakarta.ejb.Remote;
@@ -38,29 +40,36 @@ public class CasualCallerImpl implements CasualCaller
     private ConnectionFactoryLookup lookup;
     private TransactionLess transactionLess;
     private FailedDomainDiscoveryHandler failedDomainDiscoveryHandler;
+    private HttpClient httpClient;
+    private ServiceRoutes serviceRoutes;
 
     // NOP constructor needed for WLS
     public CasualCallerImpl()
     {}
 
     @Inject
-    public CasualCallerImpl(ConnectionFactoryLookup lookup, ConnectionFactoryEntryStore connectionFactoryProvider, TransactionLess transactionLess, FailedDomainDiscoveryHandler failedDomainDiscoveryHandler)
+    public CasualCallerImpl(ConnectionFactoryLookup lookup, ConnectionFactoryEntryStore connectionFactoryProvider,
+                            TransactionLess transactionLess, FailedDomainDiscoveryHandler failedDomainDiscoveryHandler,
+                            HttpClient httpClient)
     {
         this.lookup = lookup;
         this.transactionLess = transactionLess;
         this.failedDomainDiscoveryHandler = failedDomainDiscoveryHandler;
+        this.httpClient = httpClient;
         List<ConnectionFactoryEntry> possibleEntries = connectionFactoryProvider.get();
-        if(possibleEntries.isEmpty())
+        if (possibleEntries.isEmpty())
         {
             throw new CasualCallerException("No connection factories available, casual caller is not usable");
         }
+        this.serviceRoutes = ServiceRoutes.of();
     }
 
     @Override
     public ServiceReturn<CasualBuffer> tpcall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags)
     {
         failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
-        return flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpcall(() -> tpCaller.tpcall(serviceName, data, flags, lookup)) : tpCaller.tpcall(serviceName, data, flags, lookup);
+        return serviceRoutes.getRoute(serviceName).map(uri -> httpClient.request(uri, data))
+                            .orElseGet(() -> flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpcall(() -> tpCaller.tpcall(serviceName, data, flags, lookup)) : tpCaller.tpcall(serviceName, data, flags, lookup));
     }
 
     @Override

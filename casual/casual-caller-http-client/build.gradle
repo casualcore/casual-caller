@@ -15,13 +15,10 @@ dependencies {
   compileOnly libs.casual_api
   compileOnly libs.casual_jca
   compileOnly libs.javaee_api
-  implementation libs.snake_yaml
     
   testImplementation libs.casual_api
   testImplementation libs.casual_jca
   testImplementation libs.javaee_api
-  testImplementation libs.jersey_client
-  testImplementation libs.snake_yaml
   testImplementation libs.jersey_client
   testImplementation libs.jersey_test
   testImplementation libs.jersey_inject
