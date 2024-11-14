@@ -13,21 +13,23 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-public class ServiceRoutes
+public final class ServiceRoutes
 {
     private final Set<Route> routes;
     private ServiceRoutes(Set<Route> routes)
     {
         this.routes = routes;
     }
-
     public static ServiceRoutes of()
     {
         return ConfigurationService.getInstance().getConfiguration().getRouteFileName()
                                    .map(ServiceRouteReader::load)
                                    .orElseGet(() -> new ServiceRoutes(Collections.emptySet()));
     }
-
+    public boolean isEmpty()
+    {
+        return routes.isEmpty();
+    }
     public Optional<URI> getRoute(String service)
     {
         return routes.stream()
@@ -63,5 +65,4 @@ public class ServiceRoutes
                 "routes=" + routes +
                 '}';
     }
-
 }

@@ -5,6 +5,13 @@
  */
 package se.laz.casual.connection.caller;
 
+import jakarta.annotation.PreDestroy;
+import jakarta.ejb.Remote;
+import jakarta.ejb.Stateless;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionAttributeType;
+import jakarta.inject.Inject;
+import jakarta.resource.ResourceException;
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.ServiceReturn;
 import se.laz.casual.api.flags.AtmiFlags;
@@ -20,12 +27,6 @@ import se.laz.casual.connection.caller.services.ServiceRoutes;
 import se.laz.casual.http.HttpClient;
 import se.laz.casual.jca.CasualConnection;
 
-import jakarta.ejb.Remote;
-import jakarta.ejb.Stateless;
-import jakarta.ejb.TransactionAttribute;
-import jakarta.ejb.TransactionAttributeType;
-import jakarta.inject.Inject;
-import jakarta.resource.ResourceException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -149,6 +150,12 @@ public class CasualCallerImpl implements CasualCaller
     public boolean queueExists(QueueInfo qinfo)
     {
         return lookup.get(qinfo).isPresent();
+    }
+
+    @PreDestroy
+    public void cleanup()
+    {
+        httpClient.close();
     }
 
 }

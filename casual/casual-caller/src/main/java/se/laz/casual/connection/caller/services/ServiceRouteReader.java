@@ -1,33 +1,32 @@
+/*
+ * Copyright (c) 2024, The casual project. All rights reserved.
+ *
+ * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
+ */
 package se.laz.casual.connection.caller.services;
 
-import org.yaml.snakeyaml.LoaderOptions;
-import org.yaml.snakeyaml.TypeDescription;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
-import se.laz.casual.api.CasualRuntimeException;
+import se.laz.casual.api.external.json.JsonProviderFactory;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class ServiceRouteReader
 {
+    private static final Logger LOG = Logger.getLogger(ServiceRouteReader.class.getName());
     private ServiceRouteReader()
     {}
     public static ServiceRoutes load(String filename)
     {
-        Constructor constructor = new Constructor(ServiceRoutes.class, new LoaderOptions());
-        TypeDescription customTypeDescription = new TypeDescription(ServiceRoutes.class);
-        customTypeDescription.addPropertyParameters("routes", Route.class);
-        constructor.addTypeDescription(customTypeDescription);
-        Yaml yaml = new Yaml(constructor);
         try
         {
-            FileReader fileReader = new FileReader(filename);
-            return yaml.load(fileReader);
+            return JsonProviderFactory.getJsonProvider().fromJson(new FileReader(filename), ServiceRoutes.class);
         }
         catch (FileNotFoundException e)
         {
-            throw new CasualRuntimeException(e);
+            LOG.log(Level.WARNING, e, () -> "service routes file " + filename + " could not be loaded");
+            throw new ServiceRouteLoaderException(e);
         }
     }
 }

@@ -1,5 +1,6 @@
 {
   "jndiSearchRoot": "hello",
   "validationIntervalMillis": 9001,
-  "transactionStickyEnabled": true
+  "transactionStickyEnabled": true,
+  "routeFileName": "/tmp/foo.yaml"
 }

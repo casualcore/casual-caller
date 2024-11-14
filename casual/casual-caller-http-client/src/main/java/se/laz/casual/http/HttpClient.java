@@ -21,14 +21,17 @@ import java.io.Closeable;
 import java.net.URI;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 import static jakarta.ws.rs.client.Entity.entity;
 
-public final class HttpClient implements Closeable
+public class HttpClient implements Closeable
 {
+    private static final Logger LOG = Logger.getLogger(HttpClient.class.getName());
     private final Client client;
-    private HttpClient()
+    public HttpClient()
     {
+        // CDI public constructor
         this.client = ClientBuilder.newClient();
     }
 
@@ -43,6 +46,7 @@ public final class HttpClient implements Closeable
         Objects.requireNonNull(uri, "uri can not be null");
         Objects.requireNonNull(buffer, "buffer can not be null");
         MediaType mediaType = CasualBufferTypeConverter.convert(CasualBufferType.unmarshall(buffer.getType()));
+        LOG.finest(() -> "issuing http request to " + uri);
         Response response = client.target(uri).request(mediaType).post(entity(buffer.getBytes().get(0), mediaType));
         ErrorState errorState = ResponseStatusConverter.convert(response.getStatusInfo().toEnum());
         if (errorState != ErrorState.OK)

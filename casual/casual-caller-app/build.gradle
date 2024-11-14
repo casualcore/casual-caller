@@ -11,6 +11,7 @@ plugins {
 dependencies {
   deploy project( path: ':casual:casual-caller')
   earlib project( path: ':casual:casual-caller-api')
+  earlib project( path: ':casual:casual-caller-http-client')
 }
 
 ear{
