@@ -22,14 +22,20 @@ public final class ServiceRoutes
     }
     public static ServiceRoutes of()
     {
-        return ConfigurationService.getInstance().getConfiguration().getRouteFileName()
-                                   .map(ServiceRouteReader::load)
-                                   .orElseGet(() -> new ServiceRoutes(Collections.emptySet()));
+        ServiceRoutes serviceRoutes =  ConfigurationService.getInstance().getConfiguration().getRouteFileName()
+                                                           .map(ServiceRouteReader::load)
+                                                           .orElseGet(() -> new ServiceRoutes(Collections.emptySet()));
+        // note: in case gson was used, it is lenient towards trailing comma leading to potential null values
+        // we do not want accidental null values
+        serviceRoutes.pruneNullRoutes();
+        return serviceRoutes;
     }
+
     public boolean isEmpty()
     {
         return routes.isEmpty();
     }
+
     public Optional<URI> getRoute(String service)
     {
         return routes.stream()
@@ -64,5 +70,10 @@ public final class ServiceRoutes
         return "ServiceRoutes{" +
                 "routes=" + routes +
                 '}';
+    }
+
+    private void pruneNullRoutes()
+    {
+        routes.removeIf(Objects::isNull);
     }
 }
