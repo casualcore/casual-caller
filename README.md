@@ -78,7 +78,8 @@ If you have services that you want to be called non transactional via http then 
 }
 ```
 
-When tpcall is issued, instead of doing the tpcall a http request is dispatched.
+Using the example above, when a tpcall is issued to service `test-service`, instead of doing the tpcall a http request is dispatched to `http://test-host.test:9990/test-service`.
+If a tpcall is made to a service that does not match any route, tpcall is carried out as per usual.
 
 Return codes:
 * OK -> 200
