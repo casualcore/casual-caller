@@ -15,7 +15,7 @@ import java.util.Set;
 
 public final class ServiceRoutes
 {
-    public static final ServiceRoutes EMPTY = new ServiceRoutes(Collections.emptySet());
+    private static final ServiceRoutes EMPTY = new ServiceRoutes(Collections.emptySet());
     private final Set<Route> routes;
     private ServiceRoutes(Set<Route> routes)
     {
