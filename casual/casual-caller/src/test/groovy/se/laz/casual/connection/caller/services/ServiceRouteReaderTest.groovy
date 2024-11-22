@@ -16,8 +16,8 @@ class ServiceRouteReaderTest extends Specification
    def'non existing file'()
    {
       when:
-      ServiceRoutes serviceRoutes = ServiceRouteReader.load('src/test/resources/does-not-exist.json')
+      ServiceRouteReader.load('src/test/resources/does-not-exist.json')
       then:
-      serviceRoutes.isEmpty()
+      thrown(ServiceRouteReaderException)
    }
 }

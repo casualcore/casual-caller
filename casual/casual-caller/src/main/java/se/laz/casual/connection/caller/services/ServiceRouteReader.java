@@ -9,12 +9,9 @@ import se.laz.casual.api.external.json.JsonProviderFactory;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public final class ServiceRouteReader
 {
-    private static final Logger LOG = Logger.getLogger(ServiceRouteReader.class.getName());
     private ServiceRouteReader()
     {}
     public static ServiceRoutes load(String filename)
@@ -25,8 +22,7 @@ public final class ServiceRouteReader
         }
         catch (FileNotFoundException e)
         {
-            LOG.log(Level.WARNING, e, () -> "service routes file " + filename + " could not be loaded. http service routing will not work");
-            return ServiceRoutes.EMPTY;
+            throw new ServiceRouteReaderException("service routes file " + filename + " could not be loaded", e);
         }
     }
 }
