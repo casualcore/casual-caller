@@ -23,6 +23,7 @@ import se.laz.casual.api.queue.MessageSelector;
 import se.laz.casual.api.queue.QueueInfo;
 import se.laz.casual.api.queue.QueueMessage;
 import se.laz.casual.api.service.ServiceDetails;
+import se.laz.casual.connection.caller.config.ConfigurationService;
 import se.laz.casual.connection.caller.services.ServiceRoutes;
 import se.laz.casual.http.HttpClient;
 import se.laz.casual.jca.CasualConnection;
@@ -62,7 +63,7 @@ public class CasualCallerImpl implements CasualCaller
         {
             throw new CasualCallerException("No connection factories available, casual caller is not usable");
         }
-        this.serviceRoutes = ServiceRoutes.of();
+        this.serviceRoutes = ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration());
     }
 
     @Override

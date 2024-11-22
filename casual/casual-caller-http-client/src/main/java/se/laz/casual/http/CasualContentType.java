@@ -23,7 +23,7 @@ public enum CasualContentType
     public static CasualContentType unmarshall(String contentType)
     {
         return Arrays.stream(values())
-                .filter((type) -> type.contentType.equals(contentType))
+                .filter(type -> type.contentType.equals(contentType))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("unsupported content type: " + contentType));
     }

@@ -18,9 +18,8 @@ dependencies {
   compileOnly libs.casual_jca
   compileOnly libs.javaee_api
 
-  implementation libs.snake_yaml
-    
-  testImplementation project(":casual:casual-caller-api")
+   testImplementation project(":casual:casual-caller-api")
+   testImplementation libs.system_lambda
   testImplementation libs.casual_api
   testImplementation libs.casual_jca
   testImplementation libs.javaee_api

@@ -5,7 +5,7 @@
  */
 package se.laz.casual.connection.caller.services;
 
-import se.laz.casual.connection.caller.config.ConfigurationService;
+import se.laz.casual.connection.caller.config.Configuration;
 
 import java.net.URI;
 import java.util.Collections;
@@ -20,11 +20,11 @@ public final class ServiceRoutes
     {
         this.routes = routes;
     }
-    public static ServiceRoutes of()
+    public static ServiceRoutes of(Configuration config)
     {
-        ServiceRoutes serviceRoutes =  ConfigurationService.getInstance().getConfiguration().getRouteFileName()
-                                                           .map(ServiceRouteReader::load)
-                                                           .orElseGet(() -> new ServiceRoutes(Collections.emptySet()));
+        ServiceRoutes serviceRoutes =  config.getRouteFileName()
+                                             .map(ServiceRouteReader::load)
+                                             .orElseGet(() -> new ServiceRoutes(Collections.emptySet()));
         // note: in case gson was used, it is lenient towards trailing comma leading to potential null values
         // we do not want accidental null values
         serviceRoutes.pruneNullRoutes();
@@ -40,7 +40,7 @@ public final class ServiceRoutes
     {
         return routes.stream()
                      .filter(route -> route.name().equals(service))
-                     .map(route -> route.uri())
+                     .map(Route::uri)
                      .findFirst();
     }
 

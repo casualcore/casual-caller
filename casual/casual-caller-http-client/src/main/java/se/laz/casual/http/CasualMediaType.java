@@ -9,8 +9,11 @@ import jakarta.ws.rs.core.MediaType;
 
 public class CasualMediaType
 {
-    public static final MediaType FIELDED = new MediaType("application", "casual-field");
-    public static final MediaType X_OCTET = new MediaType("application", "casual-x-octet");
-    public static final MediaType C_STRING = new MediaType("application", "casual-string");
-    public static final MediaType CASUAL_NULL = new MediaType("application", "casual-null");
+    private static final String MAIN_TYPE = "application";
+    private CasualMediaType()
+    {}
+    public static final MediaType FIELDED = new MediaType(MAIN_TYPE, "casual-field");
+    public static final MediaType X_OCTET = new MediaType(MAIN_TYPE, "casual-x-octet");
+    public static final MediaType C_STRING = new MediaType(MAIN_TYPE, "casual-string");
+    public static final MediaType CASUAL_NULL = new MediaType(MAIN_TYPE, "casual-null");
 }

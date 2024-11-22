@@ -25,8 +25,8 @@ public final class ServiceRouteReader
         }
         catch (FileNotFoundException e)
         {
-            LOG.log(Level.WARNING, e, () -> "service routes file " + filename + " could not be loaded");
-            throw new ServiceRouteLoaderException(e);
+            LOG.log(Level.WARNING, e, () -> "service routes file " + filename + " could not be loaded. http service routing will not work");
+            return null;
         }
     }
 }

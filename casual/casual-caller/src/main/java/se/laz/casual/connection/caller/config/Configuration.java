@@ -17,16 +17,16 @@ public class Configuration
     public static final String CASUAL_CALLER_TOPOLOGY_CHANGED_DELAY_ENV_NAME = "CASUAL_CALLER_TOPOLOGY_CHANGED_DELAY";
     public static final String ROUTE_FILE_ENV_NAME="CASUAL_CALLER_SERVICE_ROUTES_FILE";
 
+    public static final String DEFAULT_JNDI_SEARCH_ROOT = "eis";
+    public static final String DEFAULT_VALIDATION_INTERVAL_MILLIS = "5000";
+    public static final String DEFAULT_TRANSACTION_STICKY = "false";
+    public static final String DEFAULT_TOPOLOGY_CHANGED_DELAY = "50";
+
     private String jndiSearchRoot;
     private Integer validationIntervalMillis;
     private Boolean transactionStickyEnabled;
     private Long topologyChangeDelayMillis;
     private String routeFileName;
-
-    private static final String DEFAULT_JNDI_SEARCH_ROOT = "eis";
-    private static final String DEFAULT_VALIDATION_INTERVAL_MILLIS = "5000";
-    private static final String DEFAULT_TRANSACTION_STICKY = "false";
-    private static final String DEFAULT_TOPOLOGY_CHANGED_DELAY = "50";
 
     private Configuration(Builder builder)
     {
@@ -34,6 +34,7 @@ public class Configuration
         validationIntervalMillis = builder.validationIntervalMillis;
         transactionStickyEnabled = builder.transactionStickyEnabled;
         topologyChangeDelayMillis = builder.topologyChangeDelayMillis;
+        routeFileName = builder.routeFilename;
     }
 
     public String getJndiSearchRoot()
@@ -75,11 +76,11 @@ public class Configuration
     public static Configuration fromEnvOrDefaults()
     {
         return builder()
-                .jndiSearchRoot(getJndiSearchRootFromEnv())
-                .validationIntervalMillis(getValidationIntervalMillisFromEnv())
-                .transactionStickyEnabled(isTransactionStickyEnabledFromEnv())
-                .topologyChangeDelayMillis(getTopologyChangeDelayMillisFromEnv())
-                .routeFilename(getRouteFilenameFromEnv())
+                .withJndiSearchRoot(getJndiSearchRootFromEnv())
+                .withValidationIntervalMillis(getValidationIntervalMillisFromEnv())
+                .withTransactionStickyEnabled(isTransactionStickyEnabledFromEnv())
+                .withTopologyChangeDelayMillis(getTopologyChangeDelayMillisFromEnv())
+                .withRouteFilename(getRouteFilenameFromEnv())
                 .build();
     }
 
@@ -171,31 +172,31 @@ public class Configuration
             return new Configuration(this);
         }
 
-        public Builder jndiSearchRoot(String jndiSearchRoot)
+        public Builder withJndiSearchRoot(String jndiSearchRoot)
         {
             this.jndiSearchRoot = jndiSearchRoot;
             return this;
         }
 
-        public Builder validationIntervalMillis(Integer validationIntervalMillis)
+        public Builder withValidationIntervalMillis(Integer validationIntervalMillis)
         {
             this.validationIntervalMillis = validationIntervalMillis;
             return this;
         }
 
-        public Builder transactionStickyEnabled(Boolean transactionStickyEnabled)
+        public Builder withTransactionStickyEnabled(Boolean transactionStickyEnabled)
         {
             this.transactionStickyEnabled = transactionStickyEnabled;
             return this;
         }
 
-        public Builder topologyChangeDelayMillis(Long domainDiscoveryOnTopologyChangeDelayMillis)
+        public Builder withTopologyChangeDelayMillis(Long domainDiscoveryOnTopologyChangeDelayMillis)
         {
             this.topologyChangeDelayMillis = domainDiscoveryOnTopologyChangeDelayMillis;
             return this;
         }
 
-        public Builder routeFilename(String routeFilename)
+        public Builder withRouteFilename(String routeFilename)
         {
             this.routeFilename = routeFilename;
             return this;
