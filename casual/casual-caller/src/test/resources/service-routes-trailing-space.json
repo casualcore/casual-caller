@@ -1,0 +1,7 @@
+{
+  "routes":
+  [
+    { "name": "test-service", "uri": "http://test-host.test:9990/test-service"},
+    { "name": "another-test-service", "uri": "http://test-host.test:9990/another-test-service"},
+  ]
+}
