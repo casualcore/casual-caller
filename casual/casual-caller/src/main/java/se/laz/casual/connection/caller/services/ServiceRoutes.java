@@ -15,6 +15,7 @@ import java.util.Set;
 
 public final class ServiceRoutes
 {
+    public static final ServiceRoutes EMPTY = new ServiceRoutes(Collections.emptySet());
     private final Set<Route> routes;
     private ServiceRoutes(Set<Route> routes)
     {
@@ -24,7 +25,7 @@ public final class ServiceRoutes
     {
         ServiceRoutes serviceRoutes =  config.getRouteFileName()
                                              .map(ServiceRouteReader::load)
-                                             .orElseGet(() -> new ServiceRoutes(Collections.emptySet()));
+                                             .orElse(EMPTY);
         // note: in case gson was used, it is lenient towards trailing comma leading to potential null values
         // we do not want accidental null values
         serviceRoutes.pruneNullRoutes();
