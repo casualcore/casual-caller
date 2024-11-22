@@ -2,5 +2,6 @@
   "jndiSearchRoot": "hello",
   "validationIntervalMillis": 9001,
   "transactionStickyEnabled": true,
-  "routeFileName": "/tmp/foo.yaml"
+  "topologyChangeDelayMillis": 5000,
+  "routeFileName": "foo.json"
 }
