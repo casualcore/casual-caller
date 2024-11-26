@@ -58,15 +58,15 @@ class HttpClientTest extends Specification
       URI uri = new URI(resource.getBaseUri().toString() + "${root}/${TestPath.OK.path}")
       ServiceReturn<CasualBuffer> response = client.request(uri, buffer)
       expect:
-      response.getServiceReturnState() == returnState
-      response.getErrorState() == errorState
+      response.getServiceReturnState() == ServiceReturnState.TPSUCCESS
+      response.getErrorState() == ErrorState.OK
       response.getReplyBuffer().getBytes() == buffer.getBytes()
       where:
-      buffer                                                      || returnState                   || errorState
-      JsonBuffer.of(content)                                      || ServiceReturnState.TPSUCCESS  || ErrorState.OK
-      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || ServiceReturnState.TPSUCCESS  || ErrorState.OK
-      FieldedTypeBuffer.create().write( key, content)             || ServiceReturnState.TPSUCCESS  || ErrorState.OK
-      CStringBuffer.of(content)                                   || ServiceReturnState.TPSUCCESS  || ErrorState.OK
+      buffer                                                      || _
+      JsonBuffer.of(content)                                      || _
+      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || _
+      FieldedTypeBuffer.create().write( key, content)             || _
+      CStringBuffer.of(content)                                   || _
    }
 
    def 'not found'()
@@ -75,15 +75,15 @@ class HttpClientTest extends Specification
       URI uri = new URI(resource.getBaseUri().toString() + "${root}/does-not-exist")
       ServiceReturn<CasualBuffer> response = client.request(uri, buffer)
       expect:
-      response.getServiceReturnState() == returnState
-      response.getErrorState() == errorState
+      response.getServiceReturnState() == ServiceReturnState.TPFAIL
+      response.getErrorState() == ErrorState.TPENOENT
       response.getReplyBuffer().getBytes().size() == 0
       where:
-      buffer                                                      || returnState                   || errorState
-      JsonBuffer.of(content)                                      || ServiceReturnState.TPFAIL     || ErrorState.TPENOENT
-      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || ServiceReturnState.TPFAIL     || ErrorState.TPENOENT
-      FieldedTypeBuffer.create().write( key, content)             || ServiceReturnState.TPFAIL     || ErrorState.TPENOENT
-      CStringBuffer.of(content)                                   || ServiceReturnState.TPFAIL     || ErrorState.TPENOENT
+      buffer                                                      || _
+      JsonBuffer.of(content)                                      || _
+      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || _
+      FieldedTypeBuffer.create().write( key, content)             || _
+      CStringBuffer.of(content)                                   || _
    }
 
    def 'error'()
@@ -92,15 +92,15 @@ class HttpClientTest extends Specification
       URI uri = new URI(resource.getBaseUri().toString() + "${root}/${TestPath.ERROR.path}")
       ServiceReturn<CasualBuffer> response = client.request(uri, buffer)
       expect:
-      response.getServiceReturnState() == returnState
-      response.getErrorState() == errorState
+      response.getServiceReturnState() == ServiceReturnState.TPFAIL
+      response.getErrorState() == ErrorState.TPESVCERR
       response.getReplyBuffer().getBytes().size() == 0
       where:
-      buffer                                                      || returnState                   || errorState
-      JsonBuffer.of(content)                                      || ServiceReturnState.TPFAIL     || ErrorState.TPESVCERR
-      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || ServiceReturnState.TPFAIL     || ErrorState.TPESVCERR
-      FieldedTypeBuffer.create().write( key, content)             || ServiceReturnState.TPFAIL     || ErrorState.TPESVCERR
-      CStringBuffer.of(content)                                   || ServiceReturnState.TPFAIL     || ErrorState.TPESVCERR
+      buffer                                                      || _
+      JsonBuffer.of(content)                                      || _
+      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || _
+      FieldedTypeBuffer.create().write( key, content)             || _
+      CStringBuffer.of(content)                                   || _
    }
 
    def 'error with body'()
@@ -109,15 +109,15 @@ class HttpClientTest extends Specification
       URI uri = new URI(resource.getBaseUri().toString() + "${root}/${TestPath.ERROR_WITH_BODY.path}")
       ServiceReturn<CasualBuffer> response = client.request(uri, buffer)
       expect:
-      response.getServiceReturnState() == returnState
-      response.getErrorState() == errorState
+      response.getServiceReturnState() == ServiceReturnState.TPFAIL
+      response.getErrorState() == ErrorState.TPESVCERR
       response.getReplyBuffer().getBytes().size() != 0
       where:
-      buffer                                                      || returnState                   || errorState
-      JsonBuffer.of(content)                                      || ServiceReturnState.TPFAIL     || ErrorState.TPESVCERR
-      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || ServiceReturnState.TPFAIL     || ErrorState.TPESVCERR
-      FieldedTypeBuffer.create().write( key, content)             || ServiceReturnState.TPFAIL     || ErrorState.TPESVCERR
-      CStringBuffer.of(content)                                   || ServiceReturnState.TPFAIL     || ErrorState.TPESVCERR
+      buffer                                                      || _
+      JsonBuffer.of(content)                                      || _
+      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || _
+      FieldedTypeBuffer.create().write( key, content)             || _
+      CStringBuffer.of(content)                                   || _
    }
 
    def 'timeout'()
@@ -126,15 +126,15 @@ class HttpClientTest extends Specification
       URI uri = new URI(resource.getBaseUri().toString() + "${root}/${TestPath.TIMEOUT.path}")
       ServiceReturn<CasualBuffer> response = client.request(uri, buffer)
       expect:
-      response.getServiceReturnState() == returnState
-      response.getErrorState() == errorState
+      response.getServiceReturnState() == ServiceReturnState.TPFAIL
+      response.getErrorState() == ErrorState.TPETIME
       response.getReplyBuffer().getBytes().size() == 0
       where:
-      buffer                                                      || returnState                   || errorState
-      JsonBuffer.of(content)                                      || ServiceReturnState.TPFAIL     || ErrorState.TPETIME
-      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || ServiceReturnState.TPFAIL     || ErrorState.TPETIME
-      FieldedTypeBuffer.create().write( key, content)             || ServiceReturnState.TPFAIL     || ErrorState.TPETIME
-      CStringBuffer.of(content)                                   || ServiceReturnState.TPFAIL     || ErrorState.TPETIME
+      buffer                                                      || _
+      JsonBuffer.of(content)                                      || _
+      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || _
+      FieldedTypeBuffer.create().write( key, content)             || _
+      CStringBuffer.of(content)                                   || _
    }
 
    def 'timeout with body'()
@@ -143,15 +143,15 @@ class HttpClientTest extends Specification
       URI uri = new URI(resource.getBaseUri().toString() + "${root}/${TestPath.TIMEOUT_WITH_BODY.path}")
       ServiceReturn<CasualBuffer> response = client.request(uri, buffer)
       expect:
-      response.getServiceReturnState() == returnState
-      response.getErrorState() == errorState
+      response.getServiceReturnState() == ServiceReturnState.TPFAIL
+      response.getErrorState() == ErrorState.TPETIME
       response.getReplyBuffer().getBytes().size() != 0
       where:
-      buffer                                                      || returnState                   || errorState
-      JsonBuffer.of(content)                                      || ServiceReturnState.TPFAIL     || ErrorState.TPETIME
-      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || ServiceReturnState.TPFAIL     || ErrorState.TPETIME
-      FieldedTypeBuffer.create().write( key, content)             || ServiceReturnState.TPFAIL     || ErrorState.TPETIME
-      CStringBuffer.of(content)                                   || ServiceReturnState.TPFAIL     || ErrorState.TPETIME
+      buffer                                                      || _
+      JsonBuffer.of(content)                                      || _
+      OctetBuffer.of([content.getBytes(StandardCharsets.UTF_8)])  || _
+      FieldedTypeBuffer.create().write( key, content)             || _
+      CStringBuffer.of(content)                                   || _
    }
 
 }

@@ -67,7 +67,7 @@ A typical config file can look like the following:
 
 ### HTTP Route Configuration
 
-If you have services that you want to be called non transactional via http then you can define them in a ```route.json``` file such as:
+If you have services that you want to be called non transactionally via http then you can define them in a ```route.json``` file such as:
 ```json
 {
   "routes":

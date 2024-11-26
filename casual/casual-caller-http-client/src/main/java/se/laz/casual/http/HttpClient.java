@@ -13,14 +13,12 @@ import jakarta.ws.rs.core.Response;
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.CasualBufferType;
 import se.laz.casual.api.buffer.ServiceReturn;
-import se.laz.casual.api.buffer.type.ServiceBuffer;
 import se.laz.casual.api.flags.ErrorState;
 import se.laz.casual.api.flags.ServiceReturnState;
 
 import java.io.Closeable;
 import java.net.URI;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.logging.Logger;
 
 import static jakarta.ws.rs.client.Entity.entity;
@@ -53,17 +51,14 @@ public class HttpClient implements Closeable
         {
             return errorResponse(errorState, response);
         }
-        Optional<CasualBuffer> responseBuffer = ResponseConverter.convert(response);
-        return responseBuffer.map(casualBuffer -> new ServiceReturn<>(casualBuffer, ServiceReturnState.TPSUCCESS, ErrorState.OK, 0))
-                             .orElseGet(() -> new ServiceReturn<>(ServiceBuffer.empty(), ServiceReturnState.TPSUCCESS, ErrorState.OK, 0));
-
+        CasualBuffer responseBuffer = ResponseConverter.convert(response);
+        return new ServiceReturn<>(responseBuffer, ServiceReturnState.TPSUCCESS, ErrorState.OK, 0);
     }
 
     private ServiceReturn<CasualBuffer> errorResponse(ErrorState errorState, Response response)
     {
-        Optional<CasualBuffer> responseBuffer = ResponseConverter.convert(response);
-        return responseBuffer.map(casualBuffer -> new ServiceReturn<>(casualBuffer, ServiceReturnState.TPFAIL, errorState, 0))
-                             .orElseGet(() -> new ServiceReturn<>(ServiceBuffer.empty(), ServiceReturnState.TPFAIL, errorState, 0));
+        CasualBuffer responseBuffer = ResponseConverter.convert(response);
+        return new ServiceReturn<>(responseBuffer, ServiceReturnState.TPFAIL, errorState, 0);
     }
 
     @Override

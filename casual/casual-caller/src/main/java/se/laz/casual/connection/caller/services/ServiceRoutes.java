@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-public final class ServiceRoutes
+public class ServiceRoutes
 {
     private static final ServiceRoutes EMPTY = new ServiceRoutes(Collections.emptySet());
     private final Set<Route> routes;
@@ -26,8 +26,6 @@ public final class ServiceRoutes
         ServiceRoutes serviceRoutes =  config.getRouteFileName()
                                              .map(ServiceRouteReader::load)
                                              .orElse(EMPTY);
-        // note: in case gson was used, it is lenient towards trailing comma leading to potential null values
-        // we do not want accidental null values
         serviceRoutes.pruneNullRoutes();
         return serviceRoutes;
     }
@@ -73,6 +71,8 @@ public final class ServiceRoutes
                 '}';
     }
 
+    // note: in case gson was used, it is lenient towards trailing comma leading to potential null values
+    // we do not want accidental null values
     private void pruneNullRoutes()
     {
         routes.removeIf(Objects::isNull);
