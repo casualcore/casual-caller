@@ -87,6 +87,10 @@ Return codes:
 * TPETIME -> 408
 * Any other error -> 500
 
+Note: 
+* to be able to call casual services via http, casual needs to be running with nginx enabled
+* to be able to call casual java services via http, the [casual-http-app](https://central.sonatype.com/artifact/se.laz.casual/casual-http-app) needs to be installed as well.
+
 ## Algorithm for choosing which connection to use
 
 If there's only one connection that matches then that one is used

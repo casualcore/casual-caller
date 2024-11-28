@@ -13,10 +13,11 @@ plugins {
 
 dependencies {
   compileOnly project(":casual:casual-caller-api")
-  implementation project(":casual:casual-caller-http-client")  
+  implementation project(":casual:casual-caller-http-client")
   compileOnly libs.casual_api
   compileOnly libs.casual_jca
   compileOnly libs.javaee_api
+  compileOnly libs.gson
 
   testImplementation project(":casual:casual-caller-api")
   testImplementation libs.system_lambda
