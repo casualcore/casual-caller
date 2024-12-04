@@ -21,6 +21,9 @@ ear{
     displayName = "Casual Caller App"
     description = "Casual application that provides an abstraction layer on top of n # of CasualConnectionFactories"
   }
+  manifest{
+        attributes 'Dependencies' : 'jdk.unsupported'
+  }
 }
 
 publishing {
