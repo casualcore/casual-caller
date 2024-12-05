@@ -6,7 +6,7 @@
 
 package se.laz.casual.connection.caller.config;
 
-import se.laz.casual.api.external.json.JsonProviderFactory;
+import com.google.gson.Gson;
 import se.laz.casual.config.ConfigurationException;
 
 import java.io.FileNotFoundException;
@@ -47,7 +47,8 @@ public class ConfigurationService
     {
         try
         {
-            return JsonProviderFactory.getJsonProvider().fromJson(new FileReader(file), Configuration.class);
+            Gson gson = new Gson();
+            return gson.fromJson(new FileReader(file), Configuration.class);
         }
         catch (FileNotFoundException e)
         {
