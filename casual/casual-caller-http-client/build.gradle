@@ -15,7 +15,8 @@ dependencies {
   compileOnly libs.casual_api
   compileOnly libs.casual_jca
   compileOnly libs.javaee_api
-    
+
+  testRuntimeOnly libs.casual_api_spi_impl
   testImplementation libs.casual_api
   testImplementation libs.casual_jca
   testImplementation libs.javaee_api

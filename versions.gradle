@@ -9,13 +9,14 @@
 group = 'se.laz.casual'
 version = '3.2.23'
 
-def casual_jca_version = '3.2.47'
+def casual_jca_version = '3.2.49-SNAPSHOT'
 def gson_version = '2.11.0'
 def jersey_version = '3.1.9'
 def jakarta_ee_version = '10.0.0'
 
 ext.libs = [
   casual_api: "se.laz.casual:casual-api:${casual_jca_version}",
+  casual_api_spi_impl: "se.laz.casual:casual-api-spi-impl:${casual_jca_version}",
   casual_jca: "se.laz.casual:casual-jca:${casual_jca_version}",    
   javaee_api: "jakarta.platform:jakarta.jakartaee-api:${jakarta_ee_version}",
   gson: "com.google.code.gson:gson:${gson_version}",

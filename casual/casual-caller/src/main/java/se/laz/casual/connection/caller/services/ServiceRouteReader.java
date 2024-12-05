@@ -5,7 +5,7 @@
  */
 package se.laz.casual.connection.caller.services;
 
-import com.google.gson.Gson;
+import se.laz.casual.api.external.json.JsonProviderFactory;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -18,8 +18,7 @@ public final class ServiceRouteReader
     {
         try
         {
-            Gson gson = new Gson();
-            return gson.fromJson(new FileReader(filename), ServiceRoutes.class);
+            return JsonProviderFactory.getJsonProvider().fromJson(new FileReader(filename), ServiceRoutes.class);
         }
         catch (FileNotFoundException e)
         {
