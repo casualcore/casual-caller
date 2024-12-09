@@ -51,15 +51,45 @@ The following environment variables are expected
 - `CASUAL_CALLER_CONNECTION_FACTORY_JNDI_SEARCH_ROOT`, String, default value "eis"
 - `CASUAL_CALLER_VALIDATION_INTERVAL`, int, default value 5000
 - `CASUAL_CALLER_TRANSACTION_STICKY`, boolean, default value false
+- `CASUAL_CALLER_TOPOLOGY_CHANGED_DELAY`, long, defaults to 50 (ms)
+- `CASUAL_CALLER_SERVICE_ROUTES_FILE`, String, default - not set
 
 A typical config file can look like the following:
 ```json
 {
   "jndiSearchRoot": "somecustomjndiroot",
   "validationIntervalMillis": 500,
-  "transactionStickyEnabled": true
+  "transactionStickyEnabled": true,
+  "topologyChangeDelayMillis": 5000,
+  "routeFileName": "foo.json"
 }
 ```
+
+### HTTP Route Configuration
+
+If you have services that you want to be called non transactionally via http then you can define them in a ```route.json``` file such as:
+```json
+{
+  "routes":
+  [
+    { "name": "test-service", "uri": "http://test-host.test:9990/test-service"},
+    { "name": "another-test-service", "uri": "http://test-host.test:9990/another-test-service"}
+  ]
+}
+```
+
+Using the example above, when a tpcall is issued to service `test-service`, instead of doing the tpcall a http request is dispatched to `http://test-host.test:9990/test-service`.
+If a tpcall is made to a service that does not match any route, tpcall is carried out as per usual.
+
+Return codes:
+* OK -> 200
+* TPENOENT -> 404
+* TPETIME -> 408
+* Any other error -> 500
+
+Note: 
+* to be able to call casual services via http, casual needs to be running with nginx enabled
+* to be able to call casual java services via http, the [casual-http-app](https://central.sonatype.com/artifact/se.laz.casual/casual-http-app) needs to be installed as well.
 
 ## Algorithm for choosing which connection to use
 
@@ -121,6 +151,8 @@ that contains the following:
     </client-context>
 </jboss-ejb-client>
 ```
+
+If you are using service routes to handle tpcalls as http requests, you will need to have gson 2.11.0+ in the ```se.laz.casual``` module.
 
 ## Transaction pool sticky
 

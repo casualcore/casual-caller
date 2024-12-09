@@ -1,0 +1,69 @@
+/*
+ * Copyright (c) 2024, The casual project. All rights reserved.
+ *
+ * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
+ */
+package se.laz.casual.http;
+
+import jakarta.ws.rs.core.Response;
+import se.laz.casual.api.buffer.CasualBuffer;
+import se.laz.casual.api.buffer.type.CStringBuffer;
+import se.laz.casual.api.buffer.type.JsonBuffer;
+import se.laz.casual.api.buffer.type.OctetBuffer;
+import se.laz.casual.api.buffer.type.ServiceBuffer;
+import se.laz.casual.api.buffer.type.fielded.FieldedTypeBuffer;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+public final class ResponseConverter
+{
+    private ResponseConverter()
+    {}
+
+    public static CasualBuffer convert(Response response)
+    {
+        Objects.requireNonNull(response, "response cannot be null");
+        String type = response.getHeaderString("Content-Type");
+        if(null == type)
+        {
+            return ServiceBuffer.empty();
+        }
+        CasualContentType contentType = CasualContentType.unmarshall(type);
+        return switch (contentType)
+        {
+            case OCTET,X_OCTET -> createOctetBuffer(response.readEntity(byte[].class));
+            case JSON -> createJsonBuffer(response.readEntity(byte[].class));
+            case FIELD -> createFieldedBuffer(response.readEntity(byte[].class));
+            case STRING -> createCStringBuffer(response.readEntity(byte[].class));
+            case NULL -> ServiceBuffer.empty();
+        };
+    }
+
+    private static CasualBuffer createCStringBuffer(byte[] data)
+    {
+        List<byte[]> bytes = new ArrayList<>();
+        bytes.add(data);
+        return CStringBuffer.of(bytes);
+    }
+
+    private static CasualBuffer createFieldedBuffer(byte[] data)
+    {
+        List<byte[]> bytes = new ArrayList<>();
+        bytes.add(data);
+        return FieldedTypeBuffer.create(bytes);
+    }
+
+    private static CasualBuffer createJsonBuffer(byte[] data)
+    {
+        List<byte[]> bytes = new ArrayList<>();
+        bytes.add(data);
+        return JsonBuffer.of(bytes);
+    }
+
+    private static CasualBuffer createOctetBuffer(byte[] data)
+    {
+        return OctetBuffer.of(data);
+    }
+}

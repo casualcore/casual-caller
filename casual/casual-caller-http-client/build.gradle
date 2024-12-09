@@ -12,23 +12,18 @@ plugins {
 }
 
 dependencies {
-  compileOnly project(":casual:casual-caller-api")
-  implementation project(":casual:casual-caller-http-client")
-  compileOnly libs.casual_api_spi_impl
   compileOnly libs.casual_api
   compileOnly libs.casual_jca
   compileOnly libs.javaee_api
 
   testRuntimeOnly libs.casual_api_spi_impl
-  testImplementation project(":casual:casual-caller-api")
-  testImplementation libs.system_lambda
   testImplementation libs.casual_api
   testImplementation libs.casual_jca
   testImplementation libs.javaee_api
-  testImplementation libs.system_lambda
   testImplementation libs.jersey_client
   testImplementation libs.jersey_test
   testImplementation libs.jersey_inject
+    
   // for spock
   testImplementation platform(libs.groovy_bom)
   testImplementation libs.groovy
@@ -36,17 +31,5 @@ dependencies {
   testImplementation libs.spock_core
   testImplementation libs.cglib_nodep
   testImplementation libs.objenesis
+    
 }
-
-jar{
-  archiveFileName = 'casual-caller.jar'
-}
-
-jacocoTestReport {
-    reports {
-        xml.required = true
-    }
-}
-
-
-

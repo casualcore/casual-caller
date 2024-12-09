@@ -9,6 +9,8 @@ docs/source/version
 .gradle/
 # emacs #
 *~
+\#*\#
+.\#*
 *.orig
 dist/
 out/

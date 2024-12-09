@@ -11,6 +11,8 @@ plugins {
 dependencies {
   deploy project( path: ':casual:casual-caller')
   earlib project( path: ':casual:casual-caller-api')
+  earlib project( path: ':casual:casual-caller-http-client')
+  earlib libs.casual_api_spi_impl  
 }
 
 ear{
@@ -18,6 +20,9 @@ ear{
     applicationName = "casual-caller-app"
     displayName = "Casual Caller App"
     description = "Casual application that provides an abstraction layer on top of n # of CasualConnectionFactories"
+  }
+  manifest{
+        attributes 'Dependencies' : 'jdk.unsupported'
   }
 }
 
