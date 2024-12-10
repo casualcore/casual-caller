@@ -36,7 +36,7 @@ public class StickyTransactionHandler
     public static <T> Optional<T> handleTransactionSticky(
             String serviceName,
             List<ConnectionFactoryEntry> factories,
-            BiFunctionThrowsResourceException<T> doCall,
+            BiFunctionThrowsResourceException<CasualConnection, UUID, T> doCall,
             Supplier<TransactionPoolMapper> transactionPoolMapperSupplier) throws ResourceException
     {
         if (!transactionPoolMapperSupplier.get().isPoolMappingActive())

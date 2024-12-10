@@ -6,15 +6,11 @@
 package se.laz.casual.connection.caller.functions;
 
 import jakarta.resource.ResourceException;
-import se.laz.casual.jca.CasualConnection;
-
-import java.util.UUID;
-
 
 @FunctionalInterface
-public interface BiFunctionThrowsResourceException<R>
+public interface BiFunctionThrowsResourceException<T, U, R>
 {
-    R apply(CasualConnection connection, UUID execution) throws ResourceException;
+    R apply(T arg1, U arg2) throws ResourceException;
 }
 
 

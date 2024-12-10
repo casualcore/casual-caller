@@ -12,8 +12,8 @@ import se.laz.casual.api.buffer.ServiceReturn;
 import se.laz.casual.api.conversation.TpConnectReturn;
 import se.laz.casual.api.flags.ErrorState;
 import se.laz.casual.connection.caller.conversation.ConversationFailover;
-import se.laz.casual.connection.caller.functions.FunctionThrowsResourceException;
 import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceException;
+import se.laz.casual.connection.caller.functions.FunctionThrowsResourceException;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.network.connection.CasualConnectionException;
 import se.laz.casual.network.connection.DomainDisconnectedException;
@@ -34,7 +34,7 @@ public class FailoverAlgorithm
     public ServiceReturn<CasualBuffer> tpcallWithFailover(
             String serviceName,
             ConnectionFactoryLookup lookup,
-            BiFunctionThrowsResourceException<ServiceReturn<CasualBuffer>> doCall,
+            BiFunctionThrowsResourceException<CasualConnection, UUID, ServiceReturn<CasualBuffer>> doCall,
             Supplier<ServiceReturn<CasualBuffer>> doTpenoent)
     {
         List<ConnectionFactoryEntry> validEntries = getFoundAndValidEntries(lookup, serviceName);
@@ -66,7 +66,7 @@ public class FailoverAlgorithm
     public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacallWithFailover(
             String serviceName,
             ConnectionFactoryLookup lookup,
-            BiFunctionThrowsResourceException<CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doCall,
+            BiFunctionThrowsResourceException<CasualConnection, UUID, CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doCall,
             Supplier<CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doTpenoent)
     {
         List<ConnectionFactoryEntry> validEntries = getFoundAndValidEntries(lookup, serviceName);
@@ -105,7 +105,7 @@ public class FailoverAlgorithm
         return validEntries;
     }
 
-    private <T> T issueCall(String serviceName, List<ConnectionFactoryEntry> validEntries, BiFunctionThrowsResourceException<T> doCall)
+    private <T> T issueCall(String serviceName, List<ConnectionFactoryEntry> validEntries, BiFunctionThrowsResourceException<CasualConnection, UUID, T> doCall)
     {
         Exception thrownException = null;
 

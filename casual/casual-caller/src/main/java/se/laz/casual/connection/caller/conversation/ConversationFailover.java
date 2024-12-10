@@ -12,6 +12,7 @@ import se.laz.casual.api.flags.ErrorState;
 import se.laz.casual.connection.caller.CasualCallerException;
 import se.laz.casual.connection.caller.CasualResourceException;
 import se.laz.casual.connection.caller.ConnectionFactoryEntry;
+import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceException;
 import se.laz.casual.connection.caller.functions.FunctionThrowsResourceException;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.network.connection.CasualConnectionException;
@@ -21,6 +22,8 @@ import java.util.UUID;
 
 public class ConversationFailover
 {
+    private ConversationFailover()
+    {}
     public static TpConnectReturn tpconnectWithFailover(String serviceName,
                                                         List<ConnectionFactoryEntry> validEntries,
                                                         FunctionThrowsResourceException<TpConnectReturn, CasualConnection> doCall)
@@ -69,9 +72,5 @@ public class ConversationFailover
         }
         throw new CasualResourceException("Call failed to all " + validEntries.size() + " available casual connections.", thrownException);
     }
-    @FunctionalInterface
-    interface BiFunctionThrowsResourceException<T,U,R>
-    {
-        R apply(T arg1, U arg2) throws ResourceException;
-    }
+
 }
