@@ -7,7 +7,7 @@
 //-*- coding: utf-8 -*-
 buildscript {
     repositories {
-        mavenCentral()
+	mavenCentral()
         maven { url 'https://repo.spring.io/plugins-release' }
     }
 }
