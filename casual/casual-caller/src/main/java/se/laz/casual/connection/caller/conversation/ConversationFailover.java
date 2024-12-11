@@ -26,7 +26,7 @@ public class ConversationFailover
                                                         List<ConnectionFactoryEntry> validEntries,
                                                         FunctionThrowsResourceException<TpConnectReturn, CasualConnection> doCall)
     {
-        FunctionThrowsResourceException<TpConnectReturn, CasualConnection> tpConnectWrapsConnection = (connection) -> {
+        FunctionThrowsResourceException<TpConnectReturn, CasualConnection> tpConnectWrapsConnection = connection -> {
             TpConnectReturn tpConnectReturn = doCall.apply(connection);
             if(tpConnectReturn.getErrorState() == ErrorState.OK)
             {
