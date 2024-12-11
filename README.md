@@ -159,3 +159,8 @@ If you are using service routes to handle tpcalls as http requests, you will nee
 Casual caller has an optional feature to sticky calls from a specific transaction to a specific casual pool. It will only sticky the first pool it sees for a given transaction and if the stickied pool is unavailable or does not serve a specific service the normal casual caller flow will be used.
 
 Enable the feature with environment `CASUAL_CALLER_TRANSACTION_STICKY=true` or with a casual-caller config file, see configuration section.
+
+
+## Code examples
+
+[Code examples](code-examples.md)
