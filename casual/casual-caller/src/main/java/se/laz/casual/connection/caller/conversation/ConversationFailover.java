@@ -12,13 +12,11 @@ import se.laz.casual.api.flags.ErrorState;
 import se.laz.casual.connection.caller.CasualCallerException;
 import se.laz.casual.connection.caller.CasualResourceException;
 import se.laz.casual.connection.caller.ConnectionFactoryEntry;
-import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceException;
 import se.laz.casual.connection.caller.functions.FunctionThrowsResourceException;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.network.connection.CasualConnectionException;
 
 import java.util.List;
-import java.util.UUID;
 
 public class ConversationFailover
 {
@@ -28,7 +26,7 @@ public class ConversationFailover
                                                         List<ConnectionFactoryEntry> validEntries,
                                                         FunctionThrowsResourceException<TpConnectReturn, CasualConnection> doCall)
     {
-        BiFunctionThrowsResourceException<CasualConnection, UUID, TpConnectReturn> tpConnectWrapsConnection = (connection, uuid) -> {
+        FunctionThrowsResourceException<TpConnectReturn, CasualConnection> tpConnectWrapsConnection = (connection) -> {
             TpConnectReturn tpConnectReturn = doCall.apply(connection);
             if(tpConnectReturn.getErrorState() == ErrorState.OK)
             {
@@ -42,7 +40,7 @@ public class ConversationFailover
 
     private static <R> R issueCall(String serviceName,
                                    List<ConnectionFactoryEntry> validEntries,
-                                   BiFunctionThrowsResourceException<CasualConnection,UUID,R> wrapperFunction)
+                                   FunctionThrowsResourceException<R, CasualConnection>  wrapperFunction)
     {
         Exception thrownException = null;
         for (ConnectionFactoryEntry connectionFactoryEntry : validEntries)
@@ -51,7 +49,7 @@ public class ConversationFailover
             {
                 // note, this connection NEEDS to be closed by the user application!!!
                 CasualConnection con = connectionFactoryEntry.getConnectionFactory().getConnection();
-                return wrapperFunction.apply(con, UUID.randomUUID());
+                return wrapperFunction.apply(con);
             }
             catch (CasualConnectionException e)
             {
