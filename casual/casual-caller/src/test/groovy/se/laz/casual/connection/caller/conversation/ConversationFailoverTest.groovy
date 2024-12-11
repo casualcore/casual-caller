@@ -15,7 +15,7 @@ import spock.lang.Specification
 
 class ConversationFailoverTest extends Specification
 {
-   def 'ok path, connection is automatically closed'()
+   def 'ok - connection and conversation are automatically closed'()
    {
       given:
       def serviceName = 'chatty'
