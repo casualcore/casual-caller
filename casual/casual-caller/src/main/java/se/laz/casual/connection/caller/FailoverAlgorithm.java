@@ -154,11 +154,4 @@ public class FailoverAlgorithm
         }
         throw new CasualResourceException("Call failed to all " + validEntries.size() + " available casual connections.", thrownException);
     }
-
-    @FunctionalInterface
-    interface ConversationBiFunction<T,U,R>
-    {
-        R apply(T arg1, U arg2) throws ResourceException;
-    }
-
 }
