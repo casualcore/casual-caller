@@ -5,6 +5,7 @@ import se.laz.casual.api.conversation.TpConnectReturn
 import se.laz.casual.api.flags.AtmiFlags
 import se.laz.casual.api.flags.ErrorState
 import se.laz.casual.api.flags.Flag
+import se.laz.casual.connection.caller.CasualCallerException
 import se.laz.casual.connection.caller.CasualResourceException
 import se.laz.casual.connection.caller.ConnectionFactoryEntry
 import se.laz.casual.jca.CasualConnection
@@ -120,5 +121,31 @@ class ConversationFailoverTest extends Specification
       }
       then:
       noExceptionThrown()
+   }
+
+   def 'ErrorState.OK but missing conversation'()
+   {
+      given:
+      def serviceName = 'chatty'
+      def data = null
+      def flags = Flag.of(AtmiFlags.NOFLAG)
+      def tpConnectReturn = TpConnectReturn.of(ErrorState.OK)
+      def connection = Mock(CasualConnection){
+         1 * tpconnect(serviceName, data, flags) >> tpConnectReturn
+      }
+      def connectionFactory = Mock(CasualConnectionFactory){
+         1 * getConnection() >> connection
+      }
+      def connectionFactoryEntry = Mock(ConnectionFactoryEntry){
+         1 * getConnectionFactory() >> connectionFactory
+      }
+      def validEntries = [connectionFactoryEntry]
+      def doCall = { con ->
+         con.tpconnect(serviceName, data, flags)
+      }
+      when:
+      ConversationFailover.tpconnectWithFailover(serviceName, validEntries, doCall)
+      then:
+      thrown(CasualCallerException)
    }
 }
