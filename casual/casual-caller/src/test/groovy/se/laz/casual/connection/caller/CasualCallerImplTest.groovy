@@ -11,6 +11,7 @@ import se.laz.casual.api.flags.Flag
 import se.laz.casual.api.flags.ServiceReturnState
 import se.laz.casual.api.queue.*
 import se.laz.casual.connection.caller.config.ConfigurationService
+import se.laz.casual.connection.caller.conversation.ConversationImpl
 import se.laz.casual.connection.caller.services.ServiceRoutes
 import se.laz.casual.http.HttpClient
 import se.laz.casual.jca.CasualConnection
@@ -373,10 +374,11 @@ class CasualCallerImplTest extends Specification
       instance.tpconnect(serviceName, callingBuffer, flags).withCloseable {tpConnectReturn ->
          actual = tpConnectReturn
       }
+      ConversationImpl impl = actual.getConversation().get()
       then:
       noExceptionThrown()
       actual.getErrorState() == ErrorState.OK
-      actual.getConversation().orElseThrow({'no conversation!'}) != null
+      impl.conversation == conversation
    }
 
     def 'enqueue ok'()
