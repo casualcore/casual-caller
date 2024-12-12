@@ -9,8 +9,10 @@ package se.laz.casual.connection.caller;
 import jakarta.resource.ResourceException;
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.ServiceReturn;
+import se.laz.casual.api.conversation.TpConnectReturn;
 import se.laz.casual.api.flags.ErrorState;
-import se.laz.casual.connection.caller.functions.FunctionNoArg;
+import se.laz.casual.connection.caller.conversation.ConversationFailover;
+import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceException;
 import se.laz.casual.connection.caller.functions.FunctionThrowsResourceException;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.network.connection.CasualConnectionException;
@@ -20,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -31,18 +34,16 @@ public class FailoverAlgorithm
     public ServiceReturn<CasualBuffer> tpcallWithFailover(
             String serviceName,
             ConnectionFactoryLookup lookup,
-            FunctionThrowsResourceException<ServiceReturn<CasualBuffer>> doCall,
-            FunctionNoArg<ServiceReturn<CasualBuffer>> doTpenoent)
+            BiFunctionThrowsResourceException<CasualConnection, UUID, ServiceReturn<CasualBuffer>> doCall,
+            Supplier<ServiceReturn<CasualBuffer>> doTpenoent)
     {
         List<ConnectionFactoryEntry> validEntries = getFoundAndValidEntries(lookup, serviceName);
-
         // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
         if (validEntries.isEmpty())
         {
             LOG.warning(() -> ALL_FAIL_MESSAGE + serviceName);
-            return doTpenoent.apply();
+            return doTpenoent.get();
         }
-
         ServiceReturn<CasualBuffer> result = issueCall(serviceName, validEntries, doCall);
         if (result.getErrorState() == ErrorState.TPENOENT)
         {
@@ -55,7 +56,7 @@ public class FailoverAlgorithm
             if (validEntries.isEmpty())
             {
                 LOG.warning(() -> ALL_FAIL_MESSAGE + serviceName);
-                return doTpenoent.apply();
+                return doTpenoent.get();
             }
             result = issueCall(serviceName, validEntries, doCall);
         }
@@ -65,18 +66,32 @@ public class FailoverAlgorithm
     public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacallWithFailover(
             String serviceName,
             ConnectionFactoryLookup lookup,
-            FunctionThrowsResourceException<CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doCall,
-            FunctionNoArg<CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doTpenoent)
+            BiFunctionThrowsResourceException<CasualConnection, UUID, CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doCall,
+            Supplier<CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doTpenoent)
     {
         List<ConnectionFactoryEntry> validEntries = getFoundAndValidEntries(lookup, serviceName);
-
         // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
         if (validEntries.isEmpty())
         {
             LOG.warning(() -> ALL_FAIL_MESSAGE + serviceName);
-            return doTpenoent.apply();
+            return doTpenoent.get();
         }
         return issueCall(serviceName, validEntries, doCall);
+    }
+
+    public TpConnectReturn tpconnectWithFailover(String serviceName,
+                                                 ConnectionFactoryLookup lookup,
+                                                 FunctionThrowsResourceException<TpConnectReturn, CasualConnection> doCall,
+                                                 Supplier<TpConnectReturn> doTpenoent)
+    {
+        List<ConnectionFactoryEntry> validEntries = getFoundAndValidEntries(lookup, serviceName);
+        // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
+        if (validEntries.isEmpty())
+        {
+            LOG.warning(() -> ALL_FAIL_MESSAGE + serviceName);
+            return doTpenoent.get();
+        }
+        return ConversationFailover.tpconnectWithFailover(serviceName, validEntries, doCall);
     }
 
     // list needs to be mutable
@@ -90,7 +105,7 @@ public class FailoverAlgorithm
         return validEntries;
     }
 
-    private <T> T issueCall(String serviceName, List<ConnectionFactoryEntry> validEntries, FunctionThrowsResourceException<T> doCall)
+    private <T> T issueCall(String serviceName, List<ConnectionFactoryEntry> validEntries, BiFunctionThrowsResourceException<CasualConnection, UUID, T> doCall)
     {
         Exception thrownException = null;
 
@@ -139,5 +154,4 @@ public class FailoverAlgorithm
         }
         throw new CasualResourceException("Call failed to all " + validEntries.size() + " available casual connections.", thrownException);
     }
-
 }

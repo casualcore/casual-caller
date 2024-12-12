@@ -1,14 +1,17 @@
 package se.laz.casual.connection.caller
 
+import se.laz.casual.api.Conversation
 import se.laz.casual.api.buffer.CasualBuffer
 import se.laz.casual.api.buffer.ServiceReturn
 import se.laz.casual.api.buffer.type.JsonBuffer
+import se.laz.casual.api.conversation.TpConnectReturn
 import se.laz.casual.api.flags.AtmiFlags
 import se.laz.casual.api.flags.ErrorState
 import se.laz.casual.api.flags.Flag
 import se.laz.casual.api.flags.ServiceReturnState
 import se.laz.casual.api.queue.*
 import se.laz.casual.connection.caller.config.ConfigurationService
+import se.laz.casual.connection.caller.conversation.ConversationImpl
 import se.laz.casual.connection.caller.services.ServiceRoutes
 import se.laz.casual.http.HttpClient
 import se.laz.casual.jca.CasualConnection
@@ -335,6 +338,47 @@ class CasualCallerImplTest extends Specification
       caller.tpacall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.TPNOTRAN))
       then:
       noExceptionThrown()
+   }
+
+   def 'tpconnect ok'()
+   {
+      given:
+      def serviceName = 'echo'
+      def connectionFactory = Mock(CasualConnectionFactory)
+      def callingBuffer = Mock(CasualBuffer)
+      def conversation = Mock(Conversation){
+         1 * close()
+      }
+      def someTpConnectReturn = TpConnectReturn.of(conversation)
+      def flags = Flag.of(AtmiFlags.TPRECVONLY)
+      connectionFactory.getConnection() >> {
+         def connection = Mock(CasualConnection)
+         1 * connection.tpconnect(serviceName, callingBuffer, flags) >> someTpConnectReturn
+         1 * connection.close()
+         return connection
+      }
+      def producer = Mock(ConnectionFactoryProducer) {
+         getConnectionFactory() >> {
+            connectionFactory
+         }
+         getJndiName() >> {
+            'someJndiName'
+         }
+      }
+      def entries = [ConnectionFactoryEntry.of(producer)]
+      lookup.get(serviceName) >> {
+         entries
+      }
+      when:
+      TpConnectReturn actual
+      instance.tpconnect(serviceName, callingBuffer, flags).withCloseable {tpConnectReturn ->
+         actual = tpConnectReturn
+      }
+      ConversationImpl impl = actual.getConversation().get()
+      then:
+      noExceptionThrown()
+      actual.getErrorState() == ErrorState.OK
+      impl.conversation == conversation
    }
 
     def 'enqueue ok'()

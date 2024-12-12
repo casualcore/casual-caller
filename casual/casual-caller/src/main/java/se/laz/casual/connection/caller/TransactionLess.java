@@ -7,9 +7,11 @@ package se.laz.casual.connection.caller;
 
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.ServiceReturn;
+
 import se.laz.casual.api.discovery.DiscoveryReturn;
 import se.laz.casual.api.service.ServiceDetails;
 import se.laz.casual.jca.CasualConnection;
+import se.laz.casual.api.conversation.TpConnectReturn;
 
 import jakarta.resource.ResourceException;
 import jakarta.transaction.Transactional;
@@ -73,5 +75,11 @@ public class TransactionLess
           LOG.warning(() -> "services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
        }
        return Optional.empty();
+    }
+
+    @Transactional(Transactional.TxType.NOT_SUPPORTED)
+    public TpConnectReturn tpconnect(Supplier<TpConnectReturn> supplier)
+    {
+      return supplier.get();
     }
 }

@@ -14,6 +14,7 @@ import jakarta.inject.Inject;
 import jakarta.resource.ResourceException;
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.ServiceReturn;
+import se.laz.casual.api.conversation.TpConnectReturn;
 import se.laz.casual.api.flags.AtmiFlags;
 import se.laz.casual.api.flags.ErrorState;
 import se.laz.casual.api.flags.Flag;
@@ -152,10 +153,23 @@ public class CasualCallerImpl implements CasualCaller
         return lookup.get(qinfo).isPresent();
     }
 
+
     @PreDestroy
     public void cleanup()
     {
         httpClient.close();
+    }
+
+    @Override
+    public TpConnectReturn tpconnect(String serviceName, Flag<AtmiFlags> flags)
+    {
+        return tpconnect(serviceName, null, flags);
+    }
+
+    @Override
+    public TpConnectReturn tpconnect(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags)
+    {
+        return flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpconnect(() -> tpCaller.tpconnect(serviceName, data, flags, lookup)) : tpCaller.tpconnect(serviceName, data, flags, lookup);
     }
 
 }

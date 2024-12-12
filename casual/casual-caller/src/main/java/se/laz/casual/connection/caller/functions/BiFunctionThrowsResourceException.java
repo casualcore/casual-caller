@@ -5,8 +5,13 @@
  */
 package se.laz.casual.connection.caller.functions;
 
+import jakarta.resource.ResourceException;
+
 @FunctionalInterface
-public interface FunctionNoArg<R>
+public interface BiFunctionThrowsResourceException<T, U, R>
 {
-    R apply();
+    R apply(T arg1, U arg2) throws ResourceException;
 }
+
+
+

@@ -7,9 +7,9 @@
 
 // casual-java group and version
 group = 'se.laz.casual'
-version = '3.2.23'
+version = '3.3.0'
 
-def casual_jca_version = '3.2.49'
+def casual_jca_version = '3.3.0'
 def gson_version = '2.11.0'
 def jersey_version = '3.1.9'
 def jakarta_ee_version = '10.0.0'
@@ -35,5 +35,5 @@ ext.libs = [
   spock_bom: 'org.spockframework:spock-bom:2.3-groovy-4.0',
   spock_core: 'org.spockframework:spock-core',
   spock_junit4: 'org.spockframework:spock-junit4',
-  cglib_nodep: 'cglib:cglib-nodep:3.3.0',
+  byte_buddy: 'net.bytebuddy:byte-buddy:1.14.8',
 ]

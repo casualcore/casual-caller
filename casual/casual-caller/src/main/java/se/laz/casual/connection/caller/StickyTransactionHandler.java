@@ -15,7 +15,7 @@ import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import se.laz.casual.connection.caller.functions.FunctionThrowsResourceException;
+import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceException;
 import se.laz.casual.network.connection.CasualConnectionException;
 
 public class StickyTransactionHandler
@@ -36,7 +36,7 @@ public class StickyTransactionHandler
     public static <T> Optional<T> handleTransactionSticky(
             String serviceName,
             List<ConnectionFactoryEntry> factories,
-            FunctionThrowsResourceException<T> doCall,
+            BiFunctionThrowsResourceException<CasualConnection, UUID, T> doCall,
             Supplier<TransactionPoolMapper> transactionPoolMapperSupplier) throws ResourceException
     {
         if (!transactionPoolMapperSupplier.get().isPoolMappingActive())
