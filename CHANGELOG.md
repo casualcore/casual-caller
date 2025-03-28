@@ -1,6 +1,11 @@
 # Changelog
 This is the changelog for *casual caller* and all changes are listed in this document.
 
+## [3.3.1-test-gh-action-1] - 2025-03-28
+
+### feat: test gh actions ([#42](https://github.com/casualcore/casual-caller/issues/42))
+Testing test [#3](https://github.com/casualcore/casual-caller/issues/3)
+
 
 ## [3.2.23] - 2024-12-09
 ### Feature/3.2/http routing ([#40](https://github.com/casualcore/casual-caller/issues/40))
