@@ -1,6 +1,13 @@
 # Changelog
 This is the changelog for *casual caller* and all changes are listed in this document.
 
+## [3.3.2] - 2025-06-04
+
+### chore: update maven central publishing ([#45](https://github.com/casualcore/casual-caller/issues/45))
+Changes required for publishing to maven central after the sunsetting of
+OSSRH.
+https://central.sonatype.org/news/20250326_ossrh_sunset/
+
 ## [3.3.1] - 2025-03-31
 
 ### chore(changelog): initial auto tagging and changelog updating ([#44](https://github.com/casualcore/casual-caller/issues/44))
