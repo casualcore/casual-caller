@@ -17,12 +17,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Logger;
 
 @ApplicationScoped
 public class ConnectionFactoryEntryStore implements ConnectionObserver
 {
-    private static final Logger LOG = Logger.getLogger(ConnectionFactoryEntryStore.class.getName());
+    private static final System.Logger LOG = System.getLogger(ConnectionFactoryEntryStore.class.getName());
     private final ConnectionFactoryFinder connectionFactoryFinder;
     private final TopologyChangedHandler topologyChangedHandler;
     private List<ConnectionFactoryEntry> connectionFactories;
@@ -49,7 +48,7 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
             initialize();
             if(connectionFactories.isEmpty())
             {
-                LOG.warning(() -> "could not find any connection factories, casual-caller will not work. Will retry on next access.\n Either your configuration is wrong or the entries do not yet exist in the JNDI-tree just yet.");
+                LOG.log(System.Logger.Level.WARNING,()->"could not find any connection factories, casual-caller will not work. Will retry on next access.\n Either your configuration is wrong or the entries do not yet exist in the JNDI-tree just yet.");
             }
         }
         return Collections.unmodifiableList(connectionFactories);

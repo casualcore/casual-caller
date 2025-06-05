@@ -23,13 +23,12 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
-import java.util.logging.Logger;
 
 @Startup
 @Singleton
 public class JMXStartup
 {
-    private static final Logger LOG = Logger.getLogger(JMXStartup.class.getName());
+    private static final System.Logger LOG = System.getLogger(JMXStartup.class.getName());
     private static final String NAME = "se.laz.casual.caller:type=CasualCallerControl";
     private Cache cache;
     private ConnectionFactoryEntryStore connectionFactoryEntryStore;
@@ -49,7 +48,7 @@ public class JMXStartup
     @PostConstruct
     void initJmx()
     {
-        LOG.finest("JMXStartup::begin");
+        LOG.log(System.Logger.Level.TRACE,"JMXStartup::begin");
 
         try {
             MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
@@ -66,13 +65,13 @@ public class JMXStartup
             throw new CasualRuntimeException(e);
         }
 
-        LOG.finest("JMXStartup::end");
+        LOG.log(System.Logger.Level.TRACE,"JMXStartup::end");
     }
 
     @PreDestroy
     void tearDownJmx()
     {
-        LOG.finest("JMXTeardown::begin");
+        LOG.log(System.Logger.Level.TRACE,"JMXTeardown::begin");
 
         try {
             MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
@@ -86,7 +85,7 @@ public class JMXStartup
             throw new CasualRuntimeException(e);
         }
 
-        LOG.finest("JMXTeardown::end");
+        LOG.log(System.Logger.Level.TRACE,"JMXTeardown::end");
     }
 
     private void unregister(MBeanServer server, ObjectName name) throws MBeanRegistrationException

@@ -19,13 +19,12 @@ import se.laz.casual.api.flags.ServiceReturnState;
 import java.io.Closeable;
 import java.net.URI;
 import java.util.Objects;
-import java.util.logging.Logger;
 
 import static jakarta.ws.rs.client.Entity.entity;
 
 public class HttpClient implements Closeable
 {
-    private static final Logger LOG = Logger.getLogger(HttpClient.class.getName());
+    private static final System.Logger LOG = System.getLogger(HttpClient.class.getName());
     private final Client client;
     public HttpClient()
     {
@@ -44,7 +43,7 @@ public class HttpClient implements Closeable
         Objects.requireNonNull(uri, "uri can not be null");
         Objects.requireNonNull(buffer, "buffer can not be null");
         MediaType mediaType = CasualBufferTypeConverter.convert(CasualBufferType.unmarshall(buffer.getType()));
-        LOG.finest(() -> "issuing http request to " + uri);
+        LOG.log(System.Logger.Level.TRACE,() -> "issuing http request to " + uri);
         Response response = client.target(uri).request(mediaType).post(entity(buffer.getBytes().get(0), mediaType));
         ErrorState errorState = ResponseStatusConverter.convert(response.getStatusInfo().toEnum());
         if (errorState != ErrorState.OK)

@@ -22,11 +22,10 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 
 public class TransactionLess
 {
-    private static final Logger LOG = Logger.getLogger(TransactionLess.class.getName());
+    private static final System.Logger LOG = System.getLogger(TransactionLess.class.getName());
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
     public ServiceReturn<CasualBuffer> tpcall(Supplier<ServiceReturn<CasualBuffer>> supplier)
     {
@@ -62,8 +61,8 @@ public class TransactionLess
     {
        try(CasualConnection connection = connectionFactoryEntry.getConnectionFactory().getConnection())
        {
-          LOG.finest(() -> "domain discovery for all known services/queues will be issued for " + connectionFactoryEntry );
-          LOG.finest(() -> "all known services/queues being, services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
+          LOG.log(System.Logger.Level.TRACE,() -> "domain discovery for all known services/queues will be issued for " + connectionFactoryEntry );
+          LOG.log(System.Logger.Level.TRACE,() -> "all known services/queues being, services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
           return Optional.of(connection.discover(UUID.randomUUID(),
                   cachedItems.get(CacheType.SERVICE),
                   cachedItems.get(CacheType.QUEUE)));
@@ -71,8 +70,8 @@ public class TransactionLess
        catch (ResourceException e)
        {
           connectionFactoryEntry.invalidate();
-          LOG.warning(() -> "failed domain discovery for: " + connectionFactoryEntry + " -> " + e);
-          LOG.warning(() -> "services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
+          LOG.log(System.Logger.Level.WARNING,() -> "failed domain discovery for: " + connectionFactoryEntry + " -> " + e);
+          LOG.log(System.Logger.Level.WARNING,() -> "services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
        }
        return Optional.empty();
     }

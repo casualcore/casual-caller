@@ -14,12 +14,10 @@ import jakarta.resource.ResourceException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class Lookup
 {
-    private static final Logger LOG = Logger.getLogger(Lookup.class.getName());
+    private static final System.Logger LOG = System.getLogger(Lookup.class.getName());
 
     public List<ConnectionFactoryEntry> find(QueueInfo qinfo, List<ConnectionFactoryEntry> cacheEntries, TransactionLess transactionLess)
     {
@@ -46,7 +44,7 @@ public class Lookup
                 }
                 catch (ResourceException e)
                 {
-                   LOG.log(Level.WARNING, e, ()->"Skipping connection factory " + entry.getJndiName() + " for service lookup, received error: " + e.getMessage());
+                   LOG.log(System.Logger.Level.WARNING, ()->"Skipping connection factory " + entry.getJndiName() + " for service lookup, received error: " + e.getMessage());
                 }
             }
         }
@@ -67,7 +65,7 @@ public class Lookup
             }
             catch (ResourceException e)
             {
-                LOG.log(Level.WARNING, e, ()->"Skipping connection factory " + entry.getJndiName() + " for queue lookup on, received error: " + e.getMessage());
+                LOG.log(System.Logger.Level.WARNING, ()->"Skipping connection factory " + entry.getJndiName() + " for queue lookup on, received error: " + e.getMessage());
             }
         }
         return foundEntries;

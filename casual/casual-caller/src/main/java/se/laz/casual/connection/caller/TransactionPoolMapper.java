@@ -21,12 +21,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class TransactionPoolMapper
 {
-    private static final Logger LOG = Logger.getLogger(TransactionPoolMapper.class.getName());
+    private static final System.Logger LOG = System.getLogger(TransactionPoolMapper.class.getName());
     private final Map<Transaction, StickyInformation> transactionStickies = new ConcurrentHashMap<>();
 
     private boolean stickyEnabled = ConfigurationService.getInstance().getConfiguration().isTransactionStickyEnabled();
@@ -140,7 +138,7 @@ public class TransactionPoolMapper
             }
             catch (NamingException e)
             {
-                LOG.severe("Failed to load TransactionSynchronizationRegistry, will not be able to remove registered transaction pool mappings on completion.");
+                LOG.log(System.Logger.Level.ERROR,"Failed to load TransactionSynchronizationRegistry, will not be able to remove registered transaction pool mappings on completion.");
             }
         }
 
@@ -193,7 +191,7 @@ public class TransactionPoolMapper
         }
         catch (SystemException e)
         {
-            LOG.log(Level.SEVERE, "Failed to get transaction from TransactionManager, will report pool mapping disabled", e);
+            LOG.log(System.Logger.Level.ERROR, "Failed to get transaction from TransactionManager, will report pool mapping disabled", e);
             return false;
         }
     }

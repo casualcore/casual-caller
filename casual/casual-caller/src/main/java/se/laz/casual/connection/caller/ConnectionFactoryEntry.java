@@ -11,12 +11,10 @@ import se.laz.casual.jca.CasualConnectionFactory;
 import jakarta.resource.ResourceException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class ConnectionFactoryEntry
 {
-    private static final Logger LOG = Logger.getLogger(ConnectionFactoryEntry.class.getName());
+    private static final System.Logger LOG = System.getLogger(ConnectionFactoryEntry.class.getName());
     private final ConnectionFactoryProducer connectionFactoryProducer;
     private final AtomicBoolean needsDomainDiscovery = new AtomicBoolean(false);
 
@@ -60,7 +58,8 @@ public class ConnectionFactoryEntry
     public void invalidate()
     {
         valid = false;
-        LOG.finest(() -> "Invalidated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
+        LOG.log(System.Logger.Level.TRACE, () -> "Invalidated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
+
     }
 
     //Note: due to try with resources usage where we never use the resource
@@ -71,13 +70,13 @@ public class ConnectionFactoryEntry
         {
             // We just want to check that a connection could be established to check connectivity
             valid = true;
-            LOG.finest(() -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
+            LOG.log(System.Logger.Level.TRACE, () -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
         }
         catch (ResourceException e)
         {
             // Failure to connect during validation should automatically invalidate ConnectionFactoryEntry
             valid = false;
-            LOG.log(Level.WARNING, e, ()->"Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName() + ", received error: " + e.getMessage());
+            LOG.log(System.Logger.Level.WARNING, ()->"Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName() + ", received error: " + e.getMessage());
         }
     }
 
