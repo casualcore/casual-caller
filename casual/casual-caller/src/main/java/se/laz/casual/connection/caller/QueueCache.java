@@ -14,11 +14,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
+
+import static java.lang.System.Logger.Level.*;
 
 public class QueueCache
 {
-    private static final Logger LOG = Logger.getLogger(QueueCache.class.getName());
+    private static final System.Logger LOG = System.getLogger(QueueCache.class.getName());
 
     private final Map<String, List<ConnectionFactoryEntry>> cacheMap = new ConcurrentHashMap<>();
     private final Map<String, ConnectionFactoryEntry> stickies = new ConcurrentHashMap<>();
@@ -56,7 +57,7 @@ public class QueueCache
 
                 if(cachedForQueue.isEmpty())
                 {
-                    LOG.info(() -> "No valid connection for queuename: " + queueName);
+                    LOG.log(INFO,() -> "No valid connection for queuename: " + queueName);
                     return Optional.empty();
                 }
 
@@ -65,7 +66,7 @@ public class QueueCache
                 stickies.put(queueName, selectedFactory);
 
                 if (cachedForQueue.size() > 1) {
-                    LOG.info(() -> "Found multiple (" + cachedForQueue.size() + ") sources for queue '" + queueName
+                    LOG.log(INFO,() -> "Found multiple (" + cachedForQueue.size() + ") sources for queue '" + queueName
                             + "', selecting and setting sticky for CasualConnectionFactory=" + selectedFactory);
                 }
 

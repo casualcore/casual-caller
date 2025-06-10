@@ -16,11 +16,12 @@ import javax.naming.NamingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Logger;
+
+import static java.lang.System.Logger.Level.*;
 
 public class ConnectionFactoryFinder
 {
-    private static final Logger log = Logger.getLogger(ConnectionFactoryFinder.class.getName());
+    private static final System.Logger LOG = System.getLogger(ConnectionFactoryFinder.class.getName());
     public ConnectionFactoryFinder()
     {
         // public NOP-constructor needed for wls-only
@@ -40,7 +41,7 @@ public class ConnectionFactoryFinder
         }
         catch (NamingException e)
         {
-            log.warning(() -> "CasualConnectionFactory lookup failed, using CasualCaller will not work\n\n" + e);
+            LOG.log(WARNING,() -> "CasualConnectionFactory lookup failed, using CasualCaller will not work\n\n" + e,e);
         }
         return Collections.<ConnectionFactoryEntry>emptyList();
     }
@@ -59,14 +60,14 @@ public class ConnectionFactoryFinder
                 if(instance instanceof CasualConnectionFactory)
                 {
                     foundEntries.add(ConnectionFactoryEntry.of(ConnectionFactoryProducer.of(jndiName)));
-                    log.info(() -> "found casual connection factory with JNDI-name: " + jndiName);
+                    LOG.log(INFO,() -> "found casual connection factory with JNDI-name: " + jndiName);
                 }
             }
             return foundEntries;
         }
         catch (NamingException e)
         {
-            log.warning(() -> "CasualConnectionFactory lookup failed, using CasualCaller will not work\n\n" + e);
+            LOG.log(WARNING,() -> "CasualConnectionFactory lookup failed, using CasualCaller will not work\n\n" + e,e);
         }
         return Collections.<ConnectionFactoryEntry>emptyList();
     }

@@ -20,14 +20,14 @@ import jakarta.inject.Inject;
 import se.laz.casual.connection.caller.ConnectionValidator;
 import se.laz.casual.connection.caller.config.ConfigurationService;
 
-import java.util.logging.Logger;
+import static java.lang.System.Logger.Level.*;
 
 @Singleton
 @Startup
 @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
 public class ConnectionFactoryEntryValidationTimer
 {
-    private static final Logger LOG = Logger.getLogger(ConnectionFactoryEntryValidationTimer.class.getName());
+    private static final System.Logger LOG = System.getLogger(ConnectionFactoryEntryValidationTimer.class.getName());
 
     @Resource
     private TimerService timerService;
@@ -57,14 +57,14 @@ public class ConnectionFactoryEntryValidationTimer
     @Timeout
     public void validateConnectionFactories()
     {
-        LOG.finest("Running ConnectionFactoryEntryValidationTimer");
+        LOG.log(DEBUG,"Running ConnectionFactoryEntryValidationTimer");
         try
         {
             connectionValidator.validateAllConnections();
         }
         catch(Exception e)
         {
-            LOG.warning(() -> "failed validating connection factories: " + e);
+            LOG.log(WARNING,() -> "failed validating connection factories: " + e,e);
         }
         finally
         {

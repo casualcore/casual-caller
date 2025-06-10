@@ -23,12 +23,13 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static java.lang.System.Logger.Level.*;
 
 public class FailoverAlgorithm
 {
-    private static final Logger LOG = Logger.getLogger(FailoverAlgorithm.class.getName());
+    private static final System.Logger LOG = System.getLogger(FailoverAlgorithm.class.getName());
     private static final String ALL_FAIL_MESSAGE = "Received a set of ConnectionFactoryEntries, but not one was valid for service ";
 
     public ServiceReturn<CasualBuffer> tpcallWithFailover(
@@ -41,7 +42,7 @@ public class FailoverAlgorithm
         // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
         if (validEntries.isEmpty())
         {
-            LOG.warning(() -> ALL_FAIL_MESSAGE + serviceName);
+            LOG.log(WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
             return doTpenoent.get();
         }
         ServiceReturn<CasualBuffer> result = issueCall(serviceName, validEntries, doCall);
@@ -55,7 +56,7 @@ public class FailoverAlgorithm
             // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
             if (validEntries.isEmpty())
             {
-                LOG.warning(() -> ALL_FAIL_MESSAGE + serviceName);
+                LOG.log(WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
                 return doTpenoent.get();
             }
             result = issueCall(serviceName, validEntries, doCall);
@@ -73,7 +74,7 @@ public class FailoverAlgorithm
         // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
         if (validEntries.isEmpty())
         {
-            LOG.warning(() -> ALL_FAIL_MESSAGE + serviceName);
+            LOG.log(WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
             return doTpenoent.get();
         }
         return issueCall(serviceName, validEntries, doCall);
@@ -88,7 +89,7 @@ public class FailoverAlgorithm
         // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
         if (validEntries.isEmpty())
         {
-            LOG.warning(() -> ALL_FAIL_MESSAGE + serviceName);
+            LOG.log(WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
             return doTpenoent.get();
         }
         return ConversationFailover.tpconnectWithFailover(serviceName, validEntries, doCall);
@@ -101,7 +102,7 @@ public class FailoverAlgorithm
         // This is always through the cache, either it was already there or a lookup was issued and then stored
         List<ConnectionFactoryEntry> prioritySortedFactories = lookup.get(serviceName);
         List<ConnectionFactoryEntry> validEntries = prioritySortedFactories.stream().filter(ConnectionFactoryEntry::isValid).collect(Collectors.toList());
-        LOG.finest(() -> "Entries found for '" + serviceName + "' with " + validEntries.size() + " of " + prioritySortedFactories.size() + " possible connection factories");
+        LOG.log(DEBUG,() -> "Entries found for '" + serviceName + "' with " + validEntries.size() + " of " + prioritySortedFactories.size() + " possible connection factories");
         return validEntries;
     }
 
@@ -121,7 +122,7 @@ public class FailoverAlgorithm
         }
         catch (ResourceException | DomainDisconnectedException e)
         {
-            LOG.finest("Failed call for stickied pool with exception, will run failover if applicable");
+            LOG.log(DEBUG,"Failed call for stickied pool with exception, will run failover if applicable");
             thrownException = e;
         }
 

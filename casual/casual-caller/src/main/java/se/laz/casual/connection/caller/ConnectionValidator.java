@@ -8,12 +8,11 @@ package se.laz.casual.connection.caller;
 
 import jakarta.inject.Inject;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import static java.lang.System.Logger.Level.*;
 
 public class ConnectionValidator
 {
-    private static final Logger LOG = Logger.getLogger(ConnectionValidator.class.getName());
+    private static final System.Logger LOG = System.getLogger(ConnectionValidator.class.getName());
     private CacheRepopulator repopulator;
     private ConnectionFactoryEntryStore connectionFactoryEntryStore;
 
@@ -39,7 +38,7 @@ public class ConnectionValidator
                                        catch(Exception e)
                                        {
                                            connectionFactoryEntry.invalidate();
-                                           LOG.log(Level.WARNING, e, () -> "Failed validating: " + connectionFactoryEntry);
+                                           LOG.log(WARNING, () -> "Failed validating: " + connectionFactoryEntry,e);
                                        }
                                    });
     }

@@ -12,15 +12,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceException;
 import se.laz.casual.network.connection.CasualConnectionException;
 
+import static java.lang.System.Logger.Level.*;
+
 public class StickyTransactionHandler
 {
-    private static final Logger LOG = Logger.getLogger(StickyTransactionHandler.class.getName());
+    private static final System.Logger LOG = System.getLogger(StickyTransactionHandler.class.getName());
 
     private StickyTransactionHandler()
     {}
@@ -51,7 +52,7 @@ public class StickyTransactionHandler
             // We have a specific stickied pool to use that looks usable, try to use it
             StickiedCallInfo sticky = stickyMaybe.get();
             factories.remove(sticky.connectionFactoryEntry()); // If we later need to do failover stuff we don't want to retry with this one
-            LOG.finest(() -> "Attempting to use pool=" + sticky.connectionFactoryEntry().getJndiName() + " with sticky to current transaction.");
+            LOG.log(DEBUG,() -> "Attempting to use pool=" + sticky.connectionFactoryEntry().getJndiName() + " with sticky to current transaction.");
             try (CasualConnection con = sticky.connectionFactoryEntry().getConnectionFactory().getConnection())
             {
                 return Optional.of(doCall.apply(con, sticky.execution()));
@@ -69,7 +70,7 @@ public class StickyTransactionHandler
         }
         else
         {
-            LOG.finest(() -> "Current sticky is " + transactionPoolMapperSupplier.get().getStickyInformationForCurrentTransaction()
+            LOG.log(DEBUG,() -> "Current sticky is " + transactionPoolMapperSupplier.get().getStickyInformationForCurrentTransaction()
                     + " but called service=" + serviceName
                     + " is currently available in pools [" + factories.stream().map(ConnectionFactoryEntry::getJndiName).collect(Collectors.joining(","))
                     + "]. Will use available pools instead of stickied pool.");
@@ -87,7 +88,7 @@ public class StickyTransactionHandler
             ConnectionFactoryEntry newStickyFactory = validFactories.get(0);
             StickyInformation newStickyInformation = new StickyInformation(newStickyFactory.getJndiName(), UUID.randomUUID());
             transactionPoolMapperSupplier.get().setStickyInformationForCurrentTransaction(newStickyInformation);
-            LOG.finest(() -> "No sticky present for call to service=" + serviceName + ", setting sticky=" + newStickyFactory.getJndiName() + " with=" + newStickyInformation);
+            LOG.log(DEBUG,() -> "No sticky present for call to service=" + serviceName + ", setting sticky=" + newStickyFactory.getJndiName() + " with=" + newStickyInformation);
             return Optional.of(new StickiedCallInfo(newStickyFactory, newStickyInformation.execution()));
         }
         else
@@ -99,14 +100,14 @@ public class StickyTransactionHandler
 
             if (stickyMatch.isPresent())
             {
-                LOG.finest(() -> "Using stickied pool=" + stickyInformation + " for call to service=" + serviceName);
+                LOG.log(DEBUG,() -> "Using stickied pool=" + stickyInformation + " for call to service=" + serviceName);
                 ConnectionFactoryEntry stickyEntry = stickyMatch.get();
                 validFactories.remove(stickyEntry);
                 return Optional.of(new StickiedCallInfo(stickyEntry, stickyInformation.execution()));
             }
             else
             {
-                LOG.finest(() -> "There was a sticky=" + stickyInformation + ", but it did not match the valid factories for the called service=" + serviceName);
+                LOG.log(DEBUG,() -> "There was a sticky=" + stickyInformation + ", but it did not match the valid factories for the called service=" + serviceName);
                 return Optional.empty();
             }
         }
