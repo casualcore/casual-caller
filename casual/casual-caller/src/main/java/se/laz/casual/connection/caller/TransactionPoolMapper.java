@@ -22,6 +22,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.lang.System.Logger.Level.*;
+
 public class TransactionPoolMapper
 {
     private static final System.Logger LOG = System.getLogger(TransactionPoolMapper.class.getName());
@@ -138,7 +140,7 @@ public class TransactionPoolMapper
             }
             catch (NamingException e)
             {
-                LOG.log(System.Logger.Level.ERROR,"Failed to load TransactionSynchronizationRegistry, will not be able to remove registered transaction pool mappings on completion.");
+                LOG.log(ERROR,"Failed to load TransactionSynchronizationRegistry, will not be able to remove registered transaction pool mappings on completion.");
             }
         }
 
@@ -191,7 +193,7 @@ public class TransactionPoolMapper
         }
         catch (SystemException e)
         {
-            LOG.log(System.Logger.Level.ERROR, "Failed to get transaction from TransactionManager, will report pool mapping disabled", e);
+            LOG.log(ERROR, "Failed to get transaction from TransactionManager, will report pool mapping disabled", e);
             return false;
         }
     }

@@ -24,6 +24,8 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 
+import static java.lang.System.Logger.Level.*;
+
 @Startup
 @Singleton
 public class JMXStartup
@@ -48,7 +50,7 @@ public class JMXStartup
     @PostConstruct
     void initJmx()
     {
-        LOG.log(System.Logger.Level.TRACE,"JMXStartup::begin");
+        LOG.log(DEBUG,"JMXStartup::begin");
 
         try {
             MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
@@ -65,13 +67,13 @@ public class JMXStartup
             throw new CasualRuntimeException(e);
         }
 
-        LOG.log(System.Logger.Level.TRACE,"JMXStartup::end");
+        LOG.log(DEBUG,"JMXStartup::end");
     }
 
     @PreDestroy
     void tearDownJmx()
     {
-        LOG.log(System.Logger.Level.TRACE,"JMXTeardown::begin");
+        LOG.log(DEBUG,"JMXTeardown::begin");
 
         try {
             MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
@@ -85,7 +87,7 @@ public class JMXStartup
             throw new CasualRuntimeException(e);
         }
 
-        LOG.log(System.Logger.Level.TRACE,"JMXTeardown::end");
+        LOG.log(DEBUG,"JMXTeardown::end");
     }
 
     private void unregister(MBeanServer server, ObjectName name) throws MBeanRegistrationException

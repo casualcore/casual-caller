@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import static java.lang.System.Logger.Level.*;
+
 public class Lookup
 {
     private static final System.Logger LOG = System.getLogger(Lookup.class.getName());
@@ -44,7 +46,7 @@ public class Lookup
                 }
                 catch (ResourceException e)
                 {
-                   LOG.log(System.Logger.Level.WARNING, ()->"Skipping connection factory " + entry.getJndiName() + " for service lookup, received error: " + e.getMessage());
+                   LOG.log(WARNING, ()->"Skipping connection factory " + entry.getJndiName() + " for service lookup, received error: " + e.getMessage(),e);
                 }
             }
         }
@@ -65,7 +67,7 @@ public class Lookup
             }
             catch (ResourceException e)
             {
-                LOG.log(System.Logger.Level.WARNING, ()->"Skipping connection factory " + entry.getJndiName() + " for queue lookup on, received error: " + e.getMessage());
+                LOG.log(WARNING, ()->"Skipping connection factory " + entry.getJndiName() + " for queue lookup on, received error: " + e.getMessage(),e);
             }
         }
         return foundEntries;

@@ -8,7 +8,7 @@ package se.laz.casual.connection.caller;
 
 import jakarta.inject.Inject;
 
-import java.util.logging.Level;
+import static java.lang.System.Logger.Level.*;
 
 public class ConnectionValidator
 {
@@ -38,7 +38,7 @@ public class ConnectionValidator
                                        catch(Exception e)
                                        {
                                            connectionFactoryEntry.invalidate();
-                                           LOG.log(System.Logger.Level.WARNING, () -> "Failed validating: " + connectionFactoryEntry);
+                                           LOG.log(WARNING, () -> "Failed validating: " + connectionFactoryEntry,e);
                                        }
                                    });
     }

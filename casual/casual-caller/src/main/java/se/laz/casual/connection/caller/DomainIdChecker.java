@@ -8,6 +8,7 @@ package se.laz.casual.connection.caller;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.jca.DomainId;
 
+import static java.lang.System.Logger.Level.*;
 
 public class DomainIdChecker
 {
@@ -26,7 +27,7 @@ public class DomainIdChecker
         }
         catch(Exception e)
         {
-            LOG.log(System.Logger.Level.WARNING, () -> "failed comparing domain id: " + domainId + " - most likely the connection is gone");
+            LOG.log(WARNING, () -> "failed comparing domain id: " + domainId + " - most likely the connection is gone",e);
         }
         return false;
     }

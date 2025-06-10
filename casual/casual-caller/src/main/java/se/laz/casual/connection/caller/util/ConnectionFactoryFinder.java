@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static java.lang.System.Logger.Level.*;
+
 public class ConnectionFactoryFinder
 {
     private static final System.Logger LOG = System.getLogger(ConnectionFactoryFinder.class.getName());
@@ -39,7 +41,7 @@ public class ConnectionFactoryFinder
         }
         catch (NamingException e)
         {
-            LOG.log(System.Logger.Level.WARNING,() -> "CasualConnectionFactory lookup failed, using CasualCaller will not work\n\n" + e);
+            LOG.log(WARNING,() -> "CasualConnectionFactory lookup failed, using CasualCaller will not work\n\n" + e,e);
         }
         return Collections.<ConnectionFactoryEntry>emptyList();
     }
@@ -58,14 +60,14 @@ public class ConnectionFactoryFinder
                 if(instance instanceof CasualConnectionFactory)
                 {
                     foundEntries.add(ConnectionFactoryEntry.of(ConnectionFactoryProducer.of(jndiName)));
-                    LOG.log(System.Logger.Level.INFO,() -> "found casual connection factory with JNDI-name: " + jndiName);
+                    LOG.log(INFO,() -> "found casual connection factory with JNDI-name: " + jndiName);
                 }
             }
             return foundEntries;
         }
         catch (NamingException e)
         {
-            LOG.log(System.Logger.Level.WARNING,() -> "CasualConnectionFactory lookup failed, using CasualCaller will not work\n\n" + e);
+            LOG.log(WARNING,() -> "CasualConnectionFactory lookup failed, using CasualCaller will not work\n\n" + e,e);
         }
         return Collections.<ConnectionFactoryEntry>emptyList();
     }

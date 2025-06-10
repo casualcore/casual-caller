@@ -25,6 +25,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static java.lang.System.Logger.Level.*;
+
 public class FailoverAlgorithm
 {
     private static final System.Logger LOG = System.getLogger(FailoverAlgorithm.class.getName());
@@ -40,7 +42,7 @@ public class FailoverAlgorithm
         // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
         if (validEntries.isEmpty())
         {
-            LOG.log(System.Logger.Level.WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
+            LOG.log(WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
             return doTpenoent.get();
         }
         ServiceReturn<CasualBuffer> result = issueCall(serviceName, validEntries, doCall);
@@ -54,7 +56,7 @@ public class FailoverAlgorithm
             // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
             if (validEntries.isEmpty())
             {
-                LOG.log(System.Logger.Level.WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
+                LOG.log(WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
                 return doTpenoent.get();
             }
             result = issueCall(serviceName, validEntries, doCall);
@@ -72,7 +74,7 @@ public class FailoverAlgorithm
         // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
         if (validEntries.isEmpty())
         {
-            LOG.log(System.Logger.Level.WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
+            LOG.log(WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
             return doTpenoent.get();
         }
         return issueCall(serviceName, validEntries, doCall);
@@ -87,7 +89,7 @@ public class FailoverAlgorithm
         // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
         if (validEntries.isEmpty())
         {
-            LOG.log(System.Logger.Level.WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
+            LOG.log(WARNING,() -> ALL_FAIL_MESSAGE + serviceName);
             return doTpenoent.get();
         }
         return ConversationFailover.tpconnectWithFailover(serviceName, validEntries, doCall);
@@ -100,7 +102,7 @@ public class FailoverAlgorithm
         // This is always through the cache, either it was already there or a lookup was issued and then stored
         List<ConnectionFactoryEntry> prioritySortedFactories = lookup.get(serviceName);
         List<ConnectionFactoryEntry> validEntries = prioritySortedFactories.stream().filter(ConnectionFactoryEntry::isValid).collect(Collectors.toList());
-        LOG.log(System.Logger.Level.TRACE,() -> "Entries found for '" + serviceName + "' with " + validEntries.size() + " of " + prioritySortedFactories.size() + " possible connection factories");
+        LOG.log(DEBUG,() -> "Entries found for '" + serviceName + "' with " + validEntries.size() + " of " + prioritySortedFactories.size() + " possible connection factories");
         return validEntries;
     }
 
@@ -120,7 +122,7 @@ public class FailoverAlgorithm
         }
         catch (ResourceException | DomainDisconnectedException e)
         {
-            LOG.log(System.Logger.Level.TRACE,"Failed call for stickied pool with exception, will run failover if applicable");
+            LOG.log(DEBUG,"Failed call for stickied pool with exception, will run failover if applicable");
             thrownException = e;
         }
 

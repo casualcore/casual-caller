@@ -17,6 +17,8 @@ import java.util.stream.Collectors;
 import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceException;
 import se.laz.casual.network.connection.CasualConnectionException;
 
+import static java.lang.System.Logger.Level.*;
+
 public class StickyTransactionHandler
 {
     private static final System.Logger LOG = System.getLogger(StickyTransactionHandler.class.getName());
@@ -50,7 +52,7 @@ public class StickyTransactionHandler
             // We have a specific stickied pool to use that looks usable, try to use it
             StickiedCallInfo sticky = stickyMaybe.get();
             factories.remove(sticky.connectionFactoryEntry()); // If we later need to do failover stuff we don't want to retry with this one
-            LOG.log(System.Logger.Level.TRACE,() -> "Attempting to use pool=" + sticky.connectionFactoryEntry().getJndiName() + " with sticky to current transaction.");
+            LOG.log(DEBUG,() -> "Attempting to use pool=" + sticky.connectionFactoryEntry().getJndiName() + " with sticky to current transaction.");
             try (CasualConnection con = sticky.connectionFactoryEntry().getConnectionFactory().getConnection())
             {
                 return Optional.of(doCall.apply(con, sticky.execution()));
@@ -68,7 +70,7 @@ public class StickyTransactionHandler
         }
         else
         {
-            LOG.log(System.Logger.Level.TRACE,() -> "Current sticky is " + transactionPoolMapperSupplier.get().getStickyInformationForCurrentTransaction()
+            LOG.log(DEBUG,() -> "Current sticky is " + transactionPoolMapperSupplier.get().getStickyInformationForCurrentTransaction()
                     + " but called service=" + serviceName
                     + " is currently available in pools [" + factories.stream().map(ConnectionFactoryEntry::getJndiName).collect(Collectors.joining(","))
                     + "]. Will use available pools instead of stickied pool.");
@@ -86,7 +88,7 @@ public class StickyTransactionHandler
             ConnectionFactoryEntry newStickyFactory = validFactories.get(0);
             StickyInformation newStickyInformation = new StickyInformation(newStickyFactory.getJndiName(), UUID.randomUUID());
             transactionPoolMapperSupplier.get().setStickyInformationForCurrentTransaction(newStickyInformation);
-            LOG.log(System.Logger.Level.TRACE,() -> "No sticky present for call to service=" + serviceName + ", setting sticky=" + newStickyFactory.getJndiName() + " with=" + newStickyInformation);
+            LOG.log(DEBUG,() -> "No sticky present for call to service=" + serviceName + ", setting sticky=" + newStickyFactory.getJndiName() + " with=" + newStickyInformation);
             return Optional.of(new StickiedCallInfo(newStickyFactory, newStickyInformation.execution()));
         }
         else
@@ -98,14 +100,14 @@ public class StickyTransactionHandler
 
             if (stickyMatch.isPresent())
             {
-                LOG.log(System.Logger.Level.TRACE,() -> "Using stickied pool=" + stickyInformation + " for call to service=" + serviceName);
+                LOG.log(DEBUG,() -> "Using stickied pool=" + stickyInformation + " for call to service=" + serviceName);
                 ConnectionFactoryEntry stickyEntry = stickyMatch.get();
                 validFactories.remove(stickyEntry);
                 return Optional.of(new StickiedCallInfo(stickyEntry, stickyInformation.execution()));
             }
             else
             {
-                LOG.log(System.Logger.Level.TRACE,() -> "There was a sticky=" + stickyInformation + ", but it did not match the valid factories for the called service=" + serviceName);
+                LOG.log(DEBUG,() -> "There was a sticky=" + stickyInformation + ", but it did not match the valid factories for the called service=" + serviceName);
                 return Optional.empty();
             }
         }

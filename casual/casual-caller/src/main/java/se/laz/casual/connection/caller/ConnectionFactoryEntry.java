@@ -12,6 +12,8 @@ import jakarta.resource.ResourceException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.lang.System.Logger.Level.*;
+
 public class ConnectionFactoryEntry
 {
     private static final System.Logger LOG = System.getLogger(ConnectionFactoryEntry.class.getName());
@@ -58,7 +60,7 @@ public class ConnectionFactoryEntry
     public void invalidate()
     {
         valid = false;
-        LOG.log(System.Logger.Level.TRACE, () -> "Invalidated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
+        LOG.log(DEBUG, () -> "Invalidated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
 
     }
 
@@ -70,13 +72,13 @@ public class ConnectionFactoryEntry
         {
             // We just want to check that a connection could be established to check connectivity
             valid = true;
-            LOG.log(System.Logger.Level.TRACE, () -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
+            LOG.log(DEBUG, () -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
         }
         catch (ResourceException e)
         {
             // Failure to connect during validation should automatically invalidate ConnectionFactoryEntry
             valid = false;
-            LOG.log(System.Logger.Level.WARNING, ()->"Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName() + ", received error: " + e.getMessage());
+            LOG.log(WARNING,()->"Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName() + ", received error: " + e.getMessage(),e);
         }
     }
 

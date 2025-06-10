@@ -23,6 +23,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static java.lang.System.Logger.Level.*;
+
 public class TransactionLess
 {
     private static final System.Logger LOG = System.getLogger(TransactionLess.class.getName());
@@ -61,8 +63,8 @@ public class TransactionLess
     {
        try(CasualConnection connection = connectionFactoryEntry.getConnectionFactory().getConnection())
        {
-          LOG.log(System.Logger.Level.TRACE,() -> "domain discovery for all known services/queues will be issued for " + connectionFactoryEntry );
-          LOG.log(System.Logger.Level.TRACE,() -> "all known services/queues being, services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
+          LOG.log(DEBUG,() -> "domain discovery for all known services/queues will be issued for " + connectionFactoryEntry );
+          LOG.log(DEBUG,() -> "all known services/queues being, services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
           return Optional.of(connection.discover(UUID.randomUUID(),
                   cachedItems.get(CacheType.SERVICE),
                   cachedItems.get(CacheType.QUEUE)));
@@ -70,8 +72,8 @@ public class TransactionLess
        catch (ResourceException e)
        {
           connectionFactoryEntry.invalidate();
-          LOG.log(System.Logger.Level.WARNING,() -> "failed domain discovery for: " + connectionFactoryEntry + " -> " + e);
-          LOG.log(System.Logger.Level.WARNING,() -> "services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
+          LOG.log(WARNING,() -> "failed domain discovery for: " + connectionFactoryEntry + " -> " + e,e);
+          LOG.log(WARNING,() -> "services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE),e);
        }
        return Optional.empty();
     }

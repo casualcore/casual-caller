@@ -23,6 +23,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import static java.lang.System.Logger.Level.*;
+
 @ApplicationScoped
 public class TopologyChangedHandler
 {
@@ -68,7 +70,7 @@ public class TopologyChangedHandler
     private void scheduleDiscovery(DomainId domainId)
     {
         long delayInMs = ConfigurationService.getInstance().getConfiguration().getTopologyChangeDelayMillis();
-        LOG.log(System.Logger.Level.TRACE,() -> "scheduling domain discovery for domain: " + domainId);
+        LOG.log(DEBUG,() -> "scheduling domain discovery for domain: " + domainId);
         try
         {
             DiscoveryTask task = new DiscoveryTask(domainId, connectionFactoryEntrySupplier, cacheRepopulator);
@@ -78,7 +80,7 @@ public class TopologyChangedHandler
         {
             changedDomains.remove(domainId);
             markForLaterDomainDiscovery(domainId);
-            LOG.log(System.Logger.Level.WARNING, () -> "Could not schedule task to handle topology change for domain: " + domainId + " it will be handled on the next tpcall/tpacall or enqueue/dequeue call");
+            LOG.log(WARNING, () -> "Could not schedule task to handle topology change for domain: " + domainId + " it will be handled on the next tpcall/tpacall or enqueue/dequeue call",e);
         }
     }
 
@@ -112,7 +114,7 @@ public class TopologyChangedHandler
             catch(Exception e)
             {
                 // catching since this method lives in a timer that should never ever throw
-                LOG.log(System.Logger.Level.WARNING, () -> "Failed handling topology update, most likely connection went away. Will be handled when connection is reestablished. Domain: " + domainId);
+                LOG.log(WARNING, () -> "Failed handling topology update, most likely connection went away. Will be handled when connection is reestablished. Domain: " + domainId,e);
             }
         }
         private void handleTopologyChanged(final DomainId domainId)
@@ -120,9 +122,9 @@ public class TopologyChangedHandler
             Optional<ConnectionFactoryEntry> maybeMatch = connectionFactoryEntrySupplier.get().stream()
                                                                                         .filter(connectionFactoryEntry -> DomainIdChecker.isSameDomain(domainId, connectionFactoryEntry))
                                                                                         .findFirst();
-            LOG.log(System.Logger.Level.TRACE,() -> "will issue domain discovery for domain: " + domainId);
+            LOG.log(DEBUG,() -> "will issue domain discovery for domain: " + domainId);
             maybeMatch.ifPresent(cacheRepopulator::repopulate);
-            LOG.log(System.Logger.Level.TRACE,() -> "domain discovery finished for domain: " + domainId);
+            LOG.log(DEBUG,() -> "domain discovery finished for domain: " + domainId);
             // if no match, then that connection is gone and the cache will be repopulated once it re-establishes a connection
             TopologyChangedDoneHandler.execute(TopologyChangedDoneData.createBuilder()
                                                                       .withWasUpdatedDuringDiscovery(updateRequestDuringDiscovery::contains)
