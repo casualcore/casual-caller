@@ -75,6 +75,7 @@ public class Cache
         serviceCache.remove(connectionFactoryEntry);
         queueCache.remove(connectionFactoryEntry);
     }
+
     public Map<CacheType, List<String>> getAll()
     {
         Map<CacheType, List<String>> entries = new EnumMap<>(CacheType.class);
@@ -82,6 +83,7 @@ public class Cache
         entries.put(CacheType.QUEUE, getQueues());
         return entries;
     }
+
     public void repopulate(DiscoveryReturn discoveryReturn, ConnectionFactoryEntry connectionFactoryEntry)
     {
         discoveryReturn.getServiceDetails().forEach(

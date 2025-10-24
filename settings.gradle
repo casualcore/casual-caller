@@ -7,5 +7,6 @@
 //-*- coding: utf-8 -*-
 include 'casual:casual-caller-api'
 include 'casual:casual-caller'
+include 'casual:casual-caller-administration'
 include 'casual:casual-caller-app'
 include 'casual:casual-caller-http-client'

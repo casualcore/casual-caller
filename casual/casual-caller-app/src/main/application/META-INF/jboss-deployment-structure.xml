@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>    
+<!--
+  ~ Copyright (c) 2017 - 2018, The casual project. All rights reserved.
+  ~
+  ~ This software is licensed under the MIT license, https://opensource.org/licenses/MIT
+  -->
+
+<jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.2">
+    <ear-subdeployments-isolated>false</ear-subdeployments-isolated>
+</jboss-deployment-structure>

@@ -63,6 +63,10 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
         connectionFactories.forEach(this::addConnectionObserver);
     }
 
+    public List<ConnectionFactoryEntry> getValid() {
+        return connectionFactories.stream().filter(ConnectionFactoryEntry::isValid).toList();
+    }
+
     public void addConnectionObserver(ConnectionFactoryEntry connectionFactoryEntry)
     {
         getConnectionObserverHandler().addObserver(connectionFactoryEntry, this);

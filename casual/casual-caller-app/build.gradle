@@ -10,15 +10,16 @@ plugins {
 
 dependencies {
   deploy project( path: ':casual:casual-caller')
+  deploy project( path: ':casual:casual-caller-administration', configuration:'archives')
   earlib project( path: ':casual:casual-caller-api')
   earlib project( path: ':casual:casual-caller-http-client')
-  earlib libs.casual_api_spi_impl  
+  earlib libs.casual_api_spi_impl
 }
 
 ear{
   deploymentDescriptor{
-    applicationName = "casual-caller-app"
-    displayName = "Casual Caller App"
+    applicationName = "casual-caller-administration-app"
+    displayName = "Casual Caller Administration App"
     description = "Casual application that provides an abstraction layer on top of n # of CasualConnectionFactories"
   }
   manifest{

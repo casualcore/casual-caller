@@ -1,0 +1,54 @@
+/*
+ * Copyright (c) 2021, The casual project. All rights reserved.
+ *
+ * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
+ */
+
+//-*- coding: utf-8 -*-
+plugins {
+    id 'war'
+    id 'jacoco'
+    id 'groovy'
+}
+
+dependencies {
+  compileOnly project(':casual:casual-caller')
+  compileOnly libs.casual_api
+  compileOnly libs.javaee_api
+  compileOnly libs.jakarta_annotation_api
+  compileOnly libs.gson
+
+  testRuntimeOnly libs.casual_api_spi_impl
+  testImplementation project(':casual:casual-caller')
+  testImplementation project(':casual:casual-caller-api')
+  testImplementation libs.casual_api
+  testImplementation libs.javaee_api
+  testImplementation libs.jakarta_annotation_api
+  testImplementation libs.gson
+  testImplementation libs.jersey_client
+  testImplementation libs.jersey_test
+  testImplementation libs.jersey_inject
+  testImplementation libs.jersey_gson
+
+  // for spock
+  testImplementation platform(libs.groovy_bom)
+  testImplementation libs.groovy
+  testImplementation platform(libs.spock_bom)
+  testImplementation libs.spock_core
+  testImplementation libs.byte_buddy
+  testImplementation libs.objenesis
+}
+
+war {
+  archiveFileName = 'casual-caller-administration.war'
+}
+
+jar {
+  enabled = false
+}
+
+jacocoTestReport {
+  reports {
+    xml.required = true
+  }
+}

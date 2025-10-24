@@ -1,0 +1,11 @@
+/*
+ * Copyright (c) 2026, The casual project. All rights reserved.
+ *
+ * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
+ */
+
+package se.laz.casual.connection.caller.administration.model;
+
+public record Configuration(String jndiSearchRoot, int validationIntervalMillis, boolean transactionStickyEnabled,
+                            long topologyChangeDelayMillis, String routeFileName) {
+}
