@@ -7,9 +7,9 @@
 
 // casual-java group and version
 group = 'se.laz.casual'
-version = '3.3.2'
+version = '3.3.3-SNAPSHOT'
 
-def casual_jca_version = '3.3.0'
+def casual_jca_version = '3.4.5-SNAPSHOT'
 def gson_version = '2.11.0'
 def jersey_version = '3.1.9'
 def jakarta_ee_version = '10.0.0'

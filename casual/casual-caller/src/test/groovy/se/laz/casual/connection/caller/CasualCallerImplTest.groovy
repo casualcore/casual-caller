@@ -1,5 +1,7 @@
 package se.laz.casual.connection.caller
 
+import jakarta.resource.ResourceException
+import jakarta.resource.spi.EISSystemException
 import se.laz.casual.api.Conversation
 import se.laz.casual.api.buffer.CasualBuffer
 import se.laz.casual.api.buffer.ServiceReturn
@@ -9,7 +11,11 @@ import se.laz.casual.api.flags.AtmiFlags
 import se.laz.casual.api.flags.ErrorState
 import se.laz.casual.api.flags.Flag
 import se.laz.casual.api.flags.ServiceReturnState
-import se.laz.casual.api.queue.*
+import se.laz.casual.api.queue.DequeueReturn
+import se.laz.casual.api.queue.EnqueueReturn
+import se.laz.casual.api.queue.MessageSelector
+import se.laz.casual.api.queue.QueueInfo
+import se.laz.casual.api.queue.QueueMessage
 import se.laz.casual.connection.caller.config.ConfigurationService
 import se.laz.casual.connection.caller.conversation.ConversationImpl
 import se.laz.casual.connection.caller.services.ServiceRoutes
@@ -18,9 +24,6 @@ import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
 import spock.lang.Specification
 
-
-import jakarta.resource.ResourceException
-import jakarta.resource.spi.EISSystemException
 import java.util.concurrent.CompletableFuture
 
 class CasualCallerImplTest extends Specification
@@ -42,11 +45,11 @@ class CasualCallerImplTest extends Specification
             return serviceReturn
         }
         fallBackConnectionFactory.getConnection() >> fallbackConnection
-        def fallbackProducer = Mock(ConnectionFactoryProducer) {
+        def fallbackProducer = Mock(ConnectionFactoryProducerImpl) {
            getConnectionFactory() >> {
               fallbackConnection
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               'fallback-jndi'
            }
         }
@@ -81,11 +84,11 @@ class CasualCallerImplTest extends Specification
         connectionFactory.getConnection() >> {
             throw new EISSystemException("oopsie")
         }
-        def producer = Mock(ConnectionFactoryProducer){
+        def producer = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               connectionFactory
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               'someJndiName'
            }
         }
@@ -127,11 +130,11 @@ class CasualCallerImplTest extends Specification
         connectionFactory.getConnection() >> {
             throw new EISSystemException("oopsie")
         }
-        def producer = Mock(ConnectionFactoryProducer){
+        def producer = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               connectionFactory
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               'someJndiName'
            }
         }
@@ -174,11 +177,11 @@ class CasualCallerImplTest extends Specification
         connectionFactory.getConnection() >> {
             throw new EISSystemException("oopsie")
         }
-        def producer = Mock(ConnectionFactoryProducer){
+        def producer = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               connectionFactory
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               'someJndiName'
            }
         }
@@ -202,11 +205,11 @@ class CasualCallerImplTest extends Specification
         connectionFactory.getConnection() >> {
             throw new EISSystemException("oopsie")
         }
-        def producer = Mock(ConnectionFactoryProducer){
+        def producer = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               connectionFactory
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               'someJndiName'
            }
         }
@@ -234,11 +237,11 @@ class CasualCallerImplTest extends Specification
             1 * connection.tpcall(serviceName, callingBuffer, flags, _ as UUID) >> serviceReturn
             return connection
         }
-        def producer = Mock(ConnectionFactoryProducer){
+        def producer = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               connectionFactory
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               'someJndiName'
            }
         }
@@ -265,11 +268,11 @@ class CasualCallerImplTest extends Specification
             1 * connection.tpacall(serviceName, callingBuffer, flags, _ as UUID) >> future
             return connection
         }
-        def producer = Mock(ConnectionFactoryProducer){
+        def producer = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               connectionFactory
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               'someJndiName'
            }
         }
@@ -357,11 +360,11 @@ class CasualCallerImplTest extends Specification
          1 * connection.close()
          return connection
       }
-      def producer = Mock(ConnectionFactoryProducer) {
+      def producer = Mock(ConnectionFactoryProducerImpl) {
          getConnectionFactory() >> {
             connectionFactory
          }
-         getJndiName() >> {
+         getUniqueName() >> {
             'someJndiName'
          }
       }
@@ -393,11 +396,11 @@ class CasualCallerImplTest extends Specification
             1 * connection.enqueue(queueInfo, queueMessage) >> EnqueueReturn.createBuilder().withErrorState(ErrorState.OK).withId(uuid).build()
             return connection
         }
-        def producer = Mock(ConnectionFactoryProducer){
+        def producer = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               connectionFactory
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               'someJndiName'
            }
         }
@@ -423,11 +426,11 @@ class CasualCallerImplTest extends Specification
             1 * connection.dequeue(queueInfo, messageSelector) >> DequeueReturn.createBuilder().withErrorState(ErrorState.OK).withQueueMessage(queueMessage).build()
             return connection
         }
-        def producer = Mock(ConnectionFactoryProducer){
+        def producer = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               connectionFactory
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               'someJndiName'
            }
         }

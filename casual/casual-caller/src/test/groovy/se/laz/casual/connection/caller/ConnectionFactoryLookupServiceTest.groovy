@@ -33,23 +33,23 @@ class ConnectionFactoryLookupServiceTest extends Specification
     @Shared
     CasualConnectionFactory conFacTwo
     @Shared
-    ConnectionFactoryProducer producerOne = {
-       def mock = Mock(ConnectionFactoryProducer)
+    ConnectionFactoryProducerImpl producerOne = {
+       def mock = Mock(ConnectionFactoryProducerImpl)
        mock.getConnectionFactory() >> {
           conFac
        }
-      mock.getJndiName() >> {
+      mock.getUniqueName() >> {
          jndiNameConFactoryOne
       }
       return mock
     }()
     @Shared
-    ConnectionFactoryProducer producerTwo = {
-       def mock = Mock(ConnectionFactoryProducer)
+    ConnectionFactoryProducerImpl producerTwo = {
+       def mock = Mock(ConnectionFactoryProducerImpl)
        mock.getConnectionFactory() >> {
           conFacTwo
        }
-       mock.getJndiName() >> {
+       mock.getUniqueName() >> {
           jndiNameConFactoryTwo
        }
        return mock
@@ -195,8 +195,8 @@ class ConnectionFactoryLookupServiceTest extends Specification
         List<ConnectionFactoryEntry> listOfEntries = []
         for (int i = 0; i < entriesPerPriority; i++)
         {
-            ConnectionFactoryProducer producer = Mock(ConnectionFactoryProducer){
-               getJndiName() >> {
+            ConnectionFactoryProducerImpl producer = Mock(ConnectionFactoryProducerImpl){
+               getUniqueName() >> {
                   "jndi_index_"+i
                }
                getConnectionFactory() >> {
@@ -236,35 +236,35 @@ class ConnectionFactoryLookupServiceTest extends Specification
         def conFac3Name = "name3"
         def conFac4Name = "name4"
 
-        def producerOneLocal = Mock(ConnectionFactoryProducer){
+        def producerOneLocal = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               conFac1
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               conFac1Name
            }
         }
-        def producerTwoLocal = Mock(ConnectionFactoryProducer){
+        def producerTwoLocal = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               conFac2
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               conFac2Name
            }
         }
-        def producerThreeLocal = Mock(ConnectionFactoryProducer){
+        def producerThreeLocal = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               conFac3
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               conFac3Name
            }
         }
-        def producerFourLocal = Mock(ConnectionFactoryProducer){
+        def producerFourLocal = Mock(ConnectionFactoryProducerImpl){
            getConnectionFactory() >> {
               conFac4
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               conFac4Name
            }
         }

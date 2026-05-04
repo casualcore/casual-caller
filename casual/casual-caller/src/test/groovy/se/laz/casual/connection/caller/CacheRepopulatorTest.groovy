@@ -1,16 +1,17 @@
 /*
- * Copyright (c) 2023, The casual project. All rights reserved.
+ * Copyright (c) 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
 package se.laz.casual.connection.caller
 
-import jakarta.resource.ResourceException;
+import jakarta.resource.ResourceException
 import se.laz.casual.api.discovery.DiscoveryReturn
 import se.laz.casual.api.queue.QueueDetails
 import se.laz.casual.api.service.ServiceDetails
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
+import se.laz.casual.network.ProtocolVersion
 import se.laz.casual.network.messages.domain.TransactionType
 import spock.lang.Specification
 
@@ -19,7 +20,7 @@ class CacheRepopulatorTest extends Specification
    def 'invalid connection when running discovery'()
    {
       given:
-      ConnectionFactoryProducer producer = Mock(ConnectionFactoryProducer){
+      ConnectionFactoryProducerImpl producer = Mock(ConnectionFactoryProducerImpl){
          getConnectionFactory() >> {
             Mock(CasualConnectionFactory){
                getConnection() >> {
@@ -52,7 +53,11 @@ class CacheRepopulatorTest extends Specification
       def queueName = 'The fastest queue in the world'
       def serviceName = 'A shiny service'
       DiscoveryReturn discoveryReturn = DiscoveryReturn.createBuilder()
-              .addQueueDetails(QueueDetails.of(queueName, 10L))
+              .addQueueDetails(QueueDetails.createBuilder()
+                      .withName(queueName)
+                      .withRetries(10L)
+                      .withProtocolVersion(ProtocolVersion.VERSION_1_2)
+                      .build())
               .addServiceDetails(ServiceDetails.createBuilder()
                       .withName(serviceName)
                       .withTimeout(0)
@@ -64,7 +69,7 @@ class CacheRepopulatorTest extends Specification
       CasualConnection connection = Mock(CasualConnection) {
          1 * discover(_, _, _) >> discoveryReturn
       }
-      ConnectionFactoryProducer producer = Mock(ConnectionFactoryProducer){
+      ConnectionFactoryProducerImpl producer = Mock(ConnectionFactoryProducerImpl){
          getConnectionFactory() >> {
             Mock(CasualConnectionFactory){
                getConnection() >> connection

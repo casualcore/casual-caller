@@ -42,9 +42,9 @@ class TpCallerFailoverTest extends Specification
     @Shared
     CasualConnection conLow
     @Shared
-    ConnectionFactoryProducer connectionFactoryProducerHigh
+    ConnectionFactoryProducerImpl connectionFactoryProducerHigh
     @Shared
-    ConnectionFactoryProducer connectionFactoryProducerLow
+    ConnectionFactoryProducerImpl connectionFactoryProducerLow
     @Shared transactionLess = new TransactionLess()
 
     TpCallerFailover tpCaller
@@ -75,19 +75,19 @@ class TpCallerFailoverTest extends Specification
         lookup = Mock(Lookup)
         lookupService = new ConnectionFactoryLookupService(connectionFactoryProvider, cache,
                                                            lookup, transactionLess)
-       connectionFactoryProducerHigh = Mock(ConnectionFactoryProducer)
+       connectionFactoryProducerHigh = Mock(ConnectionFactoryProducerImpl)
        connectionFactoryProducerHigh.getConnectionFactory() >> {
           conFacHigh
        }
-       connectionFactoryProducerHigh.getJndiName() >> {
+       connectionFactoryProducerHigh.getUniqueName() >> {
           conFacHighJndi
        }
 
-       connectionFactoryProducerLow = Mock(ConnectionFactoryProducer)
+       connectionFactoryProducerLow = Mock(ConnectionFactoryProducerImpl)
        connectionFactoryProducerLow.getConnectionFactory() >> {
           conFacLow
        }
-       connectionFactoryProducerLow.getJndiName() >> {
+       connectionFactoryProducerLow.getUniqueName() >> {
           conFacLowJndi
        }
 
@@ -165,11 +165,11 @@ class TpCallerFailoverTest extends Specification
             List<ConnectionFactoryEntry> listOfEntries = []
             for (int i = 0; i < entriesPerPriority; i++)
             {
-                ConnectionFactoryProducer producer = Mock(ConnectionFactoryProducer)
+                ConnectionFactoryProducerImpl producer = Mock(ConnectionFactoryProducerImpl)
                 producer.getConnectionFactory() >> {
                    conFacHigh
                 }
-                producer.getJndiName() >> {
+                producer.getUniqueName() >> {
                    conFacHighJndi+prioIndex+":"+i
                 }
                 listOfEntries.add(ConnectionFactoryEntry.of(producer))
@@ -204,11 +204,11 @@ class TpCallerFailoverTest extends Specification
             List<ConnectionFactoryEntry> listOfEntries = []
             for (int i = 0; i < entriesPerPriority; i++)
             {
-               ConnectionFactoryProducer producer = Mock(ConnectionFactoryProducer)
+               ConnectionFactoryProducerImpl producer = Mock(ConnectionFactoryProducerImpl)
                producer.getConnectionFactory() >> {
                   conFacHigh
                }
-               producer.getJndiName() >> {
+               producer.getUniqueName() >> {
                   conFacHighJndi+prioIndex+":"+i
                }
                listOfEntries.add(ConnectionFactoryEntry.of(producer))
@@ -220,11 +220,11 @@ class TpCallerFailoverTest extends Specification
         List<ConnectionFactoryEntry> listOfEntries = []
         for (int i = 0; i < entriesPerPriority; i++)
         {
-           ConnectionFactoryProducer producer = Mock(ConnectionFactoryProducer)
+           ConnectionFactoryProducerImpl producer = Mock(ConnectionFactoryProducerImpl)
            producer.getConnectionFactory() >> {
               conFacLow
            }
-           producer.getJndiName() >> {
+           producer.getUniqueName() >> {
               conFacHighJndi+(priorities+1L)+":"+i
            }
             listOfEntries.add(ConnectionFactoryEntry.of(producer))
@@ -255,7 +255,7 @@ class TpCallerFailoverTest extends Specification
           def hit = ConnectionFactoriesByPriority.of([
                   (priorityLow): [ConnectionFactoryEntry.of(connectionFactoryProducerLow)]
           ])
-          hit.setResolved(connectionFactoryProducerLow.getJndiName())
+          hit.setResolved(connectionFactoryProducerLow.getUniqueName())
           return hit
        }
        def someServiceReturn = new ServiceReturn(null, null, null, 0)

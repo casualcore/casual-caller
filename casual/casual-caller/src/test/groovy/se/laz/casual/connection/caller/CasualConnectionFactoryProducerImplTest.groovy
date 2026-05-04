@@ -3,12 +3,12 @@ package se.laz.casual.connection.caller
 
 import spock.lang.Specification
 
-class CasualConnectionFactoryProducerTest extends Specification
+class CasualConnectionFactoryProducerImplTest extends Specification
 {
    def 'failed construction'()
    {
       when:
-      ConnectionFactoryProducer.of(null)
+      ConnectionFactoryProducerImpl.of(null)
       then:
       thrown(NullPointerException)
    }
@@ -18,8 +18,8 @@ class CasualConnectionFactoryProducerTest extends Specification
       given:
       def jndiName = 'foo'
       when:
-      def producer = ConnectionFactoryProducer.of(jndiName)
+      def producer = ConnectionFactoryProducerImpl.of(jndiName)
       then:
-      producer.getJndiName() == jndiName
+      producer.getUniqueName() == jndiName
    }
 }

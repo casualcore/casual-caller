@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, The casual project. All rights reserved.
+ * Copyright (c) 2022 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -12,26 +12,27 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import java.util.Objects;
 
-public class ConnectionFactoryProducer
+public class ConnectionFactoryProducerImpl implements ConnectionFactoryProducer
 {
-
     private final String jndiName;
-    private ConnectionFactoryProducer(String jndiName)
+    private ConnectionFactoryProducerImpl(String jndiName)
     {
         this.jndiName = jndiName;
     }
 
-    public static ConnectionFactoryProducer of(String jndiName)
+    public static ConnectionFactoryProducerImpl of(String jndiName)
     {
         Objects.requireNonNull(jndiName, "jndiName can not be null");
-        return new ConnectionFactoryProducer(jndiName);
+        return new ConnectionFactoryProducerImpl(jndiName);
     }
 
-    public String getJndiName()
+    @Override
+    public String getUniqueName()
     {
         return jndiName;
     }
 
+    @Override
     public CasualConnectionFactory getConnectionFactory()
     {
         try
@@ -56,7 +57,7 @@ public class ConnectionFactoryProducer
         {
             return false;
         }
-        ConnectionFactoryProducer that = (ConnectionFactoryProducer) o;
+        ConnectionFactoryProducerImpl that = (ConnectionFactoryProducerImpl) o;
         return Objects.equals(jndiName, that.jndiName);
     }
 

@@ -39,7 +39,7 @@ class RandomEntryTest extends Specification
     {
         given:
         def serviceName = 'echo'
-        def entries = [ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer))]
+        def entries = [ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducerImpl))]
         def lookup = Mock(ConnectionFactoryLookup)
         lookup.get(serviceName) >> {
             entries
@@ -54,7 +54,7 @@ class RandomEntryTest extends Specification
     {
         given:
         def queueInfo = QueueInfo.of('Battlestar.Galactica')
-        def entry = Optional.of(ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer)))
+        def entry = Optional.of(ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducerImpl)))
         def lookup = Mock(ConnectionFactoryLookup)
         lookup.get(queueInfo) >> {
             entry
@@ -68,9 +68,9 @@ class RandomEntryTest extends Specification
     def 'getEntry with more than 1 entry should get all entries eventually'()
     {
         given:
-        def entryOne = ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer))
-        def entryTwo = ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer))
-        def entryThree = ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer))
+        def entryOne = ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducerImpl))
+        def entryTwo = ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducerImpl))
+        def entryThree = ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducerImpl))
         def cachedEntries = [entryOne, entryTwo, entryThree]
         def possibleEntries = [entryOne, entryTwo, entryThree]
         when:
