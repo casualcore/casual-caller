@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 public class ConnectionFactoryEntry
 {
     private static final Logger LOG = Logger.getLogger(ConnectionFactoryEntry.class.getName());
-    private final ConnectionFactoryProducerImpl connectionFactoryProducer;
+    private final ConnectionFactoryProducer connectionFactoryProducer;
     private final AtomicBoolean needsDomainDiscovery = new AtomicBoolean(false);
 
     /**
@@ -26,12 +26,12 @@ public class ConnectionFactoryEntry
      */
     private boolean valid = true;
 
-    private ConnectionFactoryEntry(ConnectionFactoryProducerImpl connectionFactoryProducer)
+    private ConnectionFactoryEntry(ConnectionFactoryProducer connectionFactoryProducer)
     {
         this.connectionFactoryProducer = connectionFactoryProducer;
     }
 
-    public static ConnectionFactoryEntry of(ConnectionFactoryProducerImpl connectionFactoryProducer)
+    public static ConnectionFactoryEntry of(ConnectionFactoryProducer connectionFactoryProducer)
     {
         Objects.requireNonNull(connectionFactoryProducer, "CasualConnectionFactoryProducer can not be null");
         return new ConnectionFactoryEntry(connectionFactoryProducer);

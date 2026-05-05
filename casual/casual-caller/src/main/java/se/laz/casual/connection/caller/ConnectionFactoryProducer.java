@@ -7,8 +7,9 @@
 package se.laz.casual.connection.caller;
 
 import se.laz.casual.jca.CasualConnectionFactory;
+import se.laz.casual.spi.Prioritisable;
 
-public interface ConnectionFactoryProducer
+public interface ConnectionFactoryProducer extends Prioritisable
 {
     String getUniqueName();
     CasualConnectionFactory getConnectionFactory();

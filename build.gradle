@@ -80,7 +80,7 @@ subprojects{
 
 project.ext {
     casual_caller_subprojects = subprojects.findAll {
-        it.name.equals( "casual-caller-app" ) || it.name.equals( "casual-caller-api" )
+        it.name.equals( "casual-caller-app" ) || it.name.equals( "casual-caller-api" ) || it.name.equals( "casual-caller" ) || it.name.equals( "casual-caller-http-client" )
     }
 }
 

@@ -6,15 +6,14 @@
 
 package se.laz.casual.connection.caller;
 
-import se.laz.casual.connection.caller.config.ConfigurationService;
-import se.laz.casual.connection.caller.topologychanged.TopologyChangedHandler;
-import se.laz.casual.connection.caller.util.ConnectionFactoryFinder;
-import se.laz.casual.jca.ConnectionObserver;
-import se.laz.casual.jca.DomainId;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import se.laz.casual.connection.caller.config.ConfigurationService;
+import se.laz.casual.connection.caller.topologychanged.TopologyChangedHandler;
+import se.laz.casual.jca.ConnectionObserver;
+import se.laz.casual.jca.DomainId;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;

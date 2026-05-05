@@ -6,7 +6,7 @@
 package se.laz.casual.connection.caller
 
 import se.laz.casual.connection.caller.topologychanged.TopologyChangedHandler
-import se.laz.casual.connection.caller.util.ConnectionFactoryFinder
+import se.laz.casual.connection.caller.util.ConnectionFactoryFinderImpl
 import spock.lang.Specification
 
 class ConnectionFactoryProviderTest extends Specification
@@ -15,7 +15,7 @@ class ConnectionFactoryProviderTest extends Specification
    {
       given:
       ConnectionFactoryEntry entry = Mock(ConnectionFactoryEntry)
-      ConnectionFactoryFinder connectionFactoryFinder = Mock(ConnectionFactoryFinder)
+      ConnectionFactoryFinderImpl connectionFactoryFinder = Mock(ConnectionFactoryFinderImpl)
       connectionFactoryFinder.findConnectionFactory(_) >>> [[entry]]
       // spying to verify the interaction
       ConnectionFactoryEntryStore instance = Spy(ConnectionFactoryEntryStore, constructorArgs: [connectionFactoryFinder, Mock(TopologyChangedHandler)]) {
@@ -34,7 +34,7 @@ class ConnectionFactoryProviderTest extends Specification
    {
       given:
       ConnectionFactoryEntry entry = Mock(ConnectionFactoryEntry)
-      ConnectionFactoryFinder connectionFactoryFinder = Mock(ConnectionFactoryFinder)
+      ConnectionFactoryFinderImpl connectionFactoryFinder = Mock(ConnectionFactoryFinderImpl)
       connectionFactoryFinder.findConnectionFactory(_) >>> [[], [entry]]
       // spying to verify the interactions
       ConnectionFactoryEntryStore instance = Spy(ConnectionFactoryEntryStore, constructorArgs: [connectionFactoryFinder, Mock(TopologyChangedHandler)]) {
