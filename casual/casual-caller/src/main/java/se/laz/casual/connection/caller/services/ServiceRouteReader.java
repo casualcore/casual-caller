@@ -9,16 +9,17 @@ import se.laz.casual.api.external.json.JsonProviderFactory;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.nio.file.Path;
 
 public final class ServiceRouteReader
 {
     private ServiceRouteReader()
     {}
-    public static ServiceRoutes load(String filename)
+    public static ServiceRoutes load(Path filename)
     {
         try
         {
-            return JsonProviderFactory.getJsonProvider().fromJson(new FileReader(filename), ServiceRoutes.class);
+            return JsonProviderFactory.getJsonProvider().fromJson(new FileReader(filename.toFile()), ServiceRoutes.class);
         }
         catch (FileNotFoundException e)
         {
