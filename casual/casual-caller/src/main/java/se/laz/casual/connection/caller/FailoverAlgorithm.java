@@ -6,7 +6,10 @@
 
 package se.laz.casual.connection.caller;
 
-import jakarta.resource.ResourceException;
+import jakarta.enterprise.inject.spi.CDI;
+import jakarta.transaction.Status;
+import jakarta.transaction.SystemException;
+import jakarta.transaction.TransactionManager;
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.ServiceReturn;
 import se.laz.casual.api.conversation.TpConnectReturn;
@@ -15,8 +18,6 @@ import se.laz.casual.connection.caller.conversation.ConversationFailover;
 import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceException;
 import se.laz.casual.connection.caller.functions.FunctionThrowsResourceException;
 import se.laz.casual.jca.CasualConnection;
-import se.laz.casual.network.connection.CasualConnectionException;
-import se.laz.casual.network.connection.DomainDisconnectedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -102,6 +103,10 @@ public class FailoverAlgorithm
         List<ConnectionFactoryEntry> prioritySortedFactories = lookup.get(serviceName);
         List<ConnectionFactoryEntry> validEntries = prioritySortedFactories.stream().filter(ConnectionFactoryEntry::isValid).collect(Collectors.toList());
         LOG.finest(() -> "Entries found for '" + serviceName + "' with " + validEntries.size() + " of " + prioritySortedFactories.size() + " possible connection factories");
+        if(validEntries.isEmpty())
+        {
+            LOG.info(() -> "No valid connection factories found for service " + serviceName + " prioritySortedFactories: " + prioritySortedFactories);
+        }
         return validEntries;
     }
 
@@ -119,39 +124,58 @@ public class FailoverAlgorithm
                 return stickyMaybe.get();
             }
         }
-        catch (ResourceException | DomainDisconnectedException e)
+        catch (Exception e)
         {
             LOG.finest("Failed call for stickied pool with exception, will run failover if applicable");
             thrownException = e;
+            if(transactionMarkedForRollback())
+            {
+                // we should not try any other pool, as the transaction is marked for rollback
+                // and would only result in a rollback even for a subsequent call ok call
+                throw new CasualResourceException("sticky failed, transaction rolling back - not trying any other pool", thrownException);
+            }
         }
+
+        LOG.finest("sticky: valid entries after failed call -> " + validEntries);
 
         // Normal flow
         for (ConnectionFactoryEntry connectionFactoryEntry : validEntries)
         {
             try (CasualConnection con = connectionFactoryEntry.getConnectionFactory().getConnection())
             {
-                return doCall.apply(con, UUID.randomUUID());
+                T result = doCall.apply(con, UUID.randomUUID());
+                LOG.finest("Successful call for connection factory " + connectionFactoryEntry.getJndiName());
+                return result;
             }
-            catch (CasualConnectionException e)
+            catch (Exception e)
             {
-                //This error branch will most likely happen if there are connection errors during a service call
-                connectionFactoryEntry.invalidate();
-
-                // These exceptions are rollback-only, do not attempt any retries.
-                throw new CasualResourceException("Call failed during execution to service=" + serviceName + " on connection=" + connectionFactoryEntry.getJndiName() + " because of a network connection error, retries not possible.", e);
-            }
-            catch (ResourceException | DomainDisconnectedException e)
-            {
-                // This error branch will most likely happen on failure to establish connection with a casual backend
-                // or when a casual domain is disconnecting
-                connectionFactoryEntry.invalidate();
-
-                // Do retries on ResourceExceptions. Save the thrown exception and return to the loop
-                // If there are more entries to try that will be done, or the flow will exit and this
-                // exception will be thrown wrapped at the end of the method.
                 thrownException = e;
+                connectionFactoryEntry.invalidate();
+                if(transactionMarkedForRollback())
+                {
+                    // we should not try any other pool, as the transaction is marked for rollback
+                    // and would only result in a rollback even for a subsequent call ok call
+                    throw new CasualResourceException("Call failed during execution to service=" + serviceName + " on connection=" + connectionFactoryEntry.getJndiName() + " because of a network connection error, retries not possible.", e);
+                }
             }
         }
         throw new CasualResourceException("Call failed to all " + validEntries.size() + " available casual connections.", thrownException);
     }
+
+    private static boolean transactionMarkedForRollback()
+    {
+        TransactionManager tm = CDI.current().select(TransactionManager.class).get();
+        int status = 0;
+        try
+        {
+            status = tm.getStatus();
+        }
+        catch (SystemException e)
+        {
+            LOG.warning("Failed to get transaction status, assuming not rollback only");
+            return false;
+        }
+        return status == Status.STATUS_MARKED_ROLLBACK;
+    }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, The casual project. All rights reserved.
+ * Copyright (c) 2021 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -60,7 +60,9 @@ public class ConnectionFactoryEntry
     public void invalidate()
     {
         valid = false;
-        LOG.finest(() -> "Invalidated CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName());
+        LOG.log(Level.WARNING,
+                "Invalidated CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName(),
+                new Exception("invalidation trace") );
     }
 
     //Note: due to try with resources usage where we never use the resource
@@ -77,7 +79,9 @@ public class ConnectionFactoryEntry
         {
             // Failure to connect during validation should automatically invalidate ConnectionFactoryEntry
             valid = false;
-            LOG.log(Level.WARNING, e, ()->"Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName() + ", received error: " + e.getMessage());
+            // was warning, that might be a bit too severe - in a containerized world it is not uncommon that connections come and go
+            // we do not want to spam the log during normal operations
+            LOG.log(Level.INFO, e, ()->"Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName() + ", received error: " + e.getMessage());
         }
     }
 

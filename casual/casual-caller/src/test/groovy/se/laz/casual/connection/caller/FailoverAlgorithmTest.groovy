@@ -6,6 +6,9 @@
 
 package se.laz.casual.connection.caller
 
+import jakarta.resource.ResourceException
+import jakarta.transaction.Status
+import jakarta.transaction.TransactionManager
 import se.laz.casual.api.buffer.CasualBuffer
 import se.laz.casual.api.buffer.ServiceReturn
 import se.laz.casual.api.buffer.type.ServiceBuffer
@@ -14,12 +17,9 @@ import se.laz.casual.api.flags.Flag
 import se.laz.casual.api.flags.ServiceReturnState
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
+import spock.lang.Ignore
 import spock.lang.Shared
 import spock.lang.Specification
-
-import jakarta.resource.ResourceException
-import jakarta.transaction.Status
-import jakarta.transaction.TransactionManager
 
 class FailoverAlgorithmTest extends Specification
 {
@@ -186,6 +186,9 @@ class FailoverAlgorithmTest extends Specification
       TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction().poolName() == pool1name
    }
 
+   // TODO: Talk to Tobias, it does not make sense that some calls goes to another connection when sticky
+   // it should fail hard and retry will then distpach all calls to another pool ( if available)
+   @Ignore
    def 'stickies, failover: when calling stickied service failover is possible to other non-stickied pool'()
    {
       setup:

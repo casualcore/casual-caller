@@ -10,7 +10,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import se.laz.casual.connection.caller.config.ConfigurationService;
-import se.laz.casual.connection.caller.topologychanged.TopologyChangedHandler;
 import se.laz.casual.jca.ConnectionObserver;
 import se.laz.casual.jca.DomainId;
 
