@@ -60,9 +60,6 @@ public class ConnectionFactoryEntry
     public void invalidate()
     {
         valid = false;
-        LOG.log(Level.WARNING,
-                "Invalidated CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName(),
-                new Exception("invalidation trace") );
     }
 
     //Note: due to try with resources usage where we never use the resource
