@@ -101,7 +101,8 @@ public class FailoverAlgorithm
     {
         // This is always through the cache, either it was already there or a lookup was issued and then stored
         List<ConnectionFactoryEntry> prioritySortedFactories = lookup.get(serviceName);
-        List<ConnectionFactoryEntry> validEntries = prioritySortedFactories.stream().filter(ConnectionFactoryEntry::isValid).collect(Collectors.toList());
+        List<ConnectionFactoryEntry> validEntries = prioritySortedFactories.stream()
+                                                                           .filter(ConnectionFactoryEntry::isValid).collect(Collectors.toList());
         LOG.finest(() -> "Entries found for '" + serviceName + "' with " + validEntries.size() + " of " + prioritySortedFactories.size() + " possible connection factories");
         if(validEntries.isEmpty())
         {
@@ -143,9 +144,12 @@ public class FailoverAlgorithm
         {
             try (CasualConnection con = connectionFactoryEntry.getConnectionFactory().getConnection())
             {
-                T result = doCall.apply(con, UUID.randomUUID());
-                LOG.finest("Successful call for connection factory " + connectionFactoryEntry.getJndiName());
-                return result;
+                if(!con.isDomainDisconnecting())
+                {
+                    T result = doCall.apply(con, UUID.randomUUID());
+                    LOG.finest("Successful call for connection factory " + connectionFactoryEntry.getJndiName());
+                    return result;
+                }
             }
             catch (Exception e)
             {

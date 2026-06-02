@@ -68,8 +68,8 @@ public class ConnectionFactoryEntry
     {
         try(CasualConnection con = getConnectionFactory().getConnection())
         {
-            // We just want to check that a connection could be established to check connectivity
-            valid = true;
+            // connection is there and the domain is not currently disconnecting
+            valid = !con.isDomainDisconnecting();
             LOG.finest(() -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName());
         }
         catch (ResourceException e)
@@ -78,7 +78,7 @@ public class ConnectionFactoryEntry
             valid = false;
             // was warning, that might be a bit too severe - in a containerized world it is not uncommon that connections come and go
             // we do not want to spam the log during normal operations
-            LOG.log(Level.INFO, e, ()->"Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName() + ", received error: " + e.getMessage());
+            LOG.log(Level.FINEST, e, ()->"Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName() + ", received error: " + e.getMessage());
         }
     }
 
