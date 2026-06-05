@@ -52,10 +52,6 @@ public class StickyTransactionHandler
             LOG.finest(() -> "Attempting to use pool=" + sticky.connectionFactoryEntry().getJndiName() + " with sticky to current transaction.");
             try (CasualConnection con = sticky.connectionFactoryEntry().getConnectionFactory().getConnection())
             {
-                if(con.isDomainDisconnecting())
-                {
-                    return Optional.empty();
-                }
                 return Optional.of(doCall.apply(con, sticky.execution()));
             }
             catch (Exception e)

@@ -144,12 +144,10 @@ public class FailoverAlgorithm
         {
             try (CasualConnection con = connectionFactoryEntry.getConnectionFactory().getConnection())
             {
-                if(!con.isDomainDisconnecting())
-                {
-                    T result = doCall.apply(con, UUID.randomUUID());
-                    LOG.finest("Successful call for connection factory " + connectionFactoryEntry.getJndiName());
-                    return result;
-                }
+                T result = doCall.apply(con, UUID.randomUUID());
+                LOG.finest("Successful call for connection factory " + connectionFactoryEntry.getJndiName());
+                return result;
+
             }
             catch (Exception e)
             {
