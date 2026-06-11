@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, The casual project. All rights reserved.
+ * Copyright (c) 2023 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -17,7 +17,6 @@ import se.laz.casual.api.flags.Flag
 import se.laz.casual.api.flags.ServiceReturnState
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
-import spock.lang.Ignore
 import spock.lang.Shared
 import spock.lang.Specification
 
@@ -29,6 +28,15 @@ class FailoverAlgorithmTest extends Specification
    ServiceReturn<CasualBuffer> serviceReturnSuccess = new ServiceReturn<>(ServiceBuffer.empty(), ServiceReturnState.TPSUCCESS, ErrorState.OK, 0L)
    @Shared
    ServiceReturn<CasualBuffer> serviceReturnTpenoent = new ServiceReturn<>(ServiceBuffer.empty(), ServiceReturnState.TPFAIL, ErrorState.TPENOENT, 0L)
+   @Shared
+   TransactionManager transactionManager = Mock(TransactionManager){
+      getStatus() >> Status.STATUS_ACTIVE
+   }
+
+   def setup()
+   {
+      failoverAlgorithm.setTransactionManager(transactionManager)
+   }
 
    def cleanup()
    {
@@ -186,9 +194,7 @@ class FailoverAlgorithmTest extends Specification
       TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction().poolName() == pool1name
    }
 
-   // TODO: Talk to Tobias, it does not make sense that some calls goes to another connection when sticky
    // it should fail hard and retry will then distpach all calls to another pool ( if available)
-   @Ignore
    def 'stickies, failover: when calling stickied service failover is possible to other non-stickied pool'()
    {
       setup:

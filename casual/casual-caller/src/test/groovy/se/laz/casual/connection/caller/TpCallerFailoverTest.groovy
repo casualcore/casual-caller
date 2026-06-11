@@ -7,6 +7,7 @@
 package se.laz.casual.connection.caller
 
 import jakarta.resource.ResourceException
+import jakarta.transaction.TransactionManager
 import se.laz.casual.api.Conversation
 import se.laz.casual.api.buffer.CasualBuffer
 import se.laz.casual.api.buffer.ServiceReturn
@@ -65,7 +66,9 @@ class TpCallerFailoverTest extends Specification
         conFacHigh.getConnection() >> conHigh
         conFacLow.getConnection() >> conLow
 
-        tpCaller = new TpCallerFailover()
+        FailoverAlgorithm failoverAlgorithm = new FailoverAlgorithm()
+        failoverAlgorithm.setTransactionManager(Mock(TransactionManager))
+        tpCaller = new TpCallerFailover(failoverAlgorithm)
 
         data = Mock(CasualBuffer)
         flags = Mock(Flag)

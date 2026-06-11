@@ -31,6 +31,7 @@ public class FailoverAlgorithm
 {
     private static final Logger LOG = Logger.getLogger(FailoverAlgorithm.class.getName());
     private static final String ALL_FAIL_MESSAGE = "Received a set of ConnectionFactoryEntries, but not one was valid for service ";
+    private TransactionManager transactionManager;
 
     public ServiceReturn<CasualBuffer> tpcallWithFailover(
             String serviceName,
@@ -166,9 +167,23 @@ public class FailoverAlgorithm
         throw new CasualResourceException("Call failed to all " + validEntries.size() + " available casual connections.", thrownException);
     }
 
-    private static boolean transactionMarkedForRollback()
+    void setTransactionManager(TransactionManager transactionManager)
     {
-        TransactionManager tm = CDI.current().select(TransactionManager.class).get();
+        this.transactionManager = transactionManager;
+    }
+
+    TransactionManager getTransactionManager()
+    {
+        if(transactionManager != null)
+        {
+            return transactionManager;
+        }
+        return CDI.current().select(TransactionManager.class).get();
+    }
+
+    private boolean transactionMarkedForRollback()
+    {
+        TransactionManager tm = getTransactionManager();
         int status = 0;
         try
         {
