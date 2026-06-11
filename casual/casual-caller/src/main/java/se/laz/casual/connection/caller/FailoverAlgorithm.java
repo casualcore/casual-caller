@@ -138,7 +138,7 @@ public class FailoverAlgorithm
             }
         }
 
-        LOG.finest("sticky: valid entries after failed call -> " + validEntries);
+        LOG.finest(() -> "sticky: valid entries after failed call -> " + validEntries);
 
         // Normal flow
         for (ConnectionFactoryEntry connectionFactoryEntry : validEntries)
