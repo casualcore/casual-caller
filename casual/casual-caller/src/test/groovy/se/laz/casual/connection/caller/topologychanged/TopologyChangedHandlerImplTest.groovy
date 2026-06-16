@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2023, The casual project. All rights reserved.
+ * Copyright (c) 2023 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
 package se.laz.casual.connection.caller.topologychanged
 
+import jakarta.enterprise.concurrent.ManagedScheduledExecutorService
 import se.laz.casual.connection.caller.CacheRepopulator
 import se.laz.casual.connection.caller.ConnectionFactoryEntry
 import se.laz.casual.connection.caller.config.ConfigurationService
@@ -13,11 +14,14 @@ import se.laz.casual.jca.CasualConnectionFactory
 import se.laz.casual.jca.DomainId
 import spock.lang.Specification
 
-import jakarta.enterprise.concurrent.ManagedScheduledExecutorService
-import java.util.concurrent.*
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
 
-class TopologyChangedHandlerTest extends Specification
+class TopologyChangedHandlerImplTest extends Specification
 {
    def 'task scheduling fails'() {
       given:
@@ -33,7 +37,7 @@ class TopologyChangedHandlerTest extends Specification
       CacheRepopulator cacheRepopulator = Mock(CacheRepopulator){
          0 * repopulate(connectionFactoryEntry)
       }
-      TopologyChangedHandler instance = new TopologyChangedHandler(cacheRepopulator)
+      TopologyChangedHandlerImpl instance = new TopologyChangedHandlerImpl(cacheRepopulator)
       ManagedScheduledExecutorService managedScheduledExecutorService = Mock(ManagedScheduledExecutorService) {
          schedule(_ as Runnable, ConfigurationService.getInstance().getConfiguration().getTopologyChangeDelayMillis(), TimeUnit.MILLISECONDS) >> {
             throw new RejectedExecutionException()
@@ -63,7 +67,7 @@ class TopologyChangedHandlerTest extends Specification
       CacheRepopulator cacheRepopulator = Mock(CacheRepopulator){
          1 * repopulate(connectionFactoryEntry)
       }
-      TopologyChangedHandler instance = new TopologyChangedHandler(cacheRepopulator)
+      TopologyChangedHandlerImpl instance = new TopologyChangedHandlerImpl(cacheRepopulator)
       instance.setSupplier(supplier)
       CompletableFuture<Void> outerFuture = new CompletableFuture<>()
       ManagedScheduledExecutorService managedScheduledExecutorService = Mock(ManagedScheduledExecutorService) {

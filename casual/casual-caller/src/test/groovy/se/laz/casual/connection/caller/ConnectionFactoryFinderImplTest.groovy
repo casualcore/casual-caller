@@ -1,6 +1,12 @@
+/*
+ * Copyright (c) 2023 - 2026, The casual project. All rights reserved.
+ *
+ * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
+ */
 package se.laz.casual.connection.caller
 
-import se.laz.casual.connection.caller.util.ConnectionFactoryFinder
+
+import se.laz.casual.connection.caller.util.ConnectionFactoryFinderImpl
 import se.laz.casual.jca.CasualConnectionFactory
 import spock.lang.Specification
 
@@ -8,7 +14,7 @@ import javax.naming.InitialContext
 import javax.naming.NameClassPair
 import javax.naming.NamingEnumeration
 
-class ConnectionFactoryFinderTest extends Specification
+class ConnectionFactoryFinderImplTest extends Specification
 {
     def 'no entries found'()
     {
@@ -21,7 +27,7 @@ class ConnectionFactoryFinderTest extends Specification
             entries
         }
         when:
-        def result = ConnectionFactoryFinder.of().findConnectionFactory(root, context)
+        def result = ConnectionFactoryFinderImpl.of().findConnectionFactory(root, context)
         then:
         result.isEmpty()
     }
@@ -47,7 +53,7 @@ class ConnectionFactoryFinderTest extends Specification
             'A string and not an instance of CasualConnectionFactory'
         }
         when:
-        def result = ConnectionFactoryFinder.of().findConnectionFactory(root, context)
+        def result = ConnectionFactoryFinderImpl.of().findConnectionFactory(root, context)
         then:
         result.isEmpty()
     }
@@ -74,7 +80,7 @@ class ConnectionFactoryFinderTest extends Specification
             Mock(CasualConnectionFactory)
         }
         when:
-        def result = ConnectionFactoryFinder.of().findConnectionFactory(root, context)
+        def result = ConnectionFactoryFinderImpl.of().findConnectionFactory(root, context)
         then:
         !result.isEmpty()
         result[0].getJndiName() == completeJndiName

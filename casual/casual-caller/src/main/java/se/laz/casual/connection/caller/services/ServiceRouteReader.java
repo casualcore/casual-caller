@@ -7,20 +7,21 @@ package se.laz.casual.connection.caller.services;
 
 import se.laz.casual.api.external.json.JsonProviderFactory;
 
-import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Path;
 
 public final class ServiceRouteReader
 {
     private ServiceRouteReader()
     {}
-    public static ServiceRoutes load(String filename)
+    public static ServiceRoutes load(Path filename)
     {
-        try
+        try(FileReader fileReader = new FileReader(filename.toFile()))
         {
-            return JsonProviderFactory.getJsonProvider().fromJson(new FileReader(filename), ServiceRoutes.class);
+            return JsonProviderFactory.getJsonProvider().fromJson(fileReader, ServiceRoutes.class);
         }
-        catch (FileNotFoundException e)
+        catch (IOException e)
         {
             throw new ServiceRouteReaderException("service routes file " + filename + " could not be loaded", e);
         }

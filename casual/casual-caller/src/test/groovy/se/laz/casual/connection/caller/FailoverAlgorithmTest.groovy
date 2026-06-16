@@ -1,11 +1,14 @@
 /*
- * Copyright (c) 2023, The casual project. All rights reserved.
+ * Copyright (c) 2023 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
 
 package se.laz.casual.connection.caller
 
+import jakarta.resource.ResourceException
+import jakarta.transaction.Status
+import jakarta.transaction.TransactionManager
 import se.laz.casual.api.buffer.CasualBuffer
 import se.laz.casual.api.buffer.ServiceReturn
 import se.laz.casual.api.buffer.type.ServiceBuffer
@@ -17,10 +20,6 @@ import se.laz.casual.jca.CasualConnectionFactory
 import spock.lang.Shared
 import spock.lang.Specification
 
-import jakarta.resource.ResourceException
-import jakarta.transaction.Status
-import jakarta.transaction.TransactionManager
-
 class FailoverAlgorithmTest extends Specification
 {
    @Shared
@@ -29,6 +28,15 @@ class FailoverAlgorithmTest extends Specification
    ServiceReturn<CasualBuffer> serviceReturnSuccess = new ServiceReturn<>(ServiceBuffer.empty(), ServiceReturnState.TPSUCCESS, ErrorState.OK, 0L)
    @Shared
    ServiceReturn<CasualBuffer> serviceReturnTpenoent = new ServiceReturn<>(ServiceBuffer.empty(), ServiceReturnState.TPFAIL, ErrorState.TPENOENT, 0L)
+   @Shared
+   TransactionManager transactionManager = Mock(TransactionManager){
+      getStatus() >> Status.STATUS_ACTIVE
+   }
+
+   def setup()
+   {
+      failoverAlgorithm.setTransactionManager(transactionManager)
+   }
 
    def cleanup()
    {
@@ -186,6 +194,7 @@ class FailoverAlgorithmTest extends Specification
       TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction().poolName() == pool1name
    }
 
+   // it should fail hard and retry will then distpach all calls to another pool ( if available)
    def 'stickies, failover: when calling stickied service failover is possible to other non-stickied pool'()
    {
       setup:

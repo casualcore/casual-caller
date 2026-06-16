@@ -6,9 +6,11 @@
 
 package se.laz.casual.connection.caller;
 
+import jakarta.enterprise.inject.spi.CDI;
+import jakarta.transaction.TransactionManager;
+
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import jakarta.transaction.TransactionManager;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -20,6 +22,15 @@ public class TransactionManagerProvider
     private static final List<String> TRANSACTION_MANAGER_NAMES = Arrays.asList("javax.transaction.TransactionManager","java:/TransactionManager");
     TransactionManager getTransactionManager()
     {
+        try
+        {
+            // Try CDI first (works in Quarkus and modern Jakarta EE)
+            return CDI.current().select(TransactionManager.class).get();
+        }
+        catch (Exception e)
+        {
+            // Fall back to JNDI (traditional app servers and unit tests)
+        }
         try
         {
             InitialContext context = new InitialContext();

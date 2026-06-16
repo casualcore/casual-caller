@@ -38,7 +38,7 @@ import java.util.concurrent.CompletableFuture;
 @TransactionAttribute(TransactionAttributeType.SUPPORTS)
 public class CasualCallerImpl implements CasualCaller
 {
-    private TpCaller tpCaller = new TpCallerFailover();
+    private TpCaller tpCaller;
     private ConnectionFactoryLookup lookup;
     private TransactionLess transactionLess;
     private FailedDomainDiscoveryHandler failedDomainDiscoveryHandler;
@@ -52,7 +52,7 @@ public class CasualCallerImpl implements CasualCaller
     @Inject
     public CasualCallerImpl(ConnectionFactoryLookup lookup, ConnectionFactoryEntryStore connectionFactoryProvider,
                             TransactionLess transactionLess, FailedDomainDiscoveryHandler failedDomainDiscoveryHandler,
-                            HttpClient httpClient, ServiceRoutes serviceRoutes)
+                            HttpClient httpClient, ServiceRoutes serviceRoutes, TpCaller tpCaller)
     {
         this.lookup = lookup;
         this.transactionLess = transactionLess;
@@ -64,6 +64,7 @@ public class CasualCallerImpl implements CasualCaller
             throw new CasualCallerException("No connection factories available, casual caller is not usable");
         }
         this.serviceRoutes = serviceRoutes;
+        this.tpCaller = tpCaller;
     }
 
     @Override

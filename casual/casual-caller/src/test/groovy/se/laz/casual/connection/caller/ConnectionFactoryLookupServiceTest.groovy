@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 - 2018, The casual project. All rights reserved.
+ * Copyright (c) 2017 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -38,7 +38,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
        mock.getConnectionFactory() >> {
           conFac
        }
-      mock.getJndiName() >> {
+      mock.getUniqueName() >> {
          jndiNameConFactoryOne
       }
       return mock
@@ -49,7 +49,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
        mock.getConnectionFactory() >> {
           conFacTwo
        }
-       mock.getJndiName() >> {
+       mock.getUniqueName() >> {
           jndiNameConFactoryTwo
        }
        return mock
@@ -196,7 +196,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         for (int i = 0; i < entriesPerPriority; i++)
         {
             ConnectionFactoryProducer producer = Mock(ConnectionFactoryProducer){
-               getJndiName() >> {
+               getUniqueName() >> {
                   "jndi_index_"+i
                }
                getConnectionFactory() >> {
@@ -240,7 +240,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
            getConnectionFactory() >> {
               conFac1
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               conFac1Name
            }
         }
@@ -248,7 +248,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
            getConnectionFactory() >> {
               conFac2
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               conFac2Name
            }
         }
@@ -256,7 +256,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
            getConnectionFactory() >> {
               conFac3
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               conFac3Name
            }
         }
@@ -264,7 +264,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
            getConnectionFactory() >> {
               conFac4
            }
-           getJndiName() >> {
+           getUniqueName() >> {
               conFac4Name
            }
         }

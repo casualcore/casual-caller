@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 - 2018, The casual project. All rights reserved.
+ * Copyright (c) 2017 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -11,6 +11,7 @@ import se.laz.casual.api.queue.QueueDetails
 import se.laz.casual.api.queue.QueueInfo
 import se.laz.casual.api.service.ServiceDetails
 import se.laz.casual.jca.CasualConnectionFactory
+import se.laz.casual.network.ProtocolVersion
 import se.laz.casual.network.messages.domain.TransactionType
 import spock.lang.Shared
 import spock.lang.Specification
@@ -35,7 +36,7 @@ class CacheTest extends Specification
       mock.getConnectionFactory() >> {
          connectionFactoryOne
       }
-      mock.getJndiName() >> {
+      mock.getUniqueName() >> {
          jndiNameOne
       }
       return mock
@@ -46,7 +47,7 @@ class CacheTest extends Specification
       mock.getConnectionFactory() >> {
          connectionFactoryTwo
       }
-      mock.getJndiName() >> {
+      mock.getUniqueName() >> {
          jndiNameTwo
       }
       return mock
@@ -270,7 +271,11 @@ class CacheTest extends Specification
 
    QueueDetails toQueueDetails(String name)
    {
-      return QueueDetails.of(name, 0)
+      QueueDetails.createBuilder()
+              .withProtocolVersion(ProtocolVersion.VERSION_1_2)
+              .withName(name)
+              .withRetries(0)
+              .build()
    }
 
    ServiceDetails toServiceDetails(name)

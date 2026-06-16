@@ -5,8 +5,9 @@
  */
 package se.laz.casual.connection.caller.util;
 
-import se.laz.casual.connection.caller.ConnectionFactoryProducer;
 import se.laz.casual.connection.caller.ConnectionFactoryEntry;
+import se.laz.casual.connection.caller.ConnectionFactoryFinder;
+import se.laz.casual.connection.caller.ConnectionFactoryProducerImpl;
 import se.laz.casual.jca.CasualConnectionFactory;
 
 import javax.naming.InitialContext;
@@ -18,19 +19,21 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
-public class ConnectionFactoryFinder
+public class ConnectionFactoryFinderImpl implements ConnectionFactoryFinder
 {
-    private static final Logger log = Logger.getLogger(ConnectionFactoryFinder.class.getName());
-    public ConnectionFactoryFinder()
+    private static final Logger log = Logger.getLogger(ConnectionFactoryFinderImpl.class.getName());
+
+    public ConnectionFactoryFinderImpl()
     {
         // public NOP-constructor needed for wls-only
     }
 
-    public static ConnectionFactoryFinder of()
+    public static ConnectionFactoryFinderImpl of()
     {
-        return new ConnectionFactoryFinder();
+        return new ConnectionFactoryFinderImpl();
     }
 
+    @Override
     public List<ConnectionFactoryEntry> findConnectionFactory(String root)
     {
         try
@@ -42,23 +45,23 @@ public class ConnectionFactoryFinder
         {
             log.warning(() -> "CasualConnectionFactory lookup failed, using CasualCaller will not work\n\n" + e);
         }
-        return Collections.<ConnectionFactoryEntry>emptyList();
+        return Collections.emptyList();
     }
 
-    public List<ConnectionFactoryEntry> findConnectionFactory(String root, InitialContext context)
+    List<ConnectionFactoryEntry> findConnectionFactory(String root, InitialContext context)
     {
         try
         {
             List<ConnectionFactoryEntry> foundEntries = new ArrayList<>();
             NamingEnumeration<NameClassPair> entries = context.list(root);
-            while(entries.hasMoreElements())
+            while (entries.hasMoreElements())
             {
                 NameClassPair entry = entries.nextElement();
                 String jndiName = entry.isRelative() ? root + "/" + entry.getName() : entry.getName();
                 Object instance = context.lookup(jndiName);
-                if(instance instanceof CasualConnectionFactory)
+                if (instance instanceof CasualConnectionFactory)
                 {
-                    foundEntries.add(ConnectionFactoryEntry.of(ConnectionFactoryProducer.of(jndiName)));
+                    foundEntries.add(ConnectionFactoryEntry.of(ConnectionFactoryProducerImpl.of(jndiName)));
                     log.info(() -> "found casual connection factory with JNDI-name: " + jndiName);
                 }
             }

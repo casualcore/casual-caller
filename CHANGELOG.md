@@ -1,6 +1,19 @@
 # Changelog
 This is the changelog for *casual caller* and all changes are listed in this document.
 
+## [3.3.3] - 2026-06-16
+
+### feat: changes for quarkus extension ([#52](https://github.com/casualcore/casual-caller/issues/52))
+Changes needed for quarkus extension:
+CDI changes so that the extension can override the parts that it has to
+be allowed to override.
+
+Added changes for robustness:
+If a call is exceptional, always check if the transaction is marked for
+rollback.
+If it is, there is no need to use another pool to make the call as
+rollback is already in play.
+
 ## [3.3.2] - 2025-06-04
 
 ### chore: update maven central publishing ([#45](https://github.com/casualcore/casual-caller/issues/45))

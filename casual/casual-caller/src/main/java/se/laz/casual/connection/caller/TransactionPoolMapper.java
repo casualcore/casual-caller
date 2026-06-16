@@ -6,16 +6,17 @@
 
 package se.laz.casual.connection.caller;
 
-import se.laz.casual.api.CasualRuntimeException;
-import se.laz.casual.connection.caller.config.ConfigurationService;
-
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
+import jakarta.enterprise.inject.spi.CDI;
 import jakarta.transaction.Synchronization;
 import jakarta.transaction.SystemException;
 import jakarta.transaction.Transaction;
 import jakarta.transaction.TransactionManager;
 import jakarta.transaction.TransactionSynchronizationRegistry;
+import se.laz.casual.api.CasualRuntimeException;
+import se.laz.casual.connection.caller.config.ConfigurationService;
+
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -134,6 +135,16 @@ public class TransactionPoolMapper
     {
         if (transactionSynchronizationRegistry == null)
         {
+            try
+            {
+                // for Quarkus and standard Jakarta EE
+                transactionSynchronizationRegistry = CDI.current().select(TransactionSynchronizationRegistry.class).get();
+                return Optional.of(transactionSynchronizationRegistry);
+            }
+            catch(Exception e)
+            {
+                // continue with older app server behavior below
+            }
             try
             {
                 transactionSynchronizationRegistry = InitialContext.doLookup("java:comp/TransactionSynchronizationRegistry");

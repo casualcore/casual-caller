@@ -6,6 +6,7 @@
 
 package se.laz.casual.connection.caller;
 
+import jakarta.inject.Inject;
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.ServiceReturn;
 import se.laz.casual.api.buffer.type.ServiceBuffer;
@@ -30,7 +31,13 @@ import java.util.concurrent.CompletableFuture;
 
 public class TpCallerFailover implements TpCaller
 {
-    private static final FailoverAlgorithm algorithm = new FailoverAlgorithm();
+    private final FailoverAlgorithm algorithm;
+
+    @Inject
+    public TpCallerFailover(FailoverAlgorithm algorithm)
+    {
+        this.algorithm = algorithm;
+    }
 
     @Override
     public ServiceReturn<CasualBuffer> tpcall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags, ConnectionFactoryLookup lookup)

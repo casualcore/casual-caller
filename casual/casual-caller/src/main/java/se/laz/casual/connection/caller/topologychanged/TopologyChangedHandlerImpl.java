@@ -5,16 +5,17 @@
  */
 package se.laz.casual.connection.caller.topologychanged;
 
-import se.laz.casual.connection.caller.CacheRepopulator;
-import se.laz.casual.connection.caller.ConnectionFactoryEntry;
-import se.laz.casual.connection.caller.DomainIdChecker;
-import se.laz.casual.connection.caller.config.ConfigurationService;
-import se.laz.casual.jca.DomainId;
-
 import jakarta.annotation.Resource;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import se.laz.casual.connection.caller.CacheRepopulator;
+import se.laz.casual.connection.caller.ConnectionFactoryEntry;
+import se.laz.casual.connection.caller.DomainIdChecker;
+import se.laz.casual.connection.caller.TopologyChangedHandler;
+import se.laz.casual.connection.caller.config.ConfigurationService;
+import se.laz.casual.jca.DomainId;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -26,9 +27,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @ApplicationScoped
-public class TopologyChangedHandler
+public class TopologyChangedHandlerImpl implements TopologyChangedHandler
 {
-    private static final Logger LOG = Logger.getLogger(TopologyChangedHandler.class.getName());
+    private static final Logger LOG = Logger.getLogger(TopologyChangedHandlerImpl.class.getName());
     @Resource
     private ManagedScheduledExecutorService scheduledExecutorService;
     private final Set<DomainId> changedDomains = ConcurrentHashMap.newKeySet();
@@ -37,20 +38,22 @@ public class TopologyChangedHandler
     private Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier;
 
     // wls NOP-constructor
-    public TopologyChangedHandler()
+    public TopologyChangedHandlerImpl()
     {}
 
     @Inject
-    public TopologyChangedHandler(CacheRepopulator cacheRepopulator)
+    public TopologyChangedHandlerImpl(CacheRepopulator cacheRepopulator)
     {
         this.cacheRepopulator = cacheRepopulator;
     }
 
+    @Override
     public void setSupplier(Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier)
     {
         this.connectionFactoryEntrySupplier = connectionFactoryEntrySupplier;
     }
 
+    @Override
     public void topologyChanged(final DomainId domainId)
     {
         if(changedDomains.contains(domainId))
@@ -130,7 +133,7 @@ public class TopologyChangedHandler
                                                                       .withWasUpdatedDuringDiscovery(updateRequestDuringDiscovery::contains)
                                                                       .withUpdatedDuringDiscoveryConsumer(updateRequestDuringDiscovery::remove)
                                                                       .withTopologyChangeHandledConsumer(changedDomains::remove)
-                                                                      .withScheduleFunction(TopologyChangedHandler.this::scheduleDiscovery)
+                                                                      .withScheduleFunction(TopologyChangedHandlerImpl.this::scheduleDiscovery)
                                                                       .build(), domainId);
         }
     }

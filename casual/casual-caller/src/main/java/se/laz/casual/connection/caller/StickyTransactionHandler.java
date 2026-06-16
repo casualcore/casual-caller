@@ -6,6 +6,7 @@
 package se.laz.casual.connection.caller;
 
 import jakarta.resource.ResourceException;
+import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceException;
 import se.laz.casual.jca.CasualConnection;
 
 import java.util.List;
@@ -14,9 +15,6 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceException;
-import se.laz.casual.network.connection.CasualConnectionException;
 
 public class StickyTransactionHandler
 {
@@ -56,11 +54,9 @@ public class StickyTransactionHandler
             {
                 return Optional.of(doCall.apply(con, sticky.execution()));
             }
-            catch (CasualConnectionException e)
+            catch (Exception e)
             {
-                //This error branch will most likely happen if there are connection errors during a service call
                 sticky.connectionFactoryEntry().invalidate();
-
                 // These exceptions are rollback-only, do not attempt any retries.
                 throw new CasualResourceException("Call failed during execution to service=" + serviceName
                         + " on connection=" + sticky.connectionFactoryEntry().getJndiName()

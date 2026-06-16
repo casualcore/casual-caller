@@ -1,14 +1,14 @@
 /*
- * Copyright (c) 2021, The casual project. All rights reserved.
+ * Copyright (c) 2021 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
 package se.laz.casual.connection.caller;
 
+import jakarta.resource.ResourceException;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.jca.CasualConnectionFactory;
 
-import jakarta.resource.ResourceException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -39,7 +39,7 @@ public class ConnectionFactoryEntry
 
     public String getJndiName()
     {
-        return connectionFactoryProducer.getJndiName();
+        return connectionFactoryProducer.getUniqueName();
     }
 
     public CasualConnectionFactory getConnectionFactory()
@@ -60,7 +60,6 @@ public class ConnectionFactoryEntry
     public void invalidate()
     {
         valid = false;
-        LOG.finest(() -> "Invalidated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
     }
 
     //Note: due to try with resources usage where we never use the resource
@@ -69,15 +68,17 @@ public class ConnectionFactoryEntry
     {
         try(CasualConnection con = getConnectionFactory().getConnection())
         {
-            // We just want to check that a connection could be established to check connectivity
-            valid = true;
-            LOG.finest(() -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName());
+            // connection is there and the domain is not currently disconnecting
+            valid = !con.isDomainDisconnecting();
+            LOG.finest(() -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName());
         }
         catch (ResourceException e)
         {
             // Failure to connect during validation should automatically invalidate ConnectionFactoryEntry
             valid = false;
-            LOG.log(Level.WARNING, e, ()->"Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getJndiName() + ", received error: " + e.getMessage());
+            // was warning, that might be a bit too severe - in a containerized world it is not uncommon that connections come and go
+            // we do not want to spam the log during normal operations
+            LOG.log(Level.FINEST, e, ()->"Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName() + ", received error: " + e.getMessage());
         }
     }
 

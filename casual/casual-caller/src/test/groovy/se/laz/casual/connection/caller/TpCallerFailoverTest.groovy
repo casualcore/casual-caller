@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, The casual project. All rights reserved.
+ * Copyright (c) 2021 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -7,6 +7,7 @@
 package se.laz.casual.connection.caller
 
 import jakarta.resource.ResourceException
+import jakarta.transaction.TransactionManager
 import se.laz.casual.api.Conversation
 import se.laz.casual.api.buffer.CasualBuffer
 import se.laz.casual.api.buffer.ServiceReturn
@@ -65,7 +66,9 @@ class TpCallerFailoverTest extends Specification
         conFacHigh.getConnection() >> conHigh
         conFacLow.getConnection() >> conLow
 
-        tpCaller = new TpCallerFailover()
+        FailoverAlgorithm failoverAlgorithm = new FailoverAlgorithm()
+        failoverAlgorithm.setTransactionManager(Mock(TransactionManager))
+        tpCaller = new TpCallerFailover(failoverAlgorithm)
 
         data = Mock(CasualBuffer)
         flags = Mock(Flag)
@@ -79,7 +82,7 @@ class TpCallerFailoverTest extends Specification
        connectionFactoryProducerHigh.getConnectionFactory() >> {
           conFacHigh
        }
-       connectionFactoryProducerHigh.getJndiName() >> {
+       connectionFactoryProducerHigh.getUniqueName() >> {
           conFacHighJndi
        }
 
@@ -87,7 +90,7 @@ class TpCallerFailoverTest extends Specification
        connectionFactoryProducerLow.getConnectionFactory() >> {
           conFacLow
        }
-       connectionFactoryProducerLow.getJndiName() >> {
+       connectionFactoryProducerLow.getUniqueName() >> {
           conFacLowJndi
        }
 
@@ -169,7 +172,7 @@ class TpCallerFailoverTest extends Specification
                 producer.getConnectionFactory() >> {
                    conFacHigh
                 }
-                producer.getJndiName() >> {
+                producer.getUniqueName() >> {
                    conFacHighJndi+prioIndex+":"+i
                 }
                 listOfEntries.add(ConnectionFactoryEntry.of(producer))
@@ -208,7 +211,7 @@ class TpCallerFailoverTest extends Specification
                producer.getConnectionFactory() >> {
                   conFacHigh
                }
-               producer.getJndiName() >> {
+               producer.getUniqueName() >> {
                   conFacHighJndi+prioIndex+":"+i
                }
                listOfEntries.add(ConnectionFactoryEntry.of(producer))
@@ -224,7 +227,7 @@ class TpCallerFailoverTest extends Specification
            producer.getConnectionFactory() >> {
               conFacLow
            }
-           producer.getJndiName() >> {
+           producer.getUniqueName() >> {
               conFacHighJndi+(priorities+1L)+":"+i
            }
             listOfEntries.add(ConnectionFactoryEntry.of(producer))
@@ -255,7 +258,7 @@ class TpCallerFailoverTest extends Specification
           def hit = ConnectionFactoriesByPriority.of([
                   (priorityLow): [ConnectionFactoryEntry.of(connectionFactoryProducerLow)]
           ])
-          hit.setResolved(connectionFactoryProducerLow.getJndiName())
+          hit.setResolved(connectionFactoryProducerLow.getUniqueName())
           return hit
        }
        def someServiceReturn = new ServiceReturn(null, null, null, 0)

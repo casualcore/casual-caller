@@ -8,6 +8,7 @@ package se.laz.casual.connection.caller.services;
 import se.laz.casual.connection.caller.config.Configuration;
 
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
@@ -24,10 +25,18 @@ public class ServiceRoutes
     public static ServiceRoutes of(Configuration config)
     {
         ServiceRoutes serviceRoutes =  config.getRouteFileName()
+                                             .map(ServiceRoutes::toPath)
                                              .map(ServiceRouteReader::load)
                                              .orElse(EMPTY);
         serviceRoutes.pruneNullRoutes();
         return serviceRoutes;
+    }
+
+    private static Path toPath(String s)
+    {
+        // If 's' is absolute, toAbsolutePath() returns 's' unchanged.
+        // If 's' is relative, it resolves against the CWD automatically.
+        return Path.of(s).toAbsolutePath().normalize();
     }
 
     public boolean isEmpty()
