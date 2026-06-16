@@ -29,7 +29,7 @@ public class TransactionManagerProvider
         }
         catch (Exception e)
         {
-            // Fall back to JNDI (traditional app servers)
+            // Fall back to JNDI (traditional app servers and unit tests)
         }
         try
         {

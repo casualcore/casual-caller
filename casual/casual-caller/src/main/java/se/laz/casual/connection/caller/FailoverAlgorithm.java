@@ -133,7 +133,7 @@ public class FailoverAlgorithm
             if(transactionMarkedForRollback())
             {
                 // we should not try any other pool, as the transaction is marked for rollback
-                // and would only result in a rollback even for a subsequent call ok call
+                // and would only result in a rollback even for a subsequent ok call
                 throw new CasualResourceException("sticky failed, transaction rolling back - not trying any other pool", thrownException);
             }
         }
@@ -159,7 +159,7 @@ public class FailoverAlgorithm
                 if(transactionMarkedForRollback())
                 {
                     // we should not try any other pool, as the transaction is marked for rollback
-                    // and would only result in a rollback even for a subsequent call ok call
+                    // and would only result in a rollback even for a subsequent ok call
                     throw new CasualResourceException("Call failed during execution to service=" + serviceName + " on connection=" + connectionFactoryEntry.getJndiName() + " because of a network connection error, retries not possible.", e);
                 }
             }
