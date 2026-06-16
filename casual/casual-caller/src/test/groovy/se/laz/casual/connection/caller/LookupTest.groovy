@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 - 2018, The casual project. All rights reserved.
+ * Copyright (c) 2017 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -36,8 +36,8 @@ class LookupTest extends Specification
     @Shared
     def jndiNameTwo = 'eis/anotherCasualConnectionFactory'
     @Shared
-    ConnectionFactoryProducerImpl producerOne = {
-       def mock = Mock(ConnectionFactoryProducerImpl)
+    ConnectionFactoryProducer producerOne = {
+       def mock = Mock(ConnectionFactoryProducer)
        mock.getConnectionFactory() >> {
           conFac
        }
@@ -47,8 +47,8 @@ class LookupTest extends Specification
        return mock
     }()
    @Shared
-   ConnectionFactoryProducerImpl producerTwo = {
-      def mock = Mock(ConnectionFactoryProducerImpl)
+   ConnectionFactoryProducer producerTwo = {
+      def mock = Mock(ConnectionFactoryProducer)
       mock.getConnectionFactory() >> {
          conFacTwo
       }

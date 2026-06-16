@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 - 2018, The casual project. All rights reserved.
+ * Copyright (c) 2017 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -33,8 +33,8 @@ class ConnectionFactoryLookupServiceTest extends Specification
     @Shared
     CasualConnectionFactory conFacTwo
     @Shared
-    ConnectionFactoryProducerImpl producerOne = {
-       def mock = Mock(ConnectionFactoryProducerImpl)
+    ConnectionFactoryProducer producerOne = {
+       def mock = Mock(ConnectionFactoryProducer)
        mock.getConnectionFactory() >> {
           conFac
        }
@@ -44,8 +44,8 @@ class ConnectionFactoryLookupServiceTest extends Specification
       return mock
     }()
     @Shared
-    ConnectionFactoryProducerImpl producerTwo = {
-       def mock = Mock(ConnectionFactoryProducerImpl)
+    ConnectionFactoryProducer producerTwo = {
+       def mock = Mock(ConnectionFactoryProducer)
        mock.getConnectionFactory() >> {
           conFacTwo
        }
@@ -195,7 +195,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         List<ConnectionFactoryEntry> listOfEntries = []
         for (int i = 0; i < entriesPerPriority; i++)
         {
-            ConnectionFactoryProducerImpl producer = Mock(ConnectionFactoryProducerImpl){
+            ConnectionFactoryProducer producer = Mock(ConnectionFactoryProducer){
                getUniqueName() >> {
                   "jndi_index_"+i
                }
@@ -236,7 +236,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         def conFac3Name = "name3"
         def conFac4Name = "name4"
 
-        def producerOneLocal = Mock(ConnectionFactoryProducerImpl){
+        def producerOneLocal = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               conFac1
            }
@@ -244,7 +244,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
               conFac1Name
            }
         }
-        def producerTwoLocal = Mock(ConnectionFactoryProducerImpl){
+        def producerTwoLocal = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               conFac2
            }
@@ -252,7 +252,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
               conFac2Name
            }
         }
-        def producerThreeLocal = Mock(ConnectionFactoryProducerImpl){
+        def producerThreeLocal = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               conFac3
            }
@@ -260,7 +260,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
               conFac3Name
            }
         }
-        def producerFourLocal = Mock(ConnectionFactoryProducerImpl){
+        def producerFourLocal = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               conFac4
            }

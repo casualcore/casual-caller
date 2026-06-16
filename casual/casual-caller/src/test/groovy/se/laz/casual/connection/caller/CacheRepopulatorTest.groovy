@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026, The casual project. All rights reserved.
+ * Copyright (c) 2023 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -20,7 +20,7 @@ class CacheRepopulatorTest extends Specification
    def 'invalid connection when running discovery'()
    {
       given:
-      ConnectionFactoryProducerImpl producer = Mock(ConnectionFactoryProducerImpl){
+      ConnectionFactoryProducer producer = Mock(ConnectionFactoryProducer){
          getConnectionFactory() >> {
             Mock(CasualConnectionFactory){
                getConnection() >> {
