@@ -57,7 +57,7 @@ class CasualCallerImplTest extends Specification
             return serviceReturn
         }
         fallBackConnectionFactory.getConnection() >> fallbackConnection
-        def fallbackProducer = Mock(ConnectionFactoryProducerImpl) {
+        def fallbackProducer = Mock(ConnectionFactoryProducer) {
            getConnectionFactory() >> {
               fallbackConnection
            }
@@ -96,7 +96,7 @@ class CasualCallerImplTest extends Specification
         connectionFactory.getConnection() >> {
             throw new EISSystemException("oopsie")
         }
-        def producer = Mock(ConnectionFactoryProducerImpl){
+        def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               connectionFactory
            }
@@ -142,7 +142,7 @@ class CasualCallerImplTest extends Specification
         connectionFactory.getConnection() >> {
             throw new EISSystemException("oopsie")
         }
-        def producer = Mock(ConnectionFactoryProducerImpl){
+        def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               connectionFactory
            }
@@ -189,7 +189,7 @@ class CasualCallerImplTest extends Specification
         connectionFactory.getConnection() >> {
             throw new EISSystemException("oopsie")
         }
-        def producer = Mock(ConnectionFactoryProducerImpl){
+        def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               connectionFactory
            }
@@ -217,7 +217,7 @@ class CasualCallerImplTest extends Specification
         connectionFactory.getConnection() >> {
             throw new EISSystemException("oopsie")
         }
-        def producer = Mock(ConnectionFactoryProducerImpl){
+        def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               connectionFactory
            }
@@ -249,7 +249,7 @@ class CasualCallerImplTest extends Specification
             1 * connection.tpcall(serviceName, callingBuffer, flags, _ as UUID) >> serviceReturn
             return connection
         }
-        def producer = Mock(ConnectionFactoryProducerImpl){
+        def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               connectionFactory
            }
@@ -280,7 +280,7 @@ class CasualCallerImplTest extends Specification
             1 * connection.tpacall(serviceName, callingBuffer, flags, _ as UUID) >> future
             return connection
         }
-        def producer = Mock(ConnectionFactoryProducerImpl){
+        def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               connectionFactory
            }
@@ -372,7 +372,7 @@ class CasualCallerImplTest extends Specification
          1 * connection.close()
          return connection
       }
-      def producer = Mock(ConnectionFactoryProducerImpl) {
+      def producer = Mock(ConnectionFactoryProducer) {
          getConnectionFactory() >> {
             connectionFactory
          }
@@ -408,7 +408,7 @@ class CasualCallerImplTest extends Specification
             1 * connection.enqueue(queueInfo, queueMessage) >> EnqueueReturn.createBuilder().withErrorState(ErrorState.OK).withId(uuid).build()
             return connection
         }
-        def producer = Mock(ConnectionFactoryProducerImpl){
+        def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               connectionFactory
            }
@@ -438,7 +438,7 @@ class CasualCallerImplTest extends Specification
             1 * connection.dequeue(queueInfo, messageSelector) >> DequeueReturn.createBuilder().withErrorState(ErrorState.OK).withQueueMessage(queueMessage).build()
             return connection
         }
-        def producer = Mock(ConnectionFactoryProducerImpl){
+        def producer = Mock(ConnectionFactoryProducer){
            getConnectionFactory() >> {
               connectionFactory
            }

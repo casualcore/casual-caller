@@ -45,7 +45,7 @@ public class ConnectionFactoryFinderImpl implements ConnectionFactoryFinder
         {
             log.warning(() -> "CasualConnectionFactory lookup failed, using CasualCaller will not work\n\n" + e);
         }
-        return Collections.<ConnectionFactoryEntry>emptyList();
+        return Collections.emptyList();
     }
 
     List<ConnectionFactoryEntry> findConnectionFactory(String root, InitialContext context)

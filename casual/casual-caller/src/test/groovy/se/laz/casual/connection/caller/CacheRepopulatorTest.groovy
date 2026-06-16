@@ -69,7 +69,7 @@ class CacheRepopulatorTest extends Specification
       CasualConnection connection = Mock(CasualConnection) {
          1 * discover(_, _, _) >> discoveryReturn
       }
-      ConnectionFactoryProducerImpl producer = Mock(ConnectionFactoryProducerImpl){
+      ConnectionFactoryProducer producer = Mock(ConnectionFactoryProducer){
          getConnectionFactory() >> {
             Mock(CasualConnectionFactory){
                getConnection() >> connection
