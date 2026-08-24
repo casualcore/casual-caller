@@ -164,3 +164,7 @@ Enable the feature with environment `CASUAL_CALLER_TRANSACTION_STICKY=true` or w
 ## Code examples
 
 [Code examples](code-examples.md)
+
+## Reverse Outbound
+
+For details on Reverse Outbound configuration and architecture, see [reverse-outbound.md](reverse-outbound.md).
