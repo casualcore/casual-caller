@@ -15,6 +15,7 @@ import se.laz.casual.api.conversation.TpConnectReturn;
 
 import jakarta.resource.ResourceException;
 import jakarta.transaction.Transactional;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,6 +45,12 @@ public class TransactionLess
    {
       try (CasualConnection connection = connectionFactoryEntry.getConnectionFactory().getConnection())
       {
+         if (connection.isDomainDisconnecting())
+         {
+            LOG.finest(() -> "domain is disconnecting - skipping service lookup for: " + connectionFactoryEntry);
+            connectionFactoryEntry.invalidate();
+            return Collections.emptyList();
+         }
          return fetchFunction.apply(connection);
       }
    }
@@ -53,6 +60,12 @@ public class TransactionLess
    {
       try (CasualConnection connection = connectionFactoryEntry.getConnectionFactory().getConnection())
       {
+         if (connection.isDomainDisconnecting())
+         {
+            LOG.finest(() -> "domain is disconnecting - skipping queue lookup for: " + connectionFactoryEntry);
+            connectionFactoryEntry.invalidate();
+            return false;
+         }
          return predicate.test(connection);
       }
    }
@@ -62,6 +75,12 @@ public class TransactionLess
     {
        try(CasualConnection connection = connectionFactoryEntry.getConnectionFactory().getConnection())
        {
+          if (connection.isDomainDisconnecting())
+          {
+             LOG.finest(() -> "domain is disconnecting - skipping domain discovery for: " + connectionFactoryEntry);
+             connectionFactoryEntry.invalidate();
+             return Optional.empty();
+          }
           LOG.finest(() -> "domain discovery for all known services/queues will be issued for " + connectionFactoryEntry );
           LOG.finest(() -> "all known services/queues being, services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
           return Optional.of(connection.discover(UUID.randomUUID(),
