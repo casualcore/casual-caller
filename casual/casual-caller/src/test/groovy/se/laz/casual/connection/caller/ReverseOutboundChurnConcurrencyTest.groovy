@@ -126,50 +126,39 @@ class ReverseOutboundChurnConcurrencyTest extends Specification
     {
         def baseJndi = 'java:/eis/casualReverse'
 
-        def baseConnectionFactory = Mock(CasualConnectionFactory)
-        def baseProducer = Mock(ConnectionFactoryProducer)
+        def baseConnectionFactory = Mock(CasualConnectionFactory){
+            getConnection() >> Mock(CasualConnection)
+            getConnection(_ as CasualRequestInfo) >> {
+                CasualRequestInfo request ->
 
-        baseProducer.getConnectionFactory() >> baseConnectionFactory
-        baseProducer.getUniqueName() >> baseJndi
+                    def requestedDomain = request.domainId.orElseThrow {new IllegalArgumentException('DomainId expected')}
 
-        def baseEntry = ConnectionFactoryEntry.of(baseProducer)
-
-        baseConnectionFactory.getConnection() >> {
-            def current = activeDomains.get()
-
-            if (!current)
-            {
-                throw new ResourceException('No reverse inbound connections available')
-            }
-
-            def connection = Mock(CasualConnection)
-            connection.isReversePool() >> true
-            connection.getPoolDomainIds() >> new ArrayList<>(current)
-
-            connection
-        }
-
-        baseConnectionFactory.getConnection(_ as CasualRequestInfo) >> {
-            CasualRequestInfo request ->
-
-                def requestedDomain = request.domainId.orElseThrow {new DomainDisconnectedException('DomainId expected')}
-
-                if (!activeDomains.get().contains(requestedDomain))
-                {
-                    throw new DomainDisconnectedException("Domain $requestedDomain is disconnected")
-                }
-
-                def connection = Mock(CasualConnection)
-
-                connection.tpcall(serviceName, _, _, _) >> {
                     if (!activeDomains.get().contains(requestedDomain))
                     {
-                        throw new DomainDisconnectedException("Domain $requestedDomain dropped mid-call")
+                        throw new DomainDisconnectedException("Domain $requestedDomain is disconnected")
                     }
-                    okReturn
-                }
-                connection
+
+                    def connection = Mock(CasualConnection)
+
+                    connection.tpcall(serviceName, _, _, _) >> {
+                        if (!activeDomains.get().contains(requestedDomain))
+                        {
+                            throw new DomainDisconnectedException("Domain $requestedDomain dropped mid-call")
+                        }
+                        okReturn
+                    }
+                    connection
+            }
+            isReverse() >> true
+            getDomainIds() >> {new ArrayList(activeDomains.get())}
         }
+
+        def baseProducer = Mock(ConnectionFactoryProducer){
+            getConnectionFactory() >> baseConnectionFactory
+            getUniqueName() >> baseJndi
+        }
+
+        def baseEntry = ConnectionFactoryEntry.of(baseProducer)
 
         def finder = Mock(ConnectionFactoryFinder)
         finder.findConnectionFactory(_) >> [baseEntry]

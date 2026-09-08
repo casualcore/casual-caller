@@ -23,14 +23,7 @@ public class ServiceCache
 
     public ConnectionFactoriesByPriority getOrEmpty(String serviceName)
     {
-        if (cacheMap.containsKey(serviceName))
-        {
-            return cacheMap.get(serviceName);
-        }
-        else
-        {
-            return ConnectionFactoriesByPriority.emptyInstance();
-        }
+        return cacheMap.getOrDefault(serviceName, ConnectionFactoriesByPriority.emptyInstance());
     }
 
     public void store(String serviceName, ConnectionFactoriesByPriority entries)
@@ -42,10 +35,10 @@ public class ServiceCache
 
         // Guard against service lookups that only contain checked services list for a service that is unknown
         // We do not want to store unknown services
-        if (cacheMap.containsKey(serviceName))
-        {
-            cacheMap.get(serviceName).addResolvedFactories(entries.getCheckedFactoriesForService());
-        }
+        cacheMap.computeIfPresent(serviceName, (name, existing) -> {
+            existing.addResolvedFactories(entries.getCheckedFactoriesForService());
+            return existing;
+        });
     }
 
     private void storeServiceWithPriority(String serviceName, Long priority, List<ConnectionFactoryEntry> entries)

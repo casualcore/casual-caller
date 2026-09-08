@@ -18,6 +18,7 @@ import se.laz.casual.connection.caller.conversation.ConversationFailover;
 import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceException;
 import se.laz.casual.connection.caller.functions.FunctionThrowsResourceException;
 import se.laz.casual.jca.CasualConnection;
+import se.laz.casual.jca.CasualConnectionFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -143,14 +144,16 @@ public class FailoverAlgorithm
         // Normal flow
         for (ConnectionFactoryEntry connectionFactoryEntry : validEntries)
         {
-            try (CasualConnection con = connectionFactoryEntry.getConnectionFactory().getConnection())
+            CasualConnectionFactory connectionFactory = connectionFactoryEntry.getConnectionFactory();
+            if(connectionFactory.isDomainDisconnecting())
             {
-                if(!con.isDomainDisconnecting())
-                {
-                    T result = doCall.apply(con, UUID.randomUUID());
-                    LOG.finest("Successful call for connection factory " + connectionFactoryEntry.getJndiName());
-                    return result;
-                }
+                continue;
+            }
+            try (CasualConnection con = connectionFactory.getConnection())
+            {
+                T result = doCall.apply(con, UUID.randomUUID());
+                LOG.finest("Successful call for connection factory " + connectionFactoryEntry.getJndiName());
+                return result;
             }
             catch (Exception e)
             {

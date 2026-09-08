@@ -8,6 +8,7 @@ package se.laz.casual.connection.caller;
 
 import se.laz.casual.api.queue.QueueInfo;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,46 +36,40 @@ public class QueueCache
     public Optional<ConnectionFactoryEntry> getOrEmpty(QueueInfo queueInfo)
     {
         String queueName = queueInfo.getQueueName();
-        if (stickies.containsKey(queueName))
+        Optional<ConnectionFactoryEntry> sticky = Optional.ofNullable(stickies.get(queueName));
+        if (sticky.isPresent())
         {
-            return Optional.of(stickies.get(queueName));
+            return sticky;
         }
-        else if (cacheMap.containsKey(queueName))
-        {
-            // Prevent the unlikely case that two different threads manage to find and set different stickies
-            synchronized (stickies) {
-                if (stickies.containsKey(queueName))
-                {
-                    // While waiting another thread may have already set a sticky
-                    return Optional.of(stickies.get(queueName));
-                }
 
-                List<ConnectionFactoryEntry> cachedForQueue = cacheMap.get(queueName)
-                        .stream()
-                        .filter(ConnectionFactoryEntry::isValid)
-                        .toList();
+        List<ConnectionFactoryEntry> cachedForQueue = cacheMap.getOrDefault(queueName, Collections.emptyList())
+                .stream()
+                .filter(ConnectionFactoryEntry::isValid)
+                .toList();
 
-                if(cachedForQueue.isEmpty())
-                {
-                    LOG.info(() -> "No valid connection for queuename: " + queueName);
-                    return Optional.empty();
-                }
-
-                // We never expect more than one source for a queue. Just pick first one and stick to it
-                ConnectionFactoryEntry selectedFactory = cachedForQueue.get(0);
-                stickies.put(queueName, selectedFactory);
-
-                if (cachedForQueue.size() > 1) {
-                    LOG.info(() -> "Found multiple (" + cachedForQueue.size() + ") sources for queue '" + queueName
-                            + "', selecting and setting sticky for CasualConnectionFactory=" + selectedFactory);
-                }
-
-                return Optional.of(selectedFactory);
-            }
-        }
-        else
+        if (cachedForQueue.isEmpty())
         {
             return Optional.empty();
+        }
+
+        // Prevent the unlikely case that two different threads manage to find and set different stickies
+        synchronized (stickies) {
+            sticky = Optional.ofNullable(stickies.get(queueName));
+            if (sticky.isPresent())
+            {
+                return sticky;
+            }
+
+            // We never expect more than one source for a queue. Just pick first one and stick to it
+            ConnectionFactoryEntry selectedFactory = cachedForQueue.get(0);
+            stickies.put(queueName, selectedFactory);
+
+            if (cachedForQueue.size() > 1) {
+                LOG.info(() -> "Found multiple (" + cachedForQueue.size() + ") sources for queue '" + queueName
+                        + "', selecting and setting sticky for CasualConnectionFactory=" + selectedFactory);
+            }
+
+            return Optional.of(selectedFactory);
         }
     }
 

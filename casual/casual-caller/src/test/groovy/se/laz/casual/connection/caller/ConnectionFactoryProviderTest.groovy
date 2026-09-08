@@ -5,7 +5,6 @@
  */
 package se.laz.casual.connection.caller
 
-import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
 import se.laz.casual.jca.DomainId
 import spock.lang.Specification
@@ -15,7 +14,14 @@ class ConnectionFactoryProviderTest extends Specification
    def 'normal operation, everything is found during deployment - only 1 call to initialize ( 0 calls during test of get)'()
    {
       given:
-      ConnectionFactoryEntry entry = Mock(ConnectionFactoryEntry)
+      CasualConnectionFactory normalFactory = Mock(CasualConnectionFactory) {
+         isReverse() >> false
+      }
+      ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(
+              Mock(ConnectionFactoryProducer) {
+                 getUniqueName() >> 'eis/casual'
+                 getConnectionFactory() >> normalFactory
+              })
       ConnectionFactoryFinder connectionFactoryFinder = Mock(ConnectionFactoryFinder)
       connectionFactoryFinder.findConnectionFactory(_) >>> [[entry]]
       // spying to verify the interaction
@@ -34,7 +40,14 @@ class ConnectionFactoryProviderTest extends Specification
    def 'abnormal wls operation, nothing is found during deployment - 2 calls to initialize ( 1 calls during test of get)'()
    {
       given:
-      ConnectionFactoryEntry entry = Mock(ConnectionFactoryEntry)
+      CasualConnectionFactory normalFactory = Mock(CasualConnectionFactory) {
+         isReverse() >> false
+      }
+      ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(
+              Mock(ConnectionFactoryProducer) {
+                 getUniqueName() >> 'eis/casual'
+                 getConnectionFactory() >> normalFactory
+              })
       ConnectionFactoryFinder connectionFactoryFinder = Mock(ConnectionFactoryFinder)
       connectionFactoryFinder.findConnectionFactory(_) >>> [[], [entry]]
       // spying to verify the interactions
@@ -57,15 +70,11 @@ class ConnectionFactoryProviderTest extends Specification
       DomainId domainB = DomainId.of(UUID.randomUUID())
       println "domainA: ${domainA.getId()}"
       println "domainB: ${domainB.getId()}"
-      def connectionWith = { List<DomainId> domainIds ->
-         Mock(CasualConnection) {
-            isReversePool() >> true
-            getPoolDomainIds() >> domainIds
-         }
-      }
       def reverseBaseJndiName = 'eis/casualReverse'
-      CasualConnectionFactory reverseFactory = Mock(CasualConnectionFactory)
-      reverseFactory.getConnection() >>> [connectionWith([domainA]), connectionWith([domainA, domainB])] >> { throw new CasualResourceException('no instances connected', new RuntimeException()) }
+      CasualConnectionFactory reverseFactory = Mock(CasualConnectionFactory){
+         isReverse() >> true
+         getDomainIds() >>> [[domainA], [domainA, domainB], []]
+      }
       ConnectionFactoryEntry reverseBase = ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer) {
          getUniqueName() >> reverseBaseJndiName
          getConnectionFactory() >> reverseFactory
@@ -73,9 +82,7 @@ class ConnectionFactoryProviderTest extends Specification
       ConnectionFactoryEntry normalEntry = ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer) {
          getUniqueName() >> 'eis/casual'
          getConnectionFactory() >> Mock(CasualConnectionFactory) {
-            getConnection() >> Mock(CasualConnection) {
-               isReversePool() >> false
-            }
+            isReverse() >> false
          }
       })
       ConnectionFactoryFinder connectionFactoryFinder = Mock(ConnectionFactoryFinder) {
@@ -102,11 +109,51 @@ class ConnectionFactoryProviderTest extends Specification
 
       when: 'all instances are gone - due to exception when calling getConnection on the reverse base pool'
       refreshedReverse = instance.refreshReverseEntries()
-      then: 'their entries are invalidated and purged, the normal entry remains'
+      then: 'reverse domains gone, the normal entry remains'
       refreshedReverse.added().isEmpty()
       refreshedReverse.purged().size() == 2
       refreshedReverse.purged().every { entry -> entry.isInvalid() }
       instance.get() == [normalEntry]
    }
+
+   def 'reverse base is not served when no domains are connected at startup'()
+   {
+      given:
+      CasualConnectionFactory reverseFactory = Mock(CasualConnectionFactory) {
+         getConnection() >> {
+            throw new jakarta.resource.ResourceException(
+                    'No reverse outbound connections available')
+         }
+         isReverse() >> true
+         getDomainIds() >> Collections.emptyList()
+      }
+      ConnectionFactoryEntry reverseBase = ConnectionFactoryEntry.of(
+              Mock(ConnectionFactoryProducer) {
+                 getUniqueName() >> 'eis/casualReverse'
+                 getConnectionFactory() >> reverseFactory
+              })
+      CasualConnectionFactory normalFactory = Mock(CasualConnectionFactory) {
+         isReverse() >> false
+      }
+      ConnectionFactoryEntry normalEntry = ConnectionFactoryEntry.of(
+              Mock(ConnectionFactoryProducer) {
+                 getUniqueName() >> 'eis/casual'
+                 getConnectionFactory() >> normalFactory
+              })
+      ConnectionFactoryFinder finder = Mock(ConnectionFactoryFinder) {
+         findConnectionFactory(_) >> [normalEntry, reverseBase]
+      }
+      ConnectionFactoryEntryStore store = new ConnectionFactoryEntryStore(
+              finder, Mock(TopologyChangedHandler))
+      store.setConnectionObserverHandler(Mock(ConnectionObserverHandler))
+
+      when:
+      store.initialize()
+      List<ConnectionFactoryEntry> entries = store.get()
+
+      then:
+      entries == [normalEntry]
+   }
+
 
 }

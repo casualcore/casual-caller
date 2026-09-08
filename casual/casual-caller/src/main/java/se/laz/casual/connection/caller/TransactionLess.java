@@ -5,16 +5,16 @@
  */
 package se.laz.casual.connection.caller;
 
+import jakarta.resource.ResourceException;
+import jakarta.transaction.Transactional;
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.ServiceReturn;
-
+import se.laz.casual.api.conversation.TpConnectReturn;
 import se.laz.casual.api.discovery.DiscoveryReturn;
 import se.laz.casual.api.service.ServiceDetails;
 import se.laz.casual.jca.CasualConnection;
-import se.laz.casual.api.conversation.TpConnectReturn;
+import se.laz.casual.jca.CasualConnectionFactory;
 
-import jakarta.resource.ResourceException;
-import jakarta.transaction.Transactional;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -43,14 +43,15 @@ public class TransactionLess
    @Transactional(Transactional.TxType.NOT_SUPPORTED)
    public List<ServiceDetails> serviceDetails(ConnectionFactoryEntry connectionFactoryEntry, Function<CasualConnection, List<ServiceDetails>> fetchFunction) throws ResourceException
    {
+      CasualConnectionFactory casualConnectionFactory = connectionFactoryEntry.getConnectionFactory();
+      if(casualConnectionFactory.isDomainDisconnecting())
+      {
+          LOG.finest(() -> "domain is disconnecting - skipping service lookup for: " + connectionFactoryEntry);
+          connectionFactoryEntry.invalidate();
+          return Collections.emptyList();
+      }
       try (CasualConnection connection = connectionFactoryEntry.getConnectionFactory().getConnection())
       {
-         if (connection.isDomainDisconnecting())
-         {
-            LOG.finest(() -> "domain is disconnecting - skipping service lookup for: " + connectionFactoryEntry);
-            connectionFactoryEntry.invalidate();
-            return Collections.emptyList();
-         }
          return fetchFunction.apply(connection);
       }
    }
@@ -58,14 +59,15 @@ public class TransactionLess
    @Transactional(Transactional.TxType.NOT_SUPPORTED)
    public boolean queueExists(ConnectionFactoryEntry connectionFactoryEntry, Lookup.PredicateThrowsResourceException<CasualConnection> predicate) throws ResourceException
    {
+      CasualConnectionFactory casualConnectionFactory = connectionFactoryEntry.getConnectionFactory();
+      if(casualConnectionFactory.isDomainDisconnecting())
+      {
+          LOG.finest(() -> "domain is disconnecting - skipping queue lookup for: " + connectionFactoryEntry);
+          connectionFactoryEntry.invalidate();
+          return false;
+      }
       try (CasualConnection connection = connectionFactoryEntry.getConnectionFactory().getConnection())
       {
-         if (connection.isDomainDisconnecting())
-         {
-            LOG.finest(() -> "domain is disconnecting - skipping queue lookup for: " + connectionFactoryEntry);
-            connectionFactoryEntry.invalidate();
-            return false;
-         }
          return predicate.test(connection);
       }
    }
@@ -73,14 +75,15 @@ public class TransactionLess
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
     public Optional<DiscoveryReturn> discover(ConnectionFactoryEntry connectionFactoryEntry, Map<CacheType, List<String>> cachedItems)
     {
+       CasualConnectionFactory casualConnectionFactory = connectionFactoryEntry.getConnectionFactory();
+       if(casualConnectionFactory.isDomainDisconnecting())
+       {
+           LOG.finest(() -> "domain is disconnecting - skipping domain discovery for: " + connectionFactoryEntry);
+           connectionFactoryEntry.invalidate();
+           return Optional.empty();
+       }
        try(CasualConnection connection = connectionFactoryEntry.getConnectionFactory().getConnection())
        {
-          if (connection.isDomainDisconnecting())
-          {
-             LOG.finest(() -> "domain is disconnecting - skipping domain discovery for: " + connectionFactoryEntry);
-             connectionFactoryEntry.invalidate();
-             return Optional.empty();
-          }
           LOG.finest(() -> "domain discovery for all known services/queues will be issued for " + connectionFactoryEntry );
           LOG.finest(() -> "all known services/queues being, services: " + cachedItems.get(CacheType.SERVICE) + " queues: " + cachedItems.get(CacheType.QUEUE));
           return Optional.of(connection.discover(UUID.randomUUID(),

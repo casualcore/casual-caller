@@ -14,6 +14,7 @@ import se.laz.casual.jca.DomainId;
 
 import javax.naming.NamingException;
 import javax.naming.Reference;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -38,6 +39,36 @@ public class DomainIdPinnedConnectionFactory implements CasualConnectionFactory
         Objects.requireNonNull(delegate, "delegate can not be null");
         Objects.requireNonNull(domainId, "domainId can not be null");
         return new DomainIdPinnedConnectionFactory(delegate, domainId);
+    }
+
+    @Override
+    public boolean isDomainDisconnecting()
+    {
+        return delegate.isDomainDisconnecting(domainId);
+    }
+
+    @Override
+    public boolean isDomainDisconnecting(DomainId requestedDomainId)
+    {
+        Objects.requireNonNull(requestedDomainId, "domainId must not be null");
+        if (!domainId.equals(requestedDomainId))
+        {
+            throw new IllegalArgumentException(
+                    "The requested domain differs from this factory's pinned domain");
+        }
+        return isDomainDisconnecting();
+    }
+
+    @Override
+    public boolean isReverse()
+    {
+        return delegate.isReverse();
+    }
+
+    @Override
+    public List<DomainId> getDomainIds()
+    {
+        return delegate.getDomainIds();
     }
 
     @Override

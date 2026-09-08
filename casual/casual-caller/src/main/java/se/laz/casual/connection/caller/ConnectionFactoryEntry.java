@@ -24,7 +24,7 @@ public class ConnectionFactoryEntry
      * Connection factory entries should invalidate on connection errors and revalidate as soon as a new valid
      * connection can be established.
      */
-    private boolean valid = true;
+    private final AtomicBoolean valid = new AtomicBoolean(true);
 
     private ConnectionFactoryEntry(ConnectionFactoryProducer connectionFactoryProducer)
     {
@@ -49,36 +49,42 @@ public class ConnectionFactoryEntry
 
     public boolean isValid()
     {
-        return valid;
+        return valid.get();
     }
 
     public boolean isInvalid()
     {
-        return !valid;
+        return !valid.get();
     }
 
     public void invalidate()
     {
-        valid = false;
+        valid.set(false);
     }
 
     //Note: due to try with resources usage where we never use the resource
     @SuppressWarnings("try")
     public void validate()
     {
-        try(CasualConnection con = getConnectionFactory().getConnection())
+        CasualConnectionFactory connectionFactory = getConnectionFactory();
+        if(connectionFactory.isDomainDisconnecting())
         {
-            // connection is there and the domain is not currently disconnecting
-            valid = !con.isDomainDisconnecting();
+            valid.set(false);
+            return;
+        }
+        try (CasualConnection ignored = getConnectionFactory().getConnection())
+        {
+            // might have gone away between above and here
+            valid.set(!connectionFactory.isDomainDisconnecting());
             LOG.finest(() -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName());
         }
         catch (ResourceException e)
         {
             // Failure to connect during validation should automatically invalidate ConnectionFactoryEntry
-            valid = false;
-            // was warning, that might be a bit too severe - in a containerized world it is not uncommon that connections come and go
+            valid.set(false);
+                // was warning, that might be a bit too severe - in a containerized world it is not uncommon that connections come and go
             // we do not want to spam the log during normal operations
-            LOG.log(Level.FINEST, e, ()->"Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName() + ", received error: " + e.getMessage());
+            LOG.log(Level.FINEST, e, () -> "Failed validation of CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName() + ", received error: " + e.getMessage());
         }
     }
 

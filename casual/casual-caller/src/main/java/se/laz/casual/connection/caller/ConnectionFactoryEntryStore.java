@@ -10,7 +10,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import se.laz.casual.connection.caller.config.ConfigurationService;
-import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.jca.ConnectionObserver;
 import se.laz.casual.jca.DomainId;
 
@@ -19,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @ApplicationScoped
@@ -87,27 +85,11 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
 
     private void refreshReverseEntries(ConnectionFactoryEntry base, List<ConnectionFactoryEntry> added, List<ConnectionFactoryEntry> purged)
     {
-        List<DomainId> domainIds;
-        try(CasualConnection connection = base.getConnectionFactory().getConnection())
+        if(!base.getConnectionFactory().isReverse())
         {
-            if(!connection.isReversePool())
-            {
-                return;
-            }
-            domainIds = connection.getPoolDomainIds();
+            return;
         }
-        catch(Exception e)
-        {
-            if(!reverseEntries.containsKey(base))
-            {
-                // maybe a reverse pool with no instances connected yet, maybe a normal connection
-                // factory that is currently down - normal validation handles it either way
-                return;
-            }
-            // a known reverse base with no connection available means no instances are connected
-            LOG.log(Level.FINEST, e, () -> "no instances connected for reverse pool backed entry: " + base.getJndiName());
-            domainIds = Collections.emptyList();
-        }
+        List<DomainId> domainIds = base.getConnectionFactory().getDomainIds();
         if(!reverseEntries.containsKey(base))
         {
             // newly added as reverse pool - it is no longer served directly and
