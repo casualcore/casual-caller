@@ -52,8 +52,16 @@ public class ConnectionValidator
         ReverseRefreshResult result = connectionFactoryEntryStore.refreshReverseEntries();
         result.purged().forEach(cache::purge);
         result.added().forEach(entry -> {
-            repopulator.repopulate(entry);
-            connectionFactoryEntryStore.addConnectionObserver(entry);
+            try
+            {
+                repopulator.repopulate(entry);
+                connectionFactoryEntryStore.addConnectionObserver(entry);
+            }
+            catch(Exception e)
+            {
+                entry.invalidate();
+                LOG.log(Level.WARNING, e, () -> "Failed handling reverse domain entry: " + entry.getJndiName());
+            }
         });
     }
 
