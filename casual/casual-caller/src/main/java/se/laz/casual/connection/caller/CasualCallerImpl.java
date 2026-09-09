@@ -58,8 +58,7 @@ public class CasualCallerImpl implements CasualCaller
         this.transactionLess = transactionLess;
         this.failedDomainDiscoveryHandler = failedDomainDiscoveryHandler;
         this.httpClient = httpClient;
-        List<ConnectionFactoryEntry> possibleEntries = connectionFactoryProvider.get();
-        if (possibleEntries.isEmpty())
+        if (!connectionFactoryProvider.hasConfiguredFactories())
         {
             throw new CasualCallerException("No connection factories available, casual caller is not usable");
         }

@@ -52,6 +52,27 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
         this.topologyChangedHandler = topologyChangedHandler;
     }
 
+    /**
+     * Returns whether you have any configured connection factories.
+     *
+     * <p>This method synchronizes access to the configured factory collections.
+     * An empty reverse pool counts as a configured factory.
+     *
+     * @return {@code true} if, at least, a normal factory or reverse base exists
+     */
+    public boolean hasConfiguredFactories()
+    {
+        synchronized (lock)
+        {
+            if (normalEntries.isEmpty() && reverseBases.isEmpty())
+            {
+                initialize();
+            }
+            return !normalEntries.isEmpty() || !reverseBases.isEmpty();
+        }
+    }
+
+
     public List<ConnectionFactoryEntry> get()
     {
         synchronized (lock)

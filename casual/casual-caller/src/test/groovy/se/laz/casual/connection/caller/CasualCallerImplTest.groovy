@@ -67,7 +67,9 @@ class CasualCallerImplTest extends Specification
         }
         fallBackEntry = ConnectionFactoryEntry.of(fallbackProducer)
         lookup = Mock(ConnectionFactoryLookup)
-        connectionFactoryProvider = Mock(ConnectionFactoryEntryStore)
+        connectionFactoryProvider = Mock(ConnectionFactoryEntryStore){
+            hasConfiguredFactories() >> true
+        }
         connectionFactoryProvider.get() >> {
             [fallBackEntry]
         }
@@ -86,6 +88,36 @@ class CasualCallerImplTest extends Specification
         new CasualCallerImpl(lookup, provider, new TransactionLess(), Mock(FailedDomainDiscoveryHandler), httpClient, Mock(ServiceRoutes), tpCallerFailover)
         then:
         thrown(CasualCallerException)
+    }
+
+    def 'construction succeeds with only a reverse pool awaiting its first domain'()
+    {
+        given:
+        CasualConnectionFactory reverseFactory = Mock(CasualConnectionFactory) {
+            isReverse() >> true
+            getDomainIds() >> []
+        }
+        ConnectionFactoryEntry reverseBase = ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer) {
+            getUniqueName() >> 'eis/casualReverse'
+            getConnectionFactory() >> reverseFactory
+        })
+        ConnectionFactoryFinder finder = Mock(ConnectionFactoryFinder) {
+            findConnectionFactory(_) >> [reverseBase]
+        }
+        ConnectionFactoryEntryStore provider = new ConnectionFactoryEntryStore(
+                finder, Mock(TopologyChangedHandler))
+        provider.initialize()
+        assert provider.get().isEmpty()
+
+        when:
+        new CasualCallerImpl(lookup, provider, transactionLess,
+                Mock(FailedDomainDiscoveryHandler), Mock(HttpClient),
+                Mock(ServiceRoutes), tpCallerFailover)
+
+        then:
+        noExceptionThrown()
+        0 * reverseFactory.getConnection()
+        0 * reverseFactory.getConnection(_)
     }
 
     def 'tpcall fail getting connection from connection factory'()
