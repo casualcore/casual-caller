@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
@@ -31,7 +32,7 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
     // we keep the reverse bases separate, these are never used as is but via a domain that has connected ( virtual pools)
     private List<ConnectionFactoryEntry> reverseBases = Collections.emptyList();
     private final Object lock = new Object();
-    private ConnectionObserverHandler connectionObserverHandler;
+    private ConnectionObserverHandler connectionObserverHandler = ConnectionObserverHandler.of();
     // reverse pool backed entries are never served directly, each of their currently connected
     // instances is served as its own entry - keyed by the base entry known via configuration as reverse
     // the domain ids from the reverse inbound connections are used to map to entries that can actually be used for outbound calls
@@ -97,12 +98,15 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
         Map<DomainId, ConnectionFactoryEntry> entriesByDomain = reverseEntries.computeIfAbsent(base, key -> new ConcurrentHashMap<>());
         for(DomainId domainId : domainIds)
         {
-            if(!entriesByDomain.containsKey(domainId))
+            ConnectionFactoryEntry existing = entriesByDomain.get(domainId);
+            if(existing == null)
             {
                 ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(ReverseConnectionFactoryProducer.of(base, domainId));
-                entriesByDomain.put(domainId, entry);
-                added.add(entry);
-                LOG.info(() -> "reverse inbound instance connected, adding entry: " + entry.getJndiName());
+                if(entriesByDomain.putIfAbsent(domainId, entry) == null)
+                {
+                    added.add(entry);
+                    LOG.info(() -> "reverse inbound instance connected, adding entry: " + entry.getJndiName());
+                }
             }
         }
         for(DomainId knownDomainId : new ArrayList<>(entriesByDomain.keySet()))
@@ -110,9 +114,12 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
             if(!domainIds.contains(knownDomainId))
             {
                 ConnectionFactoryEntry removed = entriesByDomain.remove(knownDomainId);
-                removed.invalidate();
-                purged.add(removed);
-                LOG.info(() -> "reverse inbound instance gone, removing entry: " + removed.getJndiName());
+                if(removed != null)
+                {
+                    removed.invalidate();
+                    purged.add(removed);
+                    LOG.info(() -> "reverse inbound instance gone, removing entry: " + removed.getJndiName());
+                }
             }
         }
     }
@@ -164,17 +171,14 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
         topologyChangedHandler.topologyChanged(domainId);
     }
 
-    public void setConnectionObserverHandler(ConnectionObserverHandler connectionObserverHandler)
+    void setConnectionObserverHandler(ConnectionObserverHandler connectionObserverHandler)
     {
+        Objects.requireNonNull(connectionObserverHandler, "connectionObserverHandler can not be null");
         this.connectionObserverHandler = connectionObserverHandler;
     }
 
     private ConnectionObserverHandler getConnectionObserverHandler()
     {
-        if(null == connectionObserverHandler)
-        {
-            setConnectionObserverHandler(ConnectionObserverHandler.of());
-        }
         return connectionObserverHandler;
     }
 
