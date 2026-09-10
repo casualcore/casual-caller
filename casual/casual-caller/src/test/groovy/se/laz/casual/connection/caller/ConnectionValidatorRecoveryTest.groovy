@@ -17,7 +17,7 @@ class ConnectionValidatorRecoveryTest extends Specification
         CasualConnectionFactory failingFactory = Mock(CasualConnectionFactory)
         CasualConnectionFactory healthyFactory = Mock(CasualConnectionFactory)
         CasualConnection recoveredConnection = Mock(CasualConnection)
-        CasualConnection healthyConnection = Stub(CasualConnection)
+        CasualConnection healthyConnection = Mock(CasualConnection)
 
         ConnectionFactoryEntry failingEntry =
                 entryFor('domain-a', failingFactory)
@@ -77,7 +77,7 @@ class ConnectionValidatorRecoveryTest extends Specification
     private ConnectionFactoryEntry entryFor(
             String name, CasualConnectionFactory factory)
     {
-        ConnectionFactoryEntry.of(Stub(ConnectionFactoryProducer) {
+        ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer) {
             getUniqueName() >> "eis/reverse[$name]"
             getConnectionFactory() >> factory
         })

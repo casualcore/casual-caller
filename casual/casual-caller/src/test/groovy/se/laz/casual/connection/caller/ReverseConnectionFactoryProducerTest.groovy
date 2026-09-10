@@ -71,4 +71,38 @@ class ReverseConnectionFactoryProducerTest extends Specification
       ReverseConnectionFactoryProducer.of(base, domainId).equals(ReverseConnectionFactoryProducer.of(base, domainId))
       !ReverseConnectionFactoryProducer.of(base, domainId).equals(ReverseConnectionFactoryProducer.of(base, DomainId.of(UUID.randomUUID())))
    }
+
+   def 'domain disconnecting query uses the pinned domain without using the connection'()
+   {
+      given:
+      DomainId domainId = DomainId.of(UUID.randomUUID())
+      CasualConnectionFactory delegate = Mock(CasualConnectionFactory)
+      def pinned = DomainIdPinnedConnectionFactory.of(delegate, domainId)
+
+      when:
+      boolean disconnecting = pinned.isDomainDisconnecting()
+
+      then:
+      1 * delegate.isDomainDisconnecting(domainId) >> true
+      0 * delegate._
+      disconnecting
+   }
+
+   def 'domain disconnecting query rejects a different domain without delegation'()
+   {
+      given:
+      DomainId domainId = DomainId.of(UUID.randomUUID())
+      DomainId otherDomainId = DomainId.of(UUID.randomUUID())
+      CasualConnectionFactory delegate = Mock(CasualConnectionFactory)
+      def pinned = DomainIdPinnedConnectionFactory.of(delegate, domainId)
+
+      when:
+      pinned.isDomainDisconnecting(otherDomainId)
+
+      then:
+      thrown(IllegalArgumentException)
+      0 * delegate._
+   }
+
+
 }

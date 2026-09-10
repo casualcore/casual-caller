@@ -48,7 +48,7 @@ class ConnectionObserverHandlerTest extends Specification
 
     private ConnectionFactoryEntry entryFor(CasualConnectionFactory factory)
     {
-        ConnectionFactoryEntry.of(Stub(ConnectionFactoryProducer) {
+        ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer) {
             getUniqueName() >> 'eis/reverse[domain-a]'
             getConnectionFactory() >> factory
         })

@@ -227,6 +227,41 @@ class FailoverAlgorithmTest extends Specification
       TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction().poolName() == pool1name
    }
 
+   def 'factory is skipped when domain is disconnecting'()
+   {
+      given:
+      def algorithm = new FailoverAlgorithm()
+
+      CasualConnectionFactory disconnectingFactory = Mock(CasualConnectionFactory)
+      ConnectionFactoryEntry disconnectingEntry =
+              ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer) {
+                 getUniqueName() >> 'eis/disconnecting'
+                 getConnectionFactory() >> disconnectingFactory
+              })
+
+      def healthyEntry =
+              getFactoryMockServiceReturn('eis/healthy', serviceReturnSuccess)
+      def service = 'service1'
+      def lookup = Mock(ConnectionFactoryLookup) {
+         get(service) >> [disconnectingEntry, healthyEntry]
+      }
+
+      when:
+      def result = algorithm.tpcallWithFailover(
+              service,
+              lookup,
+              { connection, execution ->
+                 connection.tpcall(
+                         service, ServiceBuffer.empty(), Flag.of(), execution)
+              },
+              { serviceReturnTpenoent })
+
+      then:
+      1 * disconnectingFactory.isDomainDisconnecting() >> true
+      0 * disconnectingFactory.getConnection()
+      result == serviceReturnSuccess
+   }
+
    private ConnectionFactoryEntry getFactoryMockServiceReturn(String jndiName, ServiceReturn<CasualBuffer> expectedReturn)
    {
       getFactoryMockServiceReturn(jndiName, expectedReturn, 1L)

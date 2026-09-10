@@ -76,7 +76,7 @@ public class ConnectionFactoryEntry
         {
             // might have gone away between above and here
             valid.set(!connectionFactory.isDomainDisconnecting());
-            LOG.finest(() -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName());
+            LOG.finest(() -> "Successfully validated CasualConnection with jndiName=" + connectionFactoryProducer.getUniqueName() + " valid=" + valid.get());
         }
         catch (ResourceException e)
         {
