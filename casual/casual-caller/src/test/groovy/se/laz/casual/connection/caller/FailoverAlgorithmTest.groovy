@@ -262,6 +262,38 @@ class FailoverAlgorithmTest extends Specification
       result == serviceReturnSuccess
    }
 
+   def 'disconnect after connection allocation allows failover when the transaction remains active'()
+   {
+      given:
+      def connection = Mock(CasualConnection)
+      def factory = Mock(CasualConnectionFactory)
+      def entry = Mock(ConnectionFactoryEntry) {
+         isValid() >> true
+         getConnectionFactory() >> factory
+      }
+      def healthyEntry = getFactoryMockServiceReturn('eis/healthy', serviceReturnSuccess)
+      def lookup = Mock(ConnectionFactoryLookup) {
+         get('service1') >> [entry, healthyEntry]
+      }
+
+      when:
+      def result = failoverAlgorithm.tpcallWithFailover(
+              'service1', lookup,
+              { con, execution -> con.tpcall('service1', ServiceBuffer.empty(), Flag.of(), execution) },
+              { serviceReturnTpenoent })
+
+      then:
+      1 * factory.isDomainDisconnecting() >> false
+      1 * factory.getConnection() >> connection
+      1 * connection.tpcall(*_) >> {
+         throw new se.laz.casual.network.connection.CasualConnectionException(
+                 new se.laz.casual.network.connection.DomainDisconnectedException('Domain disconnected before dispatch'))
+      }
+      1 * connection.close()
+      1 * entry.invalidate()
+      result == serviceReturnSuccess
+   }
+
    private ConnectionFactoryEntry getFactoryMockServiceReturn(String jndiName, ServiceReturn<CasualBuffer> expectedReturn)
    {
       getFactoryMockServiceReturn(jndiName, expectedReturn, 1L)
