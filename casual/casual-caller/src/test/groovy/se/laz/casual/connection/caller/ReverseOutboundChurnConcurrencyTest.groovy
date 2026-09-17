@@ -135,7 +135,7 @@ class ReverseOutboundChurnConcurrencyTest extends Specification
 
                     if (!activeDomains.get().contains(requestedDomain))
                     {
-                        throw new DomainDisconnectedException("Domain $requestedDomain is disconnected")
+                        throw new jakarta.resource.spi.ResourceAllocationException("Domain $requestedDomain is disconnected")
                     }
 
                     def connection = Mock(CasualConnection)

@@ -227,71 +227,199 @@ class FailoverAlgorithmTest extends Specification
       TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction().poolName() == pool1name
    }
 
-   def 'factory is skipped when domain is disconnecting'()
+   def 'invocation or close failure never tries another factory: sticky=#sticky, closeFailure=#closeFailure'()
    {
       given:
-      def algorithm = new FailoverAlgorithm()
-
-      CasualConnectionFactory disconnectingFactory = Mock(CasualConnectionFactory)
-      ConnectionFactoryEntry disconnectingEntry =
-              ConnectionFactoryEntry.of(Mock(ConnectionFactoryProducer) {
-                 getUniqueName() >> 'eis/disconnecting'
-                 getConnectionFactory() >> disconnectingFactory
-              })
-
-      def healthyEntry =
-              getFactoryMockServiceReturn('eis/healthy', serviceReturnSuccess)
-      def service = 'service1'
-      def lookup = Mock(ConnectionFactoryLookup) {
-         get(service) >> [disconnectingEntry, healthyEntry]
-      }
-
-      when:
-      def result = algorithm.tpcallWithFailover(
-              service,
-              lookup,
-              { connection, execution ->
-                 connection.tpcall(
-                         service, ServiceBuffer.empty(), Flag.of(), execution)
-              },
-              { serviceReturnTpenoent })
-
-      then:
-      1 * disconnectingFactory.isDomainDisconnecting() >> true
-      0 * disconnectingFactory.getConnection()
-      result == serviceReturnSuccess
-   }
-
-   def 'disconnect after connection allocation allows failover when the transaction remains active'()
-   {
-      given:
+      if (sticky) { enableTransactionStickyForTest() }
+      def failure = new se.laz.casual.network.connection.CasualConnectionException('Domain disconnected')
       def connection = Mock(CasualConnection)
       def factory = Mock(CasualConnectionFactory)
       def entry = Mock(ConnectionFactoryEntry) {
          isValid() >> true
+         getJndiName() >> 'eis/first'
          getConnectionFactory() >> factory
       }
-      def healthyEntry = getFactoryMockServiceReturn('eis/healthy', serviceReturnSuccess)
+      def nextFactory = Mock(CasualConnectionFactory)
+      def nextEntry = Mock(ConnectionFactoryEntry) {
+         isValid() >> true
+         getConnectionFactory() >> nextFactory
+      }
       def lookup = Mock(ConnectionFactoryLookup) {
-         get('service1') >> [entry, healthyEntry]
+         get('service1') >> [entry, nextEntry]
       }
 
       when:
-      def result = failoverAlgorithm.tpcallWithFailover(
-              'service1', lookup,
+      failoverAlgorithm.tpcallWithFailover('service1', lookup,
               { con, execution -> con.tpcall('service1', ServiceBuffer.empty(), Flag.of(), execution) },
               { serviceReturnTpenoent })
 
       then:
-      1 * factory.isDomainDisconnecting() >> false
       1 * factory.getConnection() >> connection
+      0 * factory.isDomainDisconnecting()
       1 * connection.tpcall(*_) >> {
-         throw new se.laz.casual.network.connection.CasualConnectionException(
-                 new se.laz.casual.network.connection.DomainDisconnectedException('Domain disconnected before dispatch'))
+         if (!closeFailure) { throw failure }
+         serviceReturnSuccess
       }
-      1 * connection.close()
+      1 * connection.close() >> { if (closeFailure) { throw failure } }
       1 * entry.invalidate()
-      result == serviceReturnSuccess
+      0 * nextFactory.getConnection()
+      def error = thrown(CasualResourceException)
+      error.cause.is(failure)
+
+      where:
+      sticky | closeFailure
+      false  | false
+      true   | false
+      false  | true
+      true   | true
+   }
+
+   def 'acquisition failure retries only with an eligible transaction: sticky=#sticky, status=#status'()
+   {
+      given:
+      if (sticky) { enableTransactionStickyForTest() }
+      def tm = Mock(TransactionManager) { getStatus() >> status }
+      failoverAlgorithm.setTransactionManager(tm)
+      def failure = new jakarta.resource.spi.ResourceAllocationException('Domain disconnecting')
+      def factory = Mock(CasualConnectionFactory)
+      def entry = Mock(ConnectionFactoryEntry) {
+         isValid() >> true
+         getJndiName() >> 'eis/first'
+         getConnectionFactory() >> factory
+      }
+      def connection = Mock(CasualConnection)
+      def nextFactory = Mock(CasualConnectionFactory)
+      def nextEntry = Mock(ConnectionFactoryEntry) {
+         isValid() >> true
+         getConnectionFactory() >> nextFactory
+      }
+      def lookup = Mock(ConnectionFactoryLookup) { get('service1') >> [entry, nextEntry] }
+
+      when:
+      def result
+      CasualResourceException failureResult
+      try {
+         result = failoverAlgorithm.tpcallWithFailover('service1', lookup,
+                 { con, execution -> con.tpcall('service1', ServiceBuffer.empty(), Flag.of(), execution) },
+                 { serviceReturnTpenoent })
+      } catch (CasualResourceException e) { failureResult = e }
+
+      then:
+      1 * factory.getConnection() >> { throw failure }
+      1 * entry.invalidate()
+      (retry ? 1 : 0) * nextFactory.getConnection() >> connection
+      (retry ? 1 : 0) * connection.tpcall(*_) >> serviceReturnSuccess
+      (retry ? 1 : 0) * connection.close()
+      retry ? result.is(serviceReturnSuccess) : failureResult.cause.is(failure)
+
+      where:
+      sticky | status                      | retry
+      false  | Status.STATUS_ACTIVE        | true
+      true   | Status.STATUS_ACTIVE        | true
+      false  | Status.STATUS_NO_TRANSACTION| true
+      false  | Status.STATUS_MARKED_ROLLBACK| false
+      true   | Status.STATUS_MARKED_ROLLBACK| false
+      false  | Status.STATUS_COMMITTING    | false
+      true   | Status.STATUS_UNKNOWN       | false
+   }
+
+   def 'asynchronous completion failure is returned without failover: sticky=#sticky'()
+   {
+      given:
+      if (sticky) { enableTransactionStickyForTest() }
+      def future = new java.util.concurrent.CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>()
+      def connection = Mock(CasualConnection)
+      def factory = Mock(CasualConnectionFactory) { getConnection() >> connection }
+      def entry = Mock(ConnectionFactoryEntry) {
+         isValid() >> true
+         getJndiName() >> 'eis/first'
+         getConnectionFactory() >> factory
+      }
+      def nextFactory = Mock(CasualConnectionFactory)
+      def nextEntry = Mock(ConnectionFactoryEntry) {
+         isValid() >> true
+         getConnectionFactory() >> nextFactory
+      }
+      def lookup = Mock(ConnectionFactoryLookup) { get('service1') >> [entry, nextEntry] }
+      def failure = new IllegalStateException('Connection lost')
+
+      when:
+      def result = failoverAlgorithm.tpacallWithFailover('service1', lookup,
+              { con, execution -> future }, { throw new AssertionError('Unexpected TPENOENT') })
+      future.completeExceptionally(failure)
+      result.join()
+
+      then:
+      1 * connection.close()
+      0 * nextFactory.getConnection()
+      def error = thrown(java.util.concurrent.CompletionException)
+      error.cause.is(failure)
+
+      where:
+      sticky << [false, true]
+   }
+
+
+   def 'unreadable transaction status prevents acquisition retry: sticky=#sticky'()
+   {
+      given:
+      if (sticky) { enableTransactionStickyForTest() }
+      def statusFailure = new jakarta.transaction.SystemException('Status unavailable')
+      failoverAlgorithm.setTransactionManager(Mock(TransactionManager) {
+         getStatus() >> { throw statusFailure }
+      })
+      def factory = Mock(CasualConnectionFactory)
+      def entry = Mock(ConnectionFactoryEntry) {
+         isValid() >> true
+         getJndiName() >> 'eis/first'
+         getConnectionFactory() >> factory
+      }
+      def next = Mock(ConnectionFactoryEntry) { isValid() >> true }
+      def lookup = Mock(ConnectionFactoryLookup) { get('service1') >> [entry, next] }
+
+      when:
+      failoverAlgorithm.tpcallWithFailover('service1', lookup,
+              { con, execution -> throw new AssertionError('No connection acquired') },
+              { serviceReturnTpenoent })
+
+      then:
+      1 * factory.getConnection() >> { throw new ResourceException('Allocation failed') }
+      1 * entry.invalidate()
+      0 * next.getConnectionFactory()
+      def failure = thrown(CasualResourceException)
+      failure.cause.is(statusFailure)
+
+      where:
+      sticky << [false, true]
+   }
+
+   def 'unexpected acquisition exception propagates without retry: sticky=#sticky'()
+   {
+      given:
+      if (sticky) { enableTransactionStickyForTest() }
+      def acquisitionFailure = new IllegalStateException('Unexpected allocation failure')
+      def factory = Mock(CasualConnectionFactory)
+      def entry = Mock(ConnectionFactoryEntry) {
+         isValid() >> true
+         getJndiName() >> 'eis/first'
+         getConnectionFactory() >> factory
+      }
+      def next = Mock(ConnectionFactoryEntry) { isValid() >> true }
+      def lookup = Mock(ConnectionFactoryLookup) { get('service1') >> [entry, next] }
+
+      when:
+      failoverAlgorithm.tpcallWithFailover('service1', lookup,
+              { con, execution -> throw new AssertionError('No connection acquired') },
+              { serviceReturnTpenoent })
+
+      then:
+      1 * factory.getConnection() >> { throw acquisitionFailure }
+      0 * next.getConnectionFactory()
+      def failure = thrown(IllegalStateException)
+      failure.is(acquisitionFailure)
+
+      where:
+      sticky << [false, true]
    }
 
    private ConnectionFactoryEntry getFactoryMockServiceReturn(String jndiName, ServiceReturn<CasualBuffer> expectedReturn)

@@ -6,6 +6,10 @@
 package se.laz.casual.connection.caller.conversation;
 
 import jakarta.resource.ResourceException;
+import jakarta.enterprise.inject.spi.CDI;
+import jakarta.transaction.Status;
+import jakarta.transaction.SystemException;
+import jakarta.transaction.TransactionManager;
 import se.laz.casual.api.Conversation;
 import se.laz.casual.api.conversation.TpConnectReturn;
 import se.laz.casual.api.flags.ErrorState;
@@ -14,9 +18,10 @@ import se.laz.casual.connection.caller.CasualResourceException;
 import se.laz.casual.connection.caller.ConnectionFactoryEntry;
 import se.laz.casual.connection.caller.functions.FunctionThrowsResourceException;
 import se.laz.casual.jca.CasualConnection;
-import se.laz.casual.network.connection.CasualConnectionException;
+
 
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 public class ConversationFailover
 {
@@ -25,6 +30,14 @@ public class ConversationFailover
     public static TpConnectReturn tpconnectWithFailover(String serviceName,
                                                         List<ConnectionFactoryEntry> validEntries,
                                                         FunctionThrowsResourceException<TpConnectReturn, CasualConnection> doCall)
+    {
+        return tpconnectWithFailover(serviceName, validEntries, doCall, ConversationFailover::transactionAllowsRetry);
+    }
+
+    public static TpConnectReturn tpconnectWithFailover(String serviceName,
+                                                        List<ConnectionFactoryEntry> validEntries,
+                                                        FunctionThrowsResourceException<TpConnectReturn, CasualConnection> doCall,
+                                                        BooleanSupplier retryAllowed)
     {
         FunctionThrowsResourceException<TpConnectReturn, CasualConnection> tpConnectWrapsConnection = connection -> {
             TpConnectReturn tpConnectReturn = doCall.apply(connection);
@@ -35,40 +48,77 @@ public class ConversationFailover
             }
             return tpConnectReturn;
         };
-        return issueCall(serviceName, validEntries, tpConnectWrapsConnection);
+        return issueCall(serviceName, validEntries, tpConnectWrapsConnection, retryAllowed);
     }
 
-    private static <R> R issueCall(String serviceName,
+    private static TpConnectReturn issueCall(String serviceName,
                                    List<ConnectionFactoryEntry> validEntries,
-                                   FunctionThrowsResourceException<R, CasualConnection>  wrapperFunction)
+                                   FunctionThrowsResourceException<TpConnectReturn, CasualConnection> wrapperFunction, BooleanSupplier retryAllowed)
     {
         Exception thrownException = null;
         for (ConnectionFactoryEntry connectionFactoryEntry : validEntries)
         {
+            final CasualConnection connection;
             try
             {
-                // note, this connection NEEDS to be closed by the user application!!!
-                CasualConnection con = connectionFactoryEntry.getConnectionFactory().getConnection();
-                return wrapperFunction.apply(con);
-            }
-            catch (CasualConnectionException e)
-            {
-                //This error branch will most likely happen if there are connection errors during a service call
-                connectionFactoryEntry.invalidate();
-                // These exceptions are rollback-only, do not attempt any retries.
-                throw new CasualResourceException("Call failed during execution to service=" + serviceName + " on connection=" + connectionFactoryEntry.getJndiName() + " because of a network connection error, retries not possible.", e);
+                connection = connectionFactoryEntry.getConnectionFactory().getConnection();
             }
             catch (ResourceException e)
             {
-                // This error branch will most likely happen on failure to establish connection with a casual backend
                 connectionFactoryEntry.invalidate();
-                // Do retries on ResourceExceptions. Save the thrown exception and return to the loop
-                // If there are more entries to try that will be done, or the flow will exit and this
-                // exception will be thrown wrapped at the end of the method.
+                if (!retryAllowed.getAsBoolean())
+                {
+                    throw new CasualResourceException("Connection acquisition failed; transaction does not permit retry.", e);
+                }
                 thrownException = e;
+                continue;
+            }
+            boolean closeAttempted = false;
+            try
+            {
+                // A successful conversation owns the connection until the application closes it.
+                final TpConnectReturn result = wrapperFunction.apply(connection);
+                if (result.getErrorState() != ErrorState.OK)
+                {
+                    closeAttempted = true;
+                    connection.close();
+                }
+                return result;
+            }
+            catch (Exception e)
+            {
+                try
+                {
+                    if (!closeAttempted)
+                    {
+                        connection.close();
+                    }
+                }
+                catch (Exception closeFailure)
+                {
+                    if (closeFailure != e)
+                    {
+                        e.addSuppressed(closeFailure);
+                    }
+                }
+                connectionFactoryEntry.invalidate();
+                throw new CasualResourceException("Conversation invocation failed for service=" + serviceName
+                        + " on connection=" + connectionFactoryEntry.getJndiName() + "; no retry is attempted.", e);
             }
         }
         throw new CasualResourceException("Call failed to all " + validEntries.size() + " available casual connections.", thrownException);
     }
 
+    private static boolean transactionAllowsRetry()
+    {
+        try
+        {
+            final int status = CDI.current().select(TransactionManager.class).get().getStatus();
+            return status == Status.STATUS_ACTIVE || status == Status.STATUS_NO_TRANSACTION;
+        }
+        catch (SystemException e)
+        {
+            throw new CasualResourceException("Cannot determine transaction status; no retry is attempted.", e);
+        }
+    }
 }

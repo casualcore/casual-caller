@@ -17,7 +17,6 @@ import se.laz.casual.api.flags.Flag
 import se.laz.casual.connection.caller.conversation.ConversationImpl
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
-import se.laz.casual.network.connection.DomainDisconnectedException
 import spock.lang.Shared
 import spock.lang.Specification
 
@@ -136,7 +135,7 @@ class TpCallerFailoverTest extends Specification
         where:
         _ || exception
         _ || {msg -> throw new jakarta.resource.ResourceException('Connection is fail') }
-        _ || {msg -> throw new DomainDisconnectedException('Connection is fail') }
+        _ || {msg -> throw new jakarta.resource.spi.ResourceAllocationException('Domain disconnecting') }
     }
 
     def "2 connection factories with same priority - both are called and fail, exception is thrown"()

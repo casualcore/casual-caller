@@ -7,6 +7,7 @@
 package se.laz.casual.connection.caller;
 
 import jakarta.enterprise.inject.spi.CDI;
+import jakarta.resource.ResourceException;
 import jakarta.transaction.Status;
 import jakarta.transaction.SystemException;
 import jakarta.transaction.TransactionManager;
@@ -94,7 +95,7 @@ public class FailoverAlgorithm
             LOG.warning(() -> ALL_FAIL_MESSAGE + serviceName);
             return doTpenoent.get();
         }
-        return ConversationFailover.tpconnectWithFailover(serviceName, validEntries, doCall);
+        return ConversationFailover.tpconnectWithFailover(serviceName, validEntries, doCall, this::transactionAllowsRetry);
     }
 
     // list needs to be mutable
@@ -127,15 +128,14 @@ public class FailoverAlgorithm
                 return stickyMaybe.get();
             }
         }
-        catch (Exception e)
+        catch (ResourceException e)
         {
-            LOG.finest("Failed call for stickied pool with exception, will run failover if applicable");
+            LOG.finest("Sticky connection acquisition failed");
             thrownException = e;
-            if(transactionMarkedForRollback())
+            if(!transactionAllowsRetry())
             {
-                // we should not try any other pool, as the transaction is marked for rollback
-                // and would only result in a rollback even for a subsequent ok call
-                throw new CasualResourceException("sticky failed, transaction rolling back - not trying any other pool", thrownException);
+                // Retry only while the transaction permits new work.
+                throw new CasualResourceException("Sticky connection acquisition failed; transaction does not permit retry.", thrownException);
             }
         }
 
@@ -145,26 +145,31 @@ public class FailoverAlgorithm
         for (ConnectionFactoryEntry connectionFactoryEntry : validEntries)
         {
             CasualConnectionFactory connectionFactory = connectionFactoryEntry.getConnectionFactory();
-            if(connectionFactory.isDomainDisconnecting())
+            final CasualConnection connection;
+            try
             {
-                continue;
+                // enlists resource in transaction
+                connection = connectionFactory.getConnection();
             }
-            try (CasualConnection con = connectionFactory.getConnection())
-            {
-                T result = doCall.apply(con, UUID.randomUUID());
-                LOG.finest("Successful call for connection factory " + connectionFactoryEntry.getJndiName());
-                return result;
-            }
-            catch (Exception e)
+            catch (ResourceException e)
             {
                 thrownException = e;
                 connectionFactoryEntry.invalidate();
-                if(transactionMarkedForRollback())
+                if (!transactionAllowsRetry())
                 {
-                    // we should not try any other pool, as the transaction is marked for rollback
-                    // and would only result in a rollback even for a subsequent ok call
-                    throw new CasualResourceException("Call failed during execution to service=" + serviceName + " on connection=" + connectionFactoryEntry.getJndiName() + " because of a network connection error, retries not possible.", e);
+                    throw new CasualResourceException("Connection acquisition failed; transaction does not permit retry.", e);
                 }
+                continue;
+            }
+            try (connection)
+            {
+                return doCall.apply(connection, UUID.randomUUID());
+            }
+            catch (Exception e)
+            {
+                connectionFactoryEntry.invalidate();
+                throw new CasualResourceException("Service invocation failed for service=" + serviceName
+                        + " on connection=" + connectionFactoryEntry.getJndiName() + "; no retry is attempted.", e);
             }
         }
         throw new CasualResourceException("Call failed to all " + validEntries.size() + " available casual connections.", thrownException);
@@ -184,20 +189,19 @@ public class FailoverAlgorithm
         return CDI.current().select(TransactionManager.class).get();
     }
 
-    private boolean transactionMarkedForRollback()
+    private boolean transactionAllowsRetry()
     {
         TransactionManager tm = getTransactionManager();
-        int status = 0;
+        final int status;
         try
         {
             status = tm.getStatus();
         }
         catch (SystemException e)
         {
-            LOG.warning("Failed to get transaction status, assuming not rollback only");
-            return false;
+            throw new CasualResourceException("Cannot determine transaction status; no retry is attempted.", e);
         }
-        return status == Status.STATUS_MARKED_ROLLBACK;
+        return status == Status.STATUS_ACTIVE || status == Status.STATUS_NO_TRANSACTION;
     }
 
 }
