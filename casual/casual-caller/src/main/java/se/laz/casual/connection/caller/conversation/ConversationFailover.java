@@ -58,10 +58,10 @@ public class ConversationFailover
         Exception thrownException = null;
         for (ConnectionFactoryEntry connectionFactoryEntry : validEntries)
         {
-            final CasualConnection connection;
             try
             {
-                connection = connectionFactoryEntry.getConnectionFactory().getConnection();
+                final CasualConnection connection = connectionFactoryEntry.getConnectionFactory().getConnection();
+                return invoke(serviceName, connectionFactoryEntry, connection, wrapperFunction);
             }
             catch (ResourceException e)
             {
@@ -71,42 +71,64 @@ public class ConversationFailover
                     throw new CasualResourceException("Connection acquisition failed; transaction does not permit retry.", e);
                 }
                 thrownException = e;
-                continue;
-            }
-            boolean closeAttempted = false;
-            try
-            {
-                // A successful conversation owns the connection until the application closes it.
-                final TpConnectReturn result = wrapperFunction.apply(connection);
-                if (result.getErrorState() != ErrorState.OK)
-                {
-                    closeAttempted = true;
-                    connection.close();
-                }
-                return result;
-            }
-            catch (Exception e)
-            {
-                try
-                {
-                    if (!closeAttempted)
-                    {
-                        connection.close();
-                    }
-                }
-                catch (Exception closeFailure)
-                {
-                    if (closeFailure != e)
-                    {
-                        e.addSuppressed(closeFailure);
-                    }
-                }
-                connectionFactoryEntry.invalidate();
-                throw new CasualResourceException("Conversation invocation failed for service=" + serviceName
-                        + " on connection=" + connectionFactoryEntry.getJndiName() + "; no retry is attempted.", e);
             }
         }
         throw new CasualResourceException("Call failed to all " + validEntries.size() + " available casual connections.", thrownException);
+    }
+
+    private static TpConnectReturn invoke(String serviceName,
+                                          ConnectionFactoryEntry connectionFactoryEntry,
+                                          CasualConnection connection,
+                                          FunctionThrowsResourceException<TpConnectReturn, CasualConnection> wrapperFunction)
+    {
+        final TpConnectReturn result;
+        try
+        {
+            // A successful conversation owns the connection until the application closes it.
+            result = wrapperFunction.apply(connection);
+        }
+        catch (Exception invocationFailure)
+        {
+            closeAndSuppress(connection, invocationFailure);
+            throw conversationFailure(serviceName, connectionFactoryEntry, invocationFailure);
+        }
+
+        if (result.getErrorState() != ErrorState.OK)
+        {
+            try
+            {
+                connection.close();
+            }
+            catch (Exception closeFailure)
+            {
+                throw conversationFailure(serviceName, connectionFactoryEntry, closeFailure);
+            }
+        }
+        return result;
+    }
+
+    private static void closeAndSuppress(CasualConnection connection, Exception failure)
+    {
+        try
+        {
+            connection.close();
+        }
+        catch (Exception closeFailure)
+        {
+            if (closeFailure != failure)
+            {
+                failure.addSuppressed(closeFailure);
+            }
+        }
+    }
+
+    private static CasualResourceException conversationFailure(String serviceName,
+                                                               ConnectionFactoryEntry connectionFactoryEntry,
+                                                               Exception cause)
+    {
+        connectionFactoryEntry.invalidate();
+        return new CasualResourceException("Conversation invocation failed for service=" + serviceName
+                + " on connection=" + connectionFactoryEntry.getJndiName() + "; no retry is attempted.", cause);
     }
 
     private static boolean transactionAllowsRetry()

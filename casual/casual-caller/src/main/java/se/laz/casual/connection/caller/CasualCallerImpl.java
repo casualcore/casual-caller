@@ -38,16 +38,23 @@ import java.util.concurrent.CompletableFuture;
 @TransactionAttribute(TransactionAttributeType.SUPPORTS)
 public class CasualCallerImpl implements CasualCaller
 {
-    private TpCaller tpCaller;
-    private ConnectionFactoryLookup lookup;
-    private TransactionLess transactionLess;
-    private FailedDomainDiscoveryHandler failedDomainDiscoveryHandler;
-    private HttpClient httpClient;
-    private ServiceRoutes serviceRoutes;
+    private final TpCaller tpCaller;
+    private final ConnectionFactoryLookup lookup;
+    private final TransactionLess transactionLess;
+    private final FailedDomainDiscoveryHandler failedDomainDiscoveryHandler;
+    private final HttpClient httpClient;
+    private final ServiceRoutes serviceRoutes;
 
     // NOP constructor needed for WLS
     public CasualCallerImpl()
-    {}
+    {
+        tpCaller = null;
+        lookup = null;
+        transactionLess = null;
+        failedDomainDiscoveryHandler = null;
+        httpClient = null;
+        serviceRoutes = null;
+    }
 
     @Inject
     public CasualCallerImpl(ConnectionFactoryLookup lookup, ConnectionFactoryEntryStore connectionFactoryProvider,

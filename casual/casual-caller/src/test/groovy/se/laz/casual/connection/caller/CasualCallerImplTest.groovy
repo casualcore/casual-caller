@@ -336,8 +336,7 @@ class CasualCallerImplTest extends Specification
        TransactionLess transactionLess = Mock(TransactionLess) {
           0 * tpcall(_)
        }
-       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), tpCallerFailover)
-       caller.tpCaller = Mock(TpCallerFailover)
+       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), Mock(TpCallerFailover))
        when:
        caller.tpcall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.NOFLAG))
        then:
@@ -350,8 +349,7 @@ class CasualCallerImplTest extends Specification
       TransactionLess transactionLess = Mock(TransactionLess) {
          1 * tpcall(_)
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), tpCallerFailover)
-      caller.tpCaller = Mock(TpCallerFailover)
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), Mock(TpCallerFailover))
       when:
       caller.tpcall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.TPNOTRAN))
       then:
@@ -365,8 +363,7 @@ class CasualCallerImplTest extends Specification
       TransactionLess transactionLess = Mock(TransactionLess) {
          0 * tpacall(_)
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, Mock(ServiceRoutes), tpCallerFailover)
-      caller.tpCaller = Mock(TpCallerFailover)
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, Mock(ServiceRoutes), Mock(TpCallerFailover))
       when:
       caller.tpacall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.NOFLAG))
       then:
@@ -379,8 +376,7 @@ class CasualCallerImplTest extends Specification
       TransactionLess transactionLess = Mock(TransactionLess) {
          1 * tpacall(_)
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), tpCallerFailover)
-      caller.tpCaller = Mock(TpCallerFailover)
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), Mock(TpCallerFailover))
       when:
       caller.tpacall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.TPNOTRAN))
       then:
@@ -506,10 +502,10 @@ class CasualCallerImplTest extends Specification
           1 * request(uri, buffer) >> serviceReturn
        }
        def flags = Flag.of(AtmiFlags.NOFLAG)
-       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), client, serviceRoutes, tpCallerFailover)
-       caller.tpCaller = Mock(TpCallerFailover){
-          0 * tpcall(serviceName, buffer, flags, lookup)
-       }
+        def tpCaller = Mock(TpCallerFailover){
+            0 * tpcall(serviceName, buffer, flags, lookup)
+        }
+       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), client, serviceRoutes, tpCaller)
        when:
        ServiceReturn<CasualBuffer> response = caller.tpcall(serviceName, buffer, Flag.of(AtmiFlags.NOFLAG))
        then:

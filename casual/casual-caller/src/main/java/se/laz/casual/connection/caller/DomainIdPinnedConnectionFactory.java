@@ -80,10 +80,16 @@ public class DomainIdPinnedConnectionFactory implements CasualConnectionFactory
     @Override
     public CasualConnection getConnection(ConnectionRequestInfo connectionRequestInfo) throws ResourceException
     {
-        if (connectionRequestInfo instanceof CasualRequestInfo req && req.getDomainId().isPresent() && !domainId.equals(req.getDomainId().get()))
+        if (connectionRequestInfo instanceof CasualRequestInfo requestInfo)
         {
-            throw new IllegalArgumentException(
-                    "The requested domain " + req.getDomainId().get() + " differs from this factory's pinned domain " + domainId);
+            requestInfo.getDomainId().ifPresent(requestedDomainId ->
+            {
+                if (!domainId.equals(requestedDomainId))
+                {
+                    throw new IllegalArgumentException(
+                            "Request domain does not match pinned domain: " + requestedDomainId);
+                }
+            });
         }
         return delegate.getConnection(CasualRequestInfo.of(domainId));
     }
