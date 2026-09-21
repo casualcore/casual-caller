@@ -119,13 +119,10 @@ class ConnectionFactoryProviderTest extends Specification
    def 'reverse base is not served when no domains are connected at startup'()
    {
       given:
+      List<DomainId> connectedDomains = []
       CasualConnectionFactory reverseFactory = Mock(CasualConnectionFactory) {
-         getConnection() >> {
-            throw new jakarta.resource.ResourceException(
-                    'No reverse outbound connections available')
-         }
          isReverse() >> true
-         getDomainIds() >> Collections.emptyList()
+         getDomainIds() >> { connectedDomains }
       }
       ConnectionFactoryEntry reverseBase = ConnectionFactoryEntry.of(
               Mock(ConnectionFactoryProducer) {
@@ -153,6 +150,30 @@ class ConnectionFactoryProviderTest extends Specification
 
       then:
       entries == [normalEntry]
+      0 * reverseFactory.getConnection(*_)
+      0 * reverseFactory.isDomainDisconnecting(*_)
+
+      when: 'a domain connects after initialization'
+      DomainId domain = DomainId.of(UUID.randomUUID())
+      connectedDomains.add(domain)
+      def refreshed = store.refreshReverseEntries()
+      def reverseEntry = refreshed.added().get(0)
+
+      then:
+      refreshed.added().size() == 1
+      store.get().containsAll([normalEntry, reverseEntry])
+      store.get().size() == 2
+      !store.get().contains(reverseBase)
+      refreshed.purged().isEmpty()
+
+      when:
+      boolean disconnecting = reverseEntry.getConnectionFactory().isDomainDisconnecting()
+
+      then:
+      1 * reverseFactory.isDomainDisconnecting(domain) >> false
+      !disconnecting
+      0 * reverseFactory.isDomainDisconnecting()
+      0 * reverseFactory.getConnection(*_)
    }
 
 
