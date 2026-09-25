@@ -33,9 +33,8 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
     private List<ConnectionFactoryEntry> reverseBases = Collections.emptyList();
     private final Object lock = new Object();
     private ConnectionObserverHandler connectionObserverHandler = ConnectionObserverHandler.of();
-    // reverse pool backed entries are never served directly, each of their currently connected
-    // instances is served as its own entry - keyed by the base entry known via configuration as reverse
-    // the domain ids from the reverse inbound connections are used to map to entries that can actually be used for outbound calls
+    // reverse pools
+    // virtual connection factory entry with real entries mapped by domain id
     private final Map<ConnectionFactoryEntry, Map<DomainId, ConnectionFactoryEntry>> reverseEntries = new ConcurrentHashMap<>();
 
     public ConnectionFactoryEntryStore()
