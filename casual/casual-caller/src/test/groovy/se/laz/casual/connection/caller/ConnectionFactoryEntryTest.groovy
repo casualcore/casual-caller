@@ -12,7 +12,7 @@ import spock.lang.Specification
 
 class ConnectionFactoryEntryTest extends Specification
 {
-    def 'known shutdown invalidates without allocating a connection'()
+    def 'domain disconnect without allocating a connection'()
     {
         given:
         CasualConnectionFactory factory = Mock(CasualConnectionFactory)
@@ -27,7 +27,7 @@ class ConnectionFactoryEntryTest extends Specification
         entry.isInvalid()
     }
 
-    def 'shutdown during allocation prevents revalidation'()
+    def 'domain disconnect during allocation prevents revalidation'()
     {
         given:
         CasualConnectionFactory factory = Mock(CasualConnectionFactory)

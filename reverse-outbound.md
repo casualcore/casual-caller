@@ -86,11 +86,10 @@ Configure the reverse connection factory like a standard pooled connection facto
     <config-property name="hostName">reverse</config-property>
     <config-property name="portNumber">0</config-property>
     <config-property name="networkConnectionPoolName">myReverseOutbound</config-property>
-    <config-property name="networkConnectionPoolSize">1</config-property>
 </connection-definition>
 ```
 
-> **Note:** For reverse pools, `hostName`, `portNumber`, and `networkConnectionPoolSize` are ignored by `casual-jca`. The pool accepts connections dynamically as EIS instances connect.
+> **Note:** For reverse pools, `hostName` and `portNumber are ignored by `casual-jca` - they are still needed as per the JCA specification. The pool accepts connections dynamically as EIS instances connect.
 
 ### Pool Sizing Best Practices
 

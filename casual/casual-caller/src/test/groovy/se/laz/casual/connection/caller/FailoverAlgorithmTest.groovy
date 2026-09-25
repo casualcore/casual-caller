@@ -7,7 +7,9 @@
 package se.laz.casual.connection.caller
 
 import jakarta.resource.ResourceException
+import jakarta.resource.spi.ResourceAllocationException
 import jakarta.transaction.Status
+import jakarta.transaction.SystemException
 import jakarta.transaction.TransactionManager
 import se.laz.casual.api.buffer.CasualBuffer
 import se.laz.casual.api.buffer.ServiceReturn
@@ -17,8 +19,12 @@ import se.laz.casual.api.flags.Flag
 import se.laz.casual.api.flags.ServiceReturnState
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
+import se.laz.casual.network.connection.CasualConnectionException
 import spock.lang.Shared
 import spock.lang.Specification
+
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionException
 
 class FailoverAlgorithmTest extends Specification
 {
@@ -231,7 +237,7 @@ class FailoverAlgorithmTest extends Specification
    {
       given:
       if (sticky) { enableTransactionStickyForTest() }
-      def failure = new se.laz.casual.network.connection.CasualConnectionException('Domain disconnected')
+      def failure = new CasualConnectionException('Domain disconnected')
       def connection = Mock(CasualConnection)
       def factory = Mock(CasualConnectionFactory)
       def entry = Mock(ConnectionFactoryEntry) {
@@ -280,7 +286,7 @@ class FailoverAlgorithmTest extends Specification
       if (sticky) { enableTransactionStickyForTest() }
       def tm = Mock(TransactionManager) { getStatus() >> status }
       failoverAlgorithm.setTransactionManager(tm)
-      def failure = new jakarta.resource.spi.ResourceAllocationException('Domain disconnecting')
+      def failure = new ResourceAllocationException('Domain disconnecting')
       def factory = Mock(CasualConnectionFactory)
       def entry = Mock(ConnectionFactoryEntry) {
          isValid() >> true
@@ -327,7 +333,7 @@ class FailoverAlgorithmTest extends Specification
    {
       given:
       if (sticky) { enableTransactionStickyForTest() }
-      def future = new java.util.concurrent.CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>()
+      def future = new CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>()
       def connection = Mock(CasualConnection)
       def factory = Mock(CasualConnectionFactory) { getConnection() >> connection }
       def entry = Mock(ConnectionFactoryEntry) {
@@ -352,7 +358,7 @@ class FailoverAlgorithmTest extends Specification
       then:
       1 * connection.close()
       0 * nextFactory.getConnection()
-      def error = thrown(java.util.concurrent.CompletionException)
+      def error = thrown(CompletionException)
       error.cause.is(failure)
 
       where:
@@ -364,7 +370,7 @@ class FailoverAlgorithmTest extends Specification
    {
       given:
       if (sticky) { enableTransactionStickyForTest() }
-      def statusFailure = new jakarta.transaction.SystemException('Status unavailable')
+      def statusFailure = new SystemException('Status unavailable')
       failoverAlgorithm.setTransactionManager(Mock(TransactionManager) {
          getStatus() >> { throw statusFailure }
       })
