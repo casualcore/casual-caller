@@ -5,15 +5,16 @@
  */
 package se.laz.casual.connection.caller;
 
-import jakarta.resource.ResourceException;
-import jakarta.transaction.Transactional;
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.ServiceReturn;
-import se.laz.casual.api.conversation.TpConnectReturn;
+
 import se.laz.casual.api.discovery.DiscoveryReturn;
 import se.laz.casual.api.service.ServiceDetails;
 import se.laz.casual.jca.CasualConnection;
+import se.laz.casual.api.conversation.TpConnectReturn;
 
+import jakarta.resource.ResourceException;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
