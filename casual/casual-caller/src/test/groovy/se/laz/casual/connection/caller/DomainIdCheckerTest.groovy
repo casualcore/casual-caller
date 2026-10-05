@@ -13,15 +13,17 @@ import spock.lang.Specification
 
 class DomainIdCheckerTest extends Specification
 {
-   def 'same domainId'()
+   def 'separate domain id instances with the same value match'()
    {
       given:
-      DomainId domainId = DomainId.of(UUID.randomUUID())
+      UUID id = UUID.randomUUID()
+      DomainId domainId = DomainId.of(id)
+      DomainId connectionDomainId = DomainId.of(id)
       ConnectionFactoryEntry entry = Mock(ConnectionFactoryEntry){
          getConnectionFactory() >> {
             Mock(CasualConnectionFactory){
                getConnection() >> Mock(CasualConnection){
-                  getDomainId() >> domainId
+                  getDomainId() >> connectionDomainId
                }
             }
          }
@@ -29,6 +31,7 @@ class DomainIdCheckerTest extends Specification
       when:
       boolean isSameDomainId = DomainIdChecker.isSameDomain(domainId, entry)
       then:
+      !domainId.is(connectionDomainId)
       isSameDomainId
    }
 
