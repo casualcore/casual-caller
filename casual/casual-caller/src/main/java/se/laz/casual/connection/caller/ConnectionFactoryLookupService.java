@@ -54,7 +54,7 @@ public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
         Objects.requireNonNull(serviceName, "serviceName can not be null");
         List<ConnectionFactoryEntry> possibleConnectionFactories = connectionFactoryProvider.get();
         ConnectionFactoriesByPriority cachedEntries = cache.get(serviceName);
-        if (!cachedEntries.isEmpty() && cachedEntries.hasCheckedAllValid(possibleConnectionFactories))
+        if (cachedEntries.hasPrioritizedEntries() && cachedEntries.hasCheckedAllValid(possibleConnectionFactories))
         {
             // Using cached entries and no further discovery is appropriate
             return cachedEntries.randomizeWithPriority();
@@ -65,7 +65,7 @@ public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
                 .stream()
                 .filter(entry -> !cache.get(serviceName).isResolved(entry.getJndiName()))
                 .toList(), transactionLess);
-        if (!newEntries.isEmpty() || newEntries.containsCheckedConnectionFactories())
+        if (newEntries.hasPrioritizedEntries() || newEntries.containsCheckedConnectionFactories())
         {
             cache.store(serviceName, newEntries);
             return cache.get(serviceName).randomizeWithPriority();
@@ -74,7 +74,9 @@ public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
         // If we only have a bunch of invalid connection-factories to report it should be done so,
         // because a different error may be reported depending on if the service has no known backend
         // or if none of the known backends are available
-        return cachedEntries.isEmpty() ? Collections.emptyList() : cachedEntries.randomizeWithPriority();
+        return cachedEntries.hasPrioritizedEntries()
+                ? cachedEntries.randomizeWithPriority()
+                : Collections.emptyList();
     }
 
     @Override

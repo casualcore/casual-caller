@@ -20,6 +20,7 @@ import se.laz.casual.jca.CasualConnectionFactory
 import spock.lang.Shared
 import spock.lang.Specification
 
+import static se.laz.casual.connection.caller.ConnectionFactoriesByPriorityFixture.createConnectionFactories
 
 class TpCallerFailoverTest extends Specification
 {
@@ -103,7 +104,7 @@ class TpCallerFailoverTest extends Specification
     def "2 connection factories - first connection throws exception, second succeeds"()
     {
         setup:
-        lookup.find(serviceName, connectionFactoryProvider.get(), transactionLess) >> ConnectionFactoriesByPriority.of([
+        lookup.find(serviceName, connectionFactoryProvider.get(), transactionLess) >> createConnectionFactories([
                 (priorityHigh): [ConnectionFactoryEntry.of(connectionFactoryProducerHigh)],
                 (priorityLow): [ConnectionFactoryEntry.of(connectionFactoryProducerLow)]
         ])
@@ -141,7 +142,7 @@ class TpCallerFailoverTest extends Specification
     def "2 connection factories with same priority - both are called and fail, exception is thrown"()
     {
         setup:
-        lookup.find(serviceName, connectionFactoryProvider.get(), transactionLess) >> ConnectionFactoriesByPriority.of([
+        lookup.find(serviceName, connectionFactoryProvider.get(), transactionLess) >> createConnectionFactories([
                 (priorityHigh): [ConnectionFactoryEntry.of(connectionFactoryProducerHigh), ConnectionFactoryEntry.of(connectionFactoryProducerLow)]
         ])
         def failMessage = 'Connection is fail'
@@ -179,7 +180,7 @@ class TpCallerFailoverTest extends Specification
             cacheMap.put(prioIndex, listOfEntries)
         }
 
-        lookup.find(serviceName, connectionFactoryProvider.get(), transactionLess) >> ConnectionFactoriesByPriority.of(cacheMap)
+        lookup.find(serviceName, connectionFactoryProvider.get(), transactionLess) >> createConnectionFactories(cacheMap)
         def failMessage = 'Connection is fail'
 
         when:
@@ -233,7 +234,7 @@ class TpCallerFailoverTest extends Specification
         }
         cacheMap.put(priorities+1L, listOfEntries)
 
-        lookup.find(serviceName, connectionFactoryProvider.get(), transactionLess) >> ConnectionFactoriesByPriority.of(cacheMap)
+        lookup.find(serviceName, connectionFactoryProvider.get(), transactionLess) >> createConnectionFactories(cacheMap)
         def failMessage = 'Connection is fail'
         def someServiceReturn = new ServiceReturn(null, null, null, 0)
         when:
@@ -254,10 +255,10 @@ class TpCallerFailoverTest extends Specification
        ]
        lookupService.connectionFactoryProvider = connectionFactoryProvider
        2 * lookup.find(serviceName, connectionFactoryProvider.get(), transactionLess) >> {
-          def hit = ConnectionFactoriesByPriority.of([
+          def hit = createConnectionFactories([
                   (priorityLow): [ConnectionFactoryEntry.of(connectionFactoryProducerLow)]
           ])
-          hit.setResolved(connectionFactoryProducerLow.getUniqueName())
+          hit = hit.withResolvedFactory(connectionFactoryProducerLow.getUniqueName())
           return hit
        }
        def someServiceReturn = new ServiceReturn(null, null, null, 0)
@@ -268,7 +269,7 @@ class TpCallerFailoverTest extends Specification
        def subsequentResult = tpCaller.tpcall(serviceName, data, flags, lookupService)
        then:
        3 * conLow.tpcall(serviceName, data, flags, _ as UUID) >>> [someServiceReturn, tpenoentServiceReturn, someServiceReturn]
-       !cache.get(serviceName).empty
+       cache.get(serviceName).hasPrioritizedEntries()
        result == someServiceReturn
        subsequentResult == someServiceReturn
     }

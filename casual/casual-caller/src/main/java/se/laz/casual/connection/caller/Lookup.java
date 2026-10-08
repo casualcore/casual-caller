@@ -42,8 +42,9 @@ public class Lookup
             {
                 try
                 {
-                   foundEntries.store(transactionLess.serviceDetails(entry, fetchFunction), entry);
-                   foundEntries.setResolved(entry.getJndiName());
+                   foundEntries = foundEntries
+                           .withServices(transactionLess.serviceDetails(entry, fetchFunction), entry)
+                           .withResolvedFactory(entry.getJndiName());
                 }
                 catch (ResourceException | CasualRuntimeException e)
                 {

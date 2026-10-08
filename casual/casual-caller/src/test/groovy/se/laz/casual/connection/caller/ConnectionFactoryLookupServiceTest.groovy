@@ -12,6 +12,8 @@ import se.laz.casual.jca.CasualConnectionFactory
 import spock.lang.Shared
 import spock.lang.Specification
 
+import static se.laz.casual.connection.caller.ConnectionFactoriesByPriorityFixture.createConnectionFactories
+
 class ConnectionFactoryLookupServiceTest extends Specification
 {
     @Shared
@@ -153,7 +155,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         setup:
         ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(producerTwo)
         connnectionFactoryProvider.get() >> [entry]
-        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of([(priority): [entry]])
+        lookup.find(serviceName, _, transactionLess) >> createConnectionFactories([(priority): [entry]])
         when:
         def entries = instance.get(serviceName)
         then:
@@ -165,7 +167,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
     {
         setup:
         connnectionFactoryProvider.get() >> []
-        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of([:])
+        lookup.find(serviceName, _, transactionLess) >> createConnectionFactories([:])
         when:
         def entries = instance.get(serviceName)
         then:
@@ -177,7 +179,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         setup:
         ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(producerTwo)
         connnectionFactoryProvider.get() >> [entry]
-        cache.store(serviceName, ConnectionFactoriesByPriority.of([(priority): [entry]], [entry.getJndiName()]))
+        cache.store(serviceName, createConnectionFactories([(priority): [entry]], [entry.getJndiName()]))
         when:
         def entries = instance.get(serviceName)
         then:
@@ -209,7 +211,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
 
         connnectionFactoryProvider.get() >> listOfEntries
 
-        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of(lookupMap)
+        lookup.find(serviceName, _, transactionLess) >> createConnectionFactories(lookupMap)
 
         when:
         def result1 = instance.get(serviceName)
@@ -276,7 +278,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         def conFac4Entry = ConnectionFactoryEntry.of(producerFourLocal)
 
         connnectionFactoryProvider.get() >> [conFac1Entry, conFac2Entry, conFac3Entry, conFac4Entry]
-        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of([
+        lookup.find(serviceName, _, transactionLess) >> createConnectionFactories([
                 (3L): [conFac1Entry],
                 (2L): [conFac2Entry],
                 (1L): [conFac3Entry],

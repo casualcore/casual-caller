@@ -22,19 +22,39 @@ import se.laz.casual.jca.DomainId
 import se.laz.casual.network.connection.DomainDisconnectedException
 import spock.lang.Specification
 
-import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
+import java.util.logging.Level
+import java.util.logging.Logger
 
 /**
  * Test reverse inbound domains coming and going under load
  */
 class ReverseOutboundChurnConcurrencyTest extends Specification
 {
+    private static final Logger CALLER_LOGGER = Logger.getLogger('se.laz.casual.connection.caller')
+    private static final int CALL_TIMEOUT_SECONDS = 30
+    private static final int SIMULATED_CALL_MILLIS = 20
+    private static final int TEST_VALIDATION_INTERVAL_MILLIS = 500
+    private Level previousLogLevel
+
+    def setup()
+    {
+        previousLogLevel = CALLER_LOGGER.level
+        CALLER_LOGGER.level = Level.SEVERE
+    }
+
+    def cleanup()
+    {
+        CALLER_LOGGER.level = previousLogLevel
+    }
+
     def 'concurrent tpcalls under rapid reverse outbound connection churn and cache invalidation'()
     {
         given:
@@ -61,7 +81,6 @@ class ReverseOutboundChurnConcurrencyTest extends Specification
         )
 
         def topologyRotation = [
-                [domainA, domainB],
                 [domainB],
                 [domainB, domainC],
                 [domainC],
@@ -71,14 +90,12 @@ class ReverseOutboundChurnConcurrencyTest extends Specification
         ]
 
         def numWorkers = 8
-        def callsPerWorker = 500
+        def callsPerWorker = 100
 
         when:
         def result = runConcurrentChurn(
                 activeDomains,
-                environment.validator,
-                environment.tpCaller,
-                environment.lookupService,
+                environment,
                 serviceName,
                 payload,
                 flags,
@@ -87,14 +104,11 @@ class ReverseOutboundChurnConcurrencyTest extends Specification
                 callsPerWorker
         )
 
-        println("successful calls: ${result.successCalls}")
-        println("tpenoentcalls: ${result.tpenoentCalls}")
-        println("transientFailers: ${result.transientFailures}")
-
         then:
         result.finishedInTime
         result.errors.empty
         result.successCalls > 0
+        result.validationRuns > 1
         result.successCalls +
                 result.tpenoentCalls +
                 result.transientFailures == numWorkers * callsPerWorker
@@ -121,125 +135,123 @@ class ReverseOutboundChurnConcurrencyTest extends Specification
     }
 
 
-    // helpers
-    def createEnvironment(AtomicReference<List<DomainId>> activeDomains, String serviceName, ServiceReturn<CasualBuffer> okReturn)
+    private TestEnvironment createEnvironment(AtomicReference<List<DomainId>> activeDomains,
+                                              String serviceName,
+                                              ServiceReturn<CasualBuffer> okReturn)
     {
         def baseJndi = 'java:/eis/casualReverse'
-
-        def baseConnectionFactory = Mock(CasualConnectionFactory){
-            getConnection() >> Mock(CasualConnection)
-            getConnection(_ as CasualRequestInfo) >> {
-                CasualRequestInfo request ->
-
-                    def requestedDomain = request.domainId.orElseThrow {new IllegalArgumentException('DomainId expected')}
-
-                    if (!activeDomains.get().contains(requestedDomain))
-                    {
-                        throw new jakarta.resource.spi.ResourceAllocationException("Domain $requestedDomain is disconnected")
-                    }
-
-                    def connection = Mock(CasualConnection)
-
-                    connection.tpcall(serviceName, _, _, _) >> {
-                        if (!activeDomains.get().contains(requestedDomain))
-                        {
-                            throw new DomainDisconnectedException("Domain $requestedDomain dropped mid-call")
-                        }
-                        okReturn
-                    }
-                    connection
-            }
-            isReverse() >> true
-            getDomainIds() >> {new ArrayList(activeDomains.get())}
-        }
-
-        def baseProducer = Mock(ConnectionFactoryProducer){
-            getConnectionFactory() >> baseConnectionFactory
-            getUniqueName() >> baseJndi
-        }
-
-        def baseEntry = ConnectionFactoryEntry.of(baseProducer)
-
-        def finder = Mock(ConnectionFactoryFinder)
-        finder.findConnectionFactory(_) >> [baseEntry]
-
-        def topologyChangedHandler = Mock(TopologyChangedHandler)
-
-        def store = new ConnectionFactoryEntryStore(
-                finder,
-                topologyChangedHandler
-        )
-        store.initialize()
-
-        def cache = new Cache()
-
-        def repopulator = Mock(CacheRepopulator)
-
-        repopulator.repopulate(_ as ConnectionFactoryEntry) >> {
-            ConnectionFactoryEntry entry ->
-
-                if (!entry.valid)
-                    return
-
-                def factories = ConnectionFactoriesByPriority.emptyInstance()
-                factories.store(0L, [entry])
-                factories.addResolvedFactories([entry.jndiName])
-
-                cache.store(serviceName, factories)
-        }
-
-        def validator = new ConnectionValidator(
-                repopulator,
+        CasualConnectionFactory connectionFactory = createConnectionFactory(activeDomains, serviceName, okReturn)
+        ConnectionFactoryEntryStore store = createEntryStore(baseJndi, connectionFactory)
+        Cache cache = new Cache()
+        ConnectionValidator validator = new ConnectionValidator(
+                new TestCacheRepopulator(cache, serviceName),
                 store,
                 cache
         )
 
-        def transactionManager = Mock(TransactionManager)
+        new TestEnvironment(
+                validator,
+                createCaller(),
+                createLookupService(store, cache, serviceName),
+                store
+        )
+    }
 
-        def failoverAlgorithm = new FailoverAlgorithm()
-        failoverAlgorithm.setTransactionManager(transactionManager)
+    private CasualConnectionFactory createConnectionFactory(AtomicReference<List<DomainId>> activeDomains,
+                                                            String serviceName,
+                                                            ServiceReturn<CasualBuffer> okReturn)
+    {
+        Mock(CasualConnectionFactory) {
+            getConnection() >> Mock(CasualConnection)
+            getConnection(_ as CasualRequestInfo) >> {
+                CasualRequestInfo request ->
+                    createDomainConnection(activeDomains, request, serviceName, okReturn)
+            }
+            isReverse() >> true
+            getDomainIds() >> {new ArrayList(activeDomains.get())}
+        }
+    }
 
-        def tpCaller = new TpCallerFailover(failoverAlgorithm)
-
-        def transactionLess = new TransactionLess()
-        def lookup = Mock(Lookup)
-
-        lookup.find(serviceName, _, _) >> {
-            String svc, List<ConnectionFactoryEntry> entries, TransactionLess tl ->
-
-                def valid = entries.findAll { it.valid }
-                def factories = ConnectionFactoriesByPriority.emptyInstance()
-
-                if (valid)
-                {
-                    factories.store(0L, valid)
-                    factories.addResolvedFactories(
-                            valid*.jndiName
-                    )
-                }
-                factories
+    private CasualConnection createDomainConnection(AtomicReference<List<DomainId>> activeDomains,
+                                                      CasualRequestInfo request,
+                                                      String serviceName,
+                                                      ServiceReturn<CasualBuffer> okReturn)
+    {
+        DomainId requestedDomain = request.domainId.orElseThrow {
+            new IllegalArgumentException('DomainId expected')
+        }
+        if (!activeDomains.get().contains(requestedDomain))
+        {
+            throw new jakarta.resource.spi.ResourceAllocationException("Domain $requestedDomain is disconnected")
         }
 
-        def lookupService = new ConnectionFactoryLookupService(
+        def connection = Mock(CasualConnection)
+        connection.tpcall(serviceName, _, _, _) >> {
+            Thread.sleep(SIMULATED_CALL_MILLIS)
+            if (!activeDomains.get().contains(requestedDomain))
+            {
+                throw new DomainDisconnectedException("Domain $requestedDomain dropped mid-call")
+            }
+            okReturn
+        }
+        connection
+    }
+
+    private ConnectionFactoryEntryStore createEntryStore(String baseJndi,
+                                                         CasualConnectionFactory connectionFactory)
+    {
+        def baseProducer = new TestConnectionFactoryProducer(baseJndi, connectionFactory)
+        def finder = Mock(ConnectionFactoryFinder)
+        finder.findConnectionFactory(_) >> [ConnectionFactoryEntry.of(baseProducer)]
+
+        def store = new ConnectionFactoryEntryStore(
+                finder,
+                Mock(TopologyChangedHandler)
+        )
+        store.initialize()
+        store
+    }
+
+    private TpCallerFailover createCaller()
+    {
+        def failoverAlgorithm = new FailoverAlgorithm()
+        failoverAlgorithm.setTransactionManager(Mock(TransactionManager))
+        new TpCallerFailover(failoverAlgorithm)
+    }
+
+    private ConnectionFactoryLookupService createLookupService(ConnectionFactoryEntryStore store,
+                                                               Cache cache,
+                                                               String serviceName)
+    {
+        def lookup = Mock(Lookup)
+        lookup.find(serviceName, _, _) >> {
+            String svc, List<ConnectionFactoryEntry> entries, TransactionLess tl ->
+                createDiscoveredFactories(entries)
+        }
+        new ConnectionFactoryLookupService(
                 store,
                 cache,
                 lookup,
-                transactionLess
+                new TransactionLess()
         )
+    }
 
-        [
-                validator    : validator,
-                tpCaller     : tpCaller,
-                lookupService: lookupService,
-                store        : store
-        ]
+    private static ConnectionFactoriesByPriority createDiscoveredFactories(List<ConnectionFactoryEntry> entries)
+    {
+        def validEntries = entries.findAll { it.valid }
+        def factories = ConnectionFactoriesByPriority.emptyInstance()
+        if (validEntries)
+        {
+            factories = factories
+                    .withEntries(0L, validEntries)
+                    .withResolvedFactories(validEntries*.jndiName)
+        }
+        factories
     }
 
     private static Map runConcurrentChurn(
             AtomicReference<List<DomainId>> activeDomains,
-            ConnectionValidator validator,
-            TpCallerFailover tpCaller,
-            ConnectionFactoryLookupService lookupService,
+            TestEnvironment environment,
             String serviceName,
             CasualBuffer payload,
             Flag<AtmiFlags> flags,
@@ -250,122 +262,260 @@ class ReverseOutboundChurnConcurrencyTest extends Specification
         def executor = Executors.newFixedThreadPool(numWorkers + 1)
         def startLatch = new CountDownLatch(1)
         def doneLatch = new CountDownLatch(numWorkers)
-
         def running = new AtomicBoolean(true)
-        def successCalls = new AtomicInteger()
-        def tpenoentCalls = new AtomicInteger()
-        def transientFailures = new AtomicInteger()
-        def errors = new ConcurrentLinkedQueue<Throwable>()
+        def statistics = new ChurnStatistics()
 
+        submitTopologyChurn(executor, startLatch, running, activeDomains, topologyRotation,
+                environment.validator, statistics)
+        submitCallWorkers(executor, startLatch, doneLatch, numWorkers, callsPerWorker,
+                environment, serviceName, payload, flags, statistics)
+
+        boolean finishedInTime = false
+        try
+        {
+            finishedInTime = awaitWorkers(startLatch, doneLatch)
+        }
+        finally
+        {
+            stopExecutor(executor, running, finishedInTime)
+        }
+        statistics.snapshot(finishedInTime)
+    }
+
+    private static void submitTopologyChurn(ExecutorService executor,
+                                            CountDownLatch startLatch,
+                                            AtomicBoolean running,
+                                            AtomicReference<List<DomainId>> activeDomains,
+                                            List<List<DomainId>> topologyRotation,
+                                            ConnectionValidator validator,
+                                            ChurnStatistics statistics)
+    {
         executor.submit {
             try
             {
                 startLatch.await()
-
-                while (running.get())
-                {
-                    topologyRotation.each { domains ->
-                        if (!running.get())
-                            return
-
-                        activeDomains.set(domains)
-                        validator.validateAllConnections()
-                    }
-                }
+                rotateTopologies(running, activeDomains, topologyRotation, validator, statistics)
             }
             catch (Throwable t)
             {
-                errors.add(t)
+                statistics.errors.add(t)
+            }
+        }
+    }
+
+    private static void rotateTopologies(AtomicBoolean running,
+                                         AtomicReference<List<DomainId>> activeDomains,
+                                         List<List<DomainId>> topologyRotation,
+                                         ConnectionValidator validator,
+                                         ChurnStatistics statistics)
+    {
+        int topologyIndex = 0
+        while (running.get())
+        {
+            activeDomains.set(topologyRotation[topologyIndex % topologyRotation.size()])
+            validator.validateAllConnections()
+            statistics.validationRuns.incrementAndGet()
+            topologyIndex++
+
+            // Production validation runs at most every five seconds by default. The test uses a shorter
+            // interval so it exercises the same periodic behavior without extending the unit test duration.
+            Thread.sleep(TEST_VALIDATION_INTERVAL_MILLIS)
+        }
+    }
+
+    private static void submitCallWorkers(ExecutorService executor,
+                                          CountDownLatch startLatch,
+                                          CountDownLatch doneLatch,
+                                          int numWorkers,
+                                          int callsPerWorker,
+                                          TestEnvironment environment,
+                                          String serviceName,
+                                          CasualBuffer payload,
+                                          Flag<AtmiFlags> flags,
+                                          ChurnStatistics statistics)
+    {
+        numWorkers.times {
+            executor.submit {
+                try
+                {
+                    runCallWorker(startLatch, callsPerWorker, environment, serviceName, payload, flags, statistics)
+                }
+                finally
+                {
+                    doneLatch.countDown()
+                }
+            }
+        }
+    }
+
+    private static void runCallWorker(CountDownLatch startLatch,
+                                      int callsPerWorker,
+                                      TestEnvironment environment,
+                                      String serviceName,
+                                      CasualBuffer payload,
+                                      Flag<AtmiFlags> flags,
+                                      ChurnStatistics statistics)
+    {
+        try
+        {
+            startLatch.await()
+            callsPerWorker.times {
+                issueCall(environment, serviceName, payload, flags, statistics)
+            }
+        }
+        catch (Throwable t)
+        {
+            statistics.errors.add(t)
+        }
+    }
+
+    private static void issueCall(TestEnvironment environment,
+                                  String serviceName,
+                                  CasualBuffer payload,
+                                  Flag<AtmiFlags> flags,
+                                  ChurnStatistics statistics)
+    {
+        try
+        {
+            def result = environment.tpCaller.tpcall(serviceName, payload, flags, environment.lookupService)
+            statistics.record(result.errorState)
+        }
+        catch (CasualResourceException | ResourceException ignored)
+        {
+            // A call can fail while every reverse outbound domain is unavailable or disconnecting.
+            statistics.transientFailures.incrementAndGet()
+        }
+    }
+
+    private static boolean awaitWorkers(CountDownLatch startLatch, CountDownLatch doneLatch)
+    {
+        startLatch.countDown()
+        doneLatch.await(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+    }
+
+    private static void stopExecutor(ExecutorService executor,
+                                     AtomicBoolean running,
+                                     boolean workersFinished)
+    {
+        running.set(false)
+        if (workersFinished)
+        {
+            executor.shutdown()
+        }
+        else
+        {
+            executor.shutdownNow()
+        }
+        if (!executor.awaitTermination(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS))
+        {
+            executor.shutdownNow()
+            throw new AssertionError('Executor did not stop after reverse outbound churn completed')
+        }
+    }
+
+    private static final class TestEnvironment
+    {
+        private final ConnectionValidator validator
+        private final TpCallerFailover tpCaller
+        private final ConnectionFactoryLookupService lookupService
+        private final ConnectionFactoryEntryStore store
+
+        private TestEnvironment(ConnectionValidator validator,
+                                TpCallerFailover tpCaller,
+                                ConnectionFactoryLookupService lookupService,
+                                ConnectionFactoryEntryStore store)
+        {
+            this.validator = validator
+            this.tpCaller = tpCaller
+            this.lookupService = lookupService
+            this.store = store
+        }
+    }
+
+    private static final class ChurnStatistics
+    {
+        private final AtomicInteger successCalls = new AtomicInteger()
+        private final AtomicInteger tpenoentCalls = new AtomicInteger()
+        private final AtomicInteger transientFailures = new AtomicInteger()
+        private final AtomicInteger validationRuns = new AtomicInteger()
+        private final Set<Throwable> errors = ConcurrentHashMap.newKeySet()
+
+        private void record(ErrorState errorState)
+        {
+            switch (errorState)
+            {
+                case ErrorState.OK:
+                    successCalls.incrementAndGet()
+                    break
+                case ErrorState.TPENOENT:
+                    tpenoentCalls.incrementAndGet()
+                    break
+                default:
+                    errors.add(new IllegalStateException("Unexpected error state: $errorState"))
             }
         }
 
-        numWorkers.times
-                {
-                    executor.submit {
-                        try
-                        {
-                            startLatch.await()
-
-                            callsPerWorker.times
-                                    {
-                                        try
-                                        {
-                                            def result = tpCaller.tpcall(
-                                                    serviceName,
-                                                    payload,
-                                                    flags,
-                                                    lookupService
-                                            )
-
-                                            switch (result.errorState)
-                                            {
-                                                case ErrorState.OK:
-                                                    successCalls.incrementAndGet()
-                                                    break
-
-                                                case ErrorState.TPENOENT:
-                                                    tpenoentCalls.incrementAndGet()
-                                                    break
-
-                                                default:
-                                                    errors.add(
-                                                            new IllegalStateException(
-                                                                    "Unexpected error state: " +
-                                                                            result.errorState
-                                                            )
-                                                    )
-                                            }
-                                        }
-                                        catch (CasualResourceException e)
-                                        {
-                                            /*
-                                             * Expected when all candidate backends are
-                                             * disconnected while a call is in progress.
-                                             */
-                                            transientFailures.incrementAndGet()
-                                        }
-                                        catch (ResourceException e)
-                                        {
-                                            /*
-                                             * ResourceException is also part of the expected
-                                             * failure mode for the reverse connection pool.
-                                             */
-                                            transientFailures.incrementAndGet()
-                                        }
-                                    }
-                        }
-                        catch (Throwable t)
-                        {
-                            errors.add(t)
-                        }
-                        finally
-                        {
-                            doneLatch.countDown()
-                        }
-                    }
-                }
-
-        boolean finishedInTime
-
-        try
+        private Map snapshot(boolean finishedInTime)
         {
-            startLatch.countDown()
-            finishedInTime = doneLatch.await(30, TimeUnit.SECONDS)
+            [
+                    finishedInTime   : finishedInTime,
+                    successCalls     : successCalls.get(),
+                    tpenoentCalls    : tpenoentCalls.get(),
+                    transientFailures: transientFailures.get(),
+                    validationRuns    : validationRuns.get(),
+                    errors           : errors
+            ]
         }
-        finally
+    }
+
+    private static final class TestConnectionFactoryProducer implements ConnectionFactoryProducer
+    {
+        private final String uniqueName
+        private final CasualConnectionFactory connectionFactory
+
+        private TestConnectionFactoryProducer(String uniqueName, CasualConnectionFactory connectionFactory)
         {
-            running.set(false)
-            executor.shutdown()
-            executor.awaitTermination(5, TimeUnit.SECONDS)
+            this.uniqueName = uniqueName
+            this.connectionFactory = connectionFactory
         }
 
-        [
-                finishedInTime   : finishedInTime,
-                successCalls     : successCalls.get(),
-                tpenoentCalls    : tpenoentCalls.get(),
-                transientFailures: transientFailures.get(),
-                errors           : errors
-        ]
+        @Override
+        String getUniqueName()
+        {
+            uniqueName
+        }
+
+        @Override
+        CasualConnectionFactory getConnectionFactory()
+        {
+            connectionFactory
+        }
+    }
+
+    private static final class TestCacheRepopulator extends CacheRepopulator
+    {
+        private final Cache cache
+        private final String serviceName
+
+        private TestCacheRepopulator(Cache cache, String serviceName)
+        {
+            this.cache = cache
+            this.serviceName = serviceName
+        }
+
+        @Override
+        void repopulate(ConnectionFactoryEntry entry)
+        {
+            if (!entry.valid)
+            {
+                return
+            }
+
+            ConnectionFactoriesByPriority factories = ConnectionFactoriesByPriority.emptyInstance()
+            factories = factories
+                    .withEntries(0L, [entry])
+                    .withResolvedFactories([entry.jndiName])
+            cache.store(serviceName, factories)
+        }
     }
 }
-

@@ -6,6 +6,8 @@
 
 package se.laz.casual.connection.caller;
 
+import se.laz.casual.api.service.ServiceDetails;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,41 +30,41 @@ public class ServiceCache
 
     public void store(String serviceName, ConnectionFactoriesByPriority entries)
     {
-        for (Long priority : entries.getOrderedKeys())
+        Objects.requireNonNull(serviceName, "serviceName must not be null");
+        Objects.requireNonNull(entries, "entries must not be null");
+        if (entries.hasPrioritizedEntries())
         {
-            storeServiceWithPriority(serviceName, priority, entries.getForPriority(priority));
+            cacheMap.merge(serviceName, entries, ConnectionFactoriesByPriority::mergeReplacing);
+            return;
         }
 
-        // Guard against service lookups that only contain checked services list for a service that is unknown
-        // We do not want to store unknown services
-        cacheMap.computeIfPresent(serviceName, (name, existing) -> {
-            existing.addResolvedFactories(entries.getCheckedFactoriesForService());
-            return existing;
-        });
-    }
-
-    private void storeServiceWithPriority(String serviceName, Long priority, List<ConnectionFactoryEntry> entries)
-    {
-        Objects.requireNonNull(serviceName, "serviceName can not be null");
-        Objects.requireNonNull(serviceName, "priority can not be null");
-        Objects.requireNonNull(entries, "entries can not be null");
-
-        // Ensure service exists
-        ConnectionFactoriesByPriority mapForService =
-                cacheMap.computeIfAbsent(serviceName, mapServiceName -> ConnectionFactoriesByPriority.emptyInstance());
-
-        mapForService.store(priority, entries);
-    }
-
-    public void remove(ConnectionFactoryEntry connectionFactoryEntry)
-    {
-        for (Map.Entry<String, ConnectionFactoriesByPriority> cachedEntry : cacheMap.entrySet())
+        // If discovery finds no providers, entries can still identify the factories checked for this service.
+        // To avoid caching an unknown service, merge this metadata only when the service is already cached.
+        if (entries.containsCheckedConnectionFactories())
         {
-            cachedEntry.getValue().remove(connectionFactoryEntry);
-            if(cachedEntry.getValue().isEmpty())
-            {
-                cacheMap.remove(cachedEntry.getKey());
-            }
+            cacheMap.computeIfPresent(serviceName,
+                    (key, current) -> current.mergeReplacing(entries));
+        }
+    }
+
+    void store(ServiceDetails serviceDetails, ConnectionFactoryEntry entry)
+    {
+        Objects.requireNonNull(serviceDetails, "serviceDetails must not be null");
+        Objects.requireNonNull(entry, "entry must not be null");
+        ConnectionFactoriesByPriority discovered = ConnectionFactoriesByPriority.emptyInstance()
+                .withServices(List.of(serviceDetails), entry);
+        cacheMap.merge(serviceDetails.getName(), discovered, ConnectionFactoriesByPriority::mergeReplacing);
+    }
+
+    public void remove(ConnectionFactoryEntry entryToRemove)
+    {
+        Objects.requireNonNull(entryToRemove, "entryToRemove must not be null");
+        for (String serviceName : cacheMap.keySet())
+        {
+            cacheMap.computeIfPresent(serviceName, (key, current) -> {
+                ConnectionFactoriesByPriority updated = current.withoutEntry(entryToRemove);
+                return updated.hasPrioritizedEntries() ? updated : null;
+            });
         }
     }
 
