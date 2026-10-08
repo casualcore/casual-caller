@@ -8,10 +8,10 @@ package se.laz.casual.connection.caller;
 import java.util.List;
 
 /**
- * The result of refreshing the per instance entries of reverse pool backed connection factories.
- * added - entries for newly connected instances, they need domain discovery and a connection observer.
- * purged - entries that must be purged from the caches: entries of instances that are gone as well as
- * base entries that were just classified as reverse pool backed and are no longer served directly.
+ * Contains the result of refreshing the domain-pinned entries for reverse outbound connection factories.
+ *
+ * @param added entries for newly connected domains that require discovery and a connection observer
+ * @param purged entries for disconnected domains that require removal from the caches
  */
 public record ReverseRefreshResult(List<ConnectionFactoryEntry> added, List<ConnectionFactoryEntry> purged)
 {
