@@ -71,4 +71,3 @@ class ConnectionFactoryEntryTest extends Specification
         })
     }
 }
-

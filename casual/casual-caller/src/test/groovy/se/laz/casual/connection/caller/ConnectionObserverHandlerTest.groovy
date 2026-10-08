@@ -54,4 +54,3 @@ class ConnectionObserverHandlerTest extends Specification
         })
     }
 }
-

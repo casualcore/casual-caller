@@ -68,8 +68,6 @@ class ConnectionFactoryProviderTest extends Specification
       given:
       DomainId domainA = DomainId.of(UUID.randomUUID())
       DomainId domainB = DomainId.of(UUID.randomUUID())
-      println "domainA: ${domainA.getId()}"
-      println "domainB: ${domainB.getId()}"
       def reverseBaseJndiName = 'eis/casualReverse'
       CasualConnectionFactory reverseFactory = Mock(CasualConnectionFactory){
          isReverse() >> true
@@ -96,7 +94,6 @@ class ConnectionFactoryProviderTest extends Specification
       instance.get().size() == 2
       !instance.get().contains(reverseBase)
       instance.get().contains(normalEntry)
-      instance.get().forEach ({ entry -> println("${entry.getJndiName()}")})
       when: 'domainB available as well'
       ReverseRefreshResult refreshedReverse = instance.refreshReverseEntries()
       then:
@@ -105,7 +102,6 @@ class ConnectionFactoryProviderTest extends Specification
       instance.get().contains(normalEntry)
       refreshedReverse.added().size() == 1
       refreshedReverse.added().get(0).getJndiName() == "${reverseBaseJndiName}[${domainB.getId()}]"
-      instance.get().forEach ({ entry -> println("${entry.getJndiName()}")})
 
       when: 'all instances are gone - due to exception when calling getConnection on the reverse base pool'
       refreshedReverse = instance.refreshReverseEntries()

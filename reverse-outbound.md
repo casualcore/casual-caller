@@ -1,83 +1,78 @@
-# Reverse Outbound Support in Casual Caller
+# Reverse outbound support in casual-caller
 
-This document explains how `casual-caller` handles **Reverse Outbound** connections established by remote Enterprise Information System (EIS) instances.
-
----
+This document explains how `casual-caller` handles reverse outbound connections established by remote Enterprise Information System (EIS) instances.
 
 ## Overview
 
-In standard outbound operations, `casual-caller` discovers connection factories bound in JNDI, performs domain discovery over each factory, and routes service calls to matching endpoints.
+For standard outbound operations, `casual-caller` discovers connection factories bound in JNDI, performs domain discovery through each factory, and routes service calls to matching endpoints.
 
-In **Reverse Outbound**, the EIS initiates the TCP connection to `casual-jca`. Once connected, `casual-jca` switches roles to initiate the outbound handshake. To an application using `casual-caller`, reverse outbound connections operate transparently as standard outbound targets with full support for:
+For reverse outbound operations, the EIS initiates the TCP connection to `casual-jca`. After the connection is established, `casual-jca` uses it as an outbound connection. Applications that use `casual-caller` can use reverse outbound targets with the following features:
 
-* Automatic per-instance domain discovery
+* Per-instance domain discovery
 * Service routing and priority failover
 * Transactional stickiness and conversations
-* Dynamic addition and removal of EIS instances at runtime
+* Dynamic addition and removal of EIS instances
 
----
+## Architecture and concepts
 
-## Architecture and Concepts
-
-```
+```text
                   +-------------------------------------------------------------+
-                  |                     Application Server                      |
+                  |                     Application server                      |
                   |                                                             |
-                  |   [ JNDI: java:/eis/casualReverse ] (Base Pool - Unpinned)  |
+                  |   [ JNDI: java:/eis/casualReverse ] (base pool, unpinned)   |
                   +------------------------------+------------------------------+
                                                  |
-                                     (1) Classifies Base Pool
-                                     (2) Hides Base Entry
-                                     (3) Creates Virtual Entries
+                                      1. Classifies base pool
+                                      2. Hides base entry
+                                      3. Creates virtual entries
                                                  |
                   +------------------------------v------------------------------+
                   |                        casual-caller                        |
                   |                                                             |
                   |   +--------------------------+  +------------------------+  |
-                  |   | Virtual Entry:           |  | Virtual Entry:         |  |
+                  |   | Virtual entry:           |  | Virtual entry:         |  |
                   |   | java:/eis/casualReverse  |  | java:/eis/casualReverse|  |
                   |   | [Domain-A-UUID]          |  | [Domain-B-UUID]        |  |
                   |   +------------+-------------+  +------------+-----------+  |
                   |                |                             |              |
-                  |   (Domain Discovery & Cache)    (Domain Discovery & Cache)  |
+                  |    Domain discovery and cache    Domain discovery and cache |
                   +----------------|-----------------------------|--------------+
                                    |                             |
                                    v                             v
                        +-----------------------+     +-----------------------+
-                       |   EIS Instance A      |     |   EIS Instance B      |
+                       |   EIS instance A      |     |   EIS instance B      |
                        |   (Domain A)          |     |   (Domain B)          |
                        +-----------------------+     +-----------------------+
 ```
 
-### Base Pools vs. Domain-Pinned Virtual Entries
+### Base pools and domain-pinned virtual entries
 
-A Reverse Outbound connection factory configured in JNDI (the **Base Pool**) represents a generic listener. Because multiple distinct EIS instances can connect to the same listening port, an unpinned base connection could arbitrarily route to any connected instance.
+A reverse outbound connection factory configured in JNDI is the base pool. Multiple EIS instances can connect through the same reverse outbound configuration, so an unpinned connection from the base pool could use any connected instance.
 
-To guarantee deterministic routing:
+To route calls to a specific instance, `casual-caller` performs the following actions:
 
-1. **Base Pool Hiding:** `casual-caller` automatically detects that a connection factory is backed by a reverse pool and **never serves the base entry directly** for application calls.
-2. **Virtual Entry Splitting:** `casual-caller` inspects the connected remote domains and creates a **Domain-Pinned Virtual Entry** for each connected instance:
-   $$\text{Virtual Entry Name} = \text{baseJndiName} + \text{"["} + \text{DomainId} + \text{"]"}$$
-3. **Strict Domain Pinning:** Each virtual entry wraps the base factory in a `DomainIdPinnedConnectionFactory` that automatically attaches `CasualRequestInfo.of(domainId)` on all allocation requests.
+1. It detects that the connection factory uses a reverse outbound pool and retains the base entry only as an internal factory for virtual entries. It never returns the base entry for application calls.
+2. It calls `CasualConnectionFactory.getDomainIds()` and creates one domain-pinned virtual entry for each connected domain. Each entry has the name `<base-jndi-name>[<domain-id>]`.
+3. It wraps the base factory in a `DomainIdPinnedConnectionFactory`. The wrapper supplies `CasualRequestInfo.of(domainId)` when it allocates a connection.
 
----
+Only the virtual entries participate in discovery and caching. The base entry does not enter the service or queue caches.
 
-## Dynamic Lifecycle Management
+## Dynamic lifecycle management
 
-`casual-caller` continuously synchronizes its internal state with connected EIS instances during the validation loop (configured by `CASUAL_CALLER_VALIDATION_INTERVAL`):
+During each validation cycle, configured by `CASUAL_CALLER_VALIDATION_INTERVAL`, `casual-caller` synchronizes its virtual entries with the domains reported by each reverse outbound connection factory.
 
-| Lifecycle Event | Action Taken by `casual-caller` |
+| Lifecycle event | `casual-caller` action |
 | :--- | :--- |
-| **New EIS Instance Connects** | 1. Detects new `DomainId` from `connection.getPoolDomainIds()`.<br>2. Instantiates a new virtual `ConnectionFactoryEntry`.<br>3. Runs service/queue discovery and populates the cache.<br>4. Registers a topology observer for the new instance. |
-| **EIS Instance Disconnects** | 1. Detects missing `DomainId`.<br>2. Marks the virtual entry as `invalid`.<br>3. Purges all cached services and queues mapped to that virtual entry.<br>4. In-flight and subsequent calls fail over to surviving instances. |
-| **Initial Base Pool Classification** | Purges any stale/negative lookup state recorded under the base JNDI name prior to the first EIS connection. |
-| **Total Outage (All Instances Gone)** | Virtual entries are purged. Application calls for services provided only by that reverse pool immediately fail with `TPENOENT` until an EIS reconnects. |
+| A domain connects | Creates a virtual entry, discovers its services and queues, populates the caches, and registers a topology observer. |
+| A domain starts disconnecting | Connection allocation through its pinned factory fails. An application call can fail over to another factory while acquiring a connection. |
+| A disconnected domain disappears from `getDomainIds()` | Invalidates and removes the virtual entry during the next validation cycle, then purges its cached services and queues. |
+| All domains disconnect | Removes all virtual entries during validation. Calls for services available only through those entries return `TPENOENT` until a domain reconnects and discovery completes. |
 
----
+After a service invocation begins, an invocation failure propagates to the application without retrying another connection factory in the same transaction. Subsequent calls use the remaining virtual entries.
 
-## Application Server Configuration
+## Application server configuration
 
-Configure the reverse connection factory like a standard pooled connection factory in your application server:
+Configure the reverse connection factory as a pooled connection factory in your application server. Set `networkConnectionPoolName` to the name of the corresponding reverse outbound configuration in `casual-jca`.
 
 ```xml
 <connection-definition class-name="se.laz.casual.jca.CasualManagedConnectionFactory"
@@ -89,34 +84,35 @@ Configure the reverse connection factory like a standard pooled connection facto
 </connection-definition>
 ```
 
-> **Note:** For reverse pools, `hostName` and `portNumber are ignored by `casual-jca` - they are still needed as per the JCA specification. The pool accepts connections dynamically as EIS instances connect.
+The reverse pool ignores `hostName` and `portNumber` because the EIS establishes the physical connection. The `networkConnectionPoolName` value must be nonblank and must match the reverse outbound configuration name. You can omit `networkConnectionPoolSize`; if you specify it, the reverse pool ignores it.
 
-### Pool Sizing Best Practices
+### Size the application server pool
 
-Because a single connection definition in the application server backs $N$ virtual domain-pinned pools, apply the following pool sizing rules:
+A single connection definition backs all domain-pinned virtual entries for that reverse outbound pool. A managed connection pinned to one domain cannot serve a request for another domain.
 
-* **`min-pool-size = 0`:** Prevents the application server from pre-allocating unpinned managed connections before instances connect.
-* **`max-pool-size`:** Set this to a generous value (at least equal to the maximum concurrent calls expected across all connected instances combined, plus headroom for churn).
-* **Enable Background Validation:** Ensures that the application server destroys managed connections pinned to disconnected instances between validation cycles.
+Configure the application server pool as follows:
 
----
+* Set `min-pool-size` to `0` so that the application server does not allocate unpinned managed connections before an EIS connects.
+* Set `initial-pool-size` to `0` for the same reason.
+* Set `max-pool-size` to at least the expected number of concurrent calls across all connected domains, with capacity for connection churn.
+* Enable background validation so that the application server removes managed connections pinned to disconnected domains between calls.
 
-## Observability & Troubleshooting
+## Observability and troubleshooting
 
-### Log Messages
+### Log messages
 
-During normal operations, `casual-caller` logs reverse outbound lifecycle transitions at `INFO` level:
+When a domain connects, `casual-caller` logs the following message at `INFO` level:
 
-* **Instance Connected:**
-  ```text
-  INFO: reverse inbound instance connected, adding entry: java:/eis/casualReverse[4f8b...89a1]
-  ```
-* **Instance Disconnected:**
-  ```text
-  INFO: reverse instance gone, removing entry: java:/eis/casualReverse[4f8b...89a1]
-  ```
+```text
+INFO: reverse inbound instance connected, adding entry: java:/eis/casualReverse[4f8b...89a1]
+```
 
-### Inspection via API / JMX
+When validation removes a disconnected domain, `casual-caller` logs the following message at `INFO` level:
 
-* Virtual entries appear in `casual-caller` metrics and discovery dumps with their pinned name: `java:/eis/casualReverse[<domain-uuid>]`.
-* The base entry `java:/eis/casualReverse` is excluded from active service route tables.
+```text
+INFO: reverse inbound instance gone, removing entry: java:/eis/casualReverse[4f8b...89a1]
+```
+
+### Inspect entries through JMX
+
+The `validPools`, `invalidPools`, `poolsCheckedForService`, and `poolsContainingService` JMX operations identify virtual entries by their pinned names, such as `java:/eis/casualReverse[<domain-id>]`. The operations do not return the base entry, such as `java:/eis/casualReverse`.

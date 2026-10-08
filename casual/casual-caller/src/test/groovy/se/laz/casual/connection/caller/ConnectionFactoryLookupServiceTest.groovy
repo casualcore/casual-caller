@@ -188,6 +188,28 @@ class ConnectionFactoryLookupServiceTest extends Specification
         0 * lookup.find(serviceName, _, transactionLess)
     }
 
+    def 'service lookup uses one cache snapshot and returns entries stored concurrently'()
+    {
+        given:
+        ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(producerTwo)
+        ConnectionFactoriesByPriority concurrentlyStored =
+                createConnectionFactories([(priority): [entry]], [entry.getJndiName()])
+        Cache changingCache = Mock(Cache)
+        instance = new ConnectionFactoryLookupService(connnectionFactoryProvider, changingCache,
+                                                       lookup, transactionLess)
+        connnectionFactoryProvider.get() >> [entry]
+
+        // Another lookup stores the resolved entry after this lookup captures its initial empty snapshot.
+        changingCache.get(serviceName) >>> [ConnectionFactoriesByPriority.emptyInstance(), concurrentlyStored]
+
+        when:
+        List<ConnectionFactoryEntry> entries = instance.get(serviceName)
+
+        then:
+        1 * lookup.find(serviceName, [entry], transactionLess) >> ConnectionFactoriesByPriority.emptyInstance()
+        entries == [entry]
+    }
+
     def "order is randomized"()
     {
         setup:
