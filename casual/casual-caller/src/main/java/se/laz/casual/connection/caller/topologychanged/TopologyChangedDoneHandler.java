@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 final class TopologyChangedDoneHandler
 {
     private final Map<DomainId, DiscoveryState> discoveries = new ConcurrentHashMap<>();
+    private static final String DOMAIN_ID_CAN_NOT_BE_NULL = "domainId can not be null";
 
     /**
      * Records a topology update and indicates whether you need to schedule discovery.
@@ -29,7 +30,7 @@ final class TopologyChangedDoneHandler
      */
     boolean topologyChanged(DomainId domainId)
     {
-        Objects.requireNonNull(domainId, "domainId can not be null");
+        Objects.requireNonNull(domainId, DOMAIN_ID_CAN_NOT_BE_NULL);
         DiscoveryState resultingState = discoveries.merge(
                 domainId,
                 DiscoveryState.SCHEDULED,
@@ -47,7 +48,7 @@ final class TopologyChangedDoneHandler
      */
     boolean topologyChangeHandled(DomainId domainId)
     {
-        Objects.requireNonNull(domainId, "domainId can not be null");
+        Objects.requireNonNull(domainId, DOMAIN_ID_CAN_NOT_BE_NULL);
         DiscoveryState resultingState = discoveries.merge(
                 domainId,
                 DiscoveryState.IDLE,
@@ -70,7 +71,7 @@ final class TopologyChangedDoneHandler
      */
     void schedulingFailed(DomainId domainId)
     {
-        Objects.requireNonNull(domainId, "domainId can not be null");
+        Objects.requireNonNull(domainId, DOMAIN_ID_CAN_NOT_BE_NULL);
         discoveries.remove(domainId);
     }
 
