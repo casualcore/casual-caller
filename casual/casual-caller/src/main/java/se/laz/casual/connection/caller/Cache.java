@@ -30,6 +30,7 @@ public class Cache
 
     public List<ConnectionFactoryEntry> get(QueueInfo qinfo)
     {
+        Objects.requireNonNull(qinfo, "qinfo can not be null");
         return queueCache.getAll(qinfo);
     }
 
@@ -42,7 +43,6 @@ public class Cache
     {
         Objects.requireNonNull(serviceName, "serviceInfo can not be null");
         Objects.requireNonNull(entries, "entry can not be null");
-
         serviceCache.store(serviceName, entries);
     }
 
@@ -80,8 +80,7 @@ public class Cache
         discoveryReturn.getServiceDetails().forEach(
                 serviceDetails -> serviceCache.store(serviceDetails, connectionFactoryEntry));
         discoveryReturn.getQueueDetails().forEach(
-                queueDetails ->
-                        store(QueueInfo.of(queueDetails.getName()), List.of(connectionFactoryEntry))
+                queueDetails -> queueCache.store(QueueInfo.of(queueDetails.getName()), List.of(connectionFactoryEntry))
         );
     }
 
