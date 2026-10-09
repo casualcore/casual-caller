@@ -18,6 +18,8 @@ import spock.lang.Specification
 
 import java.util.stream.Collectors
 
+import static se.laz.casual.connection.caller.ConnectionFactoriesByPriorityFixture.createConnectionFactories
+
 class CacheTest extends Specification
 {
    @Shared
@@ -73,8 +75,6 @@ class CacheTest extends Specification
    @Shared
    def lowerPriority = priority - 1
    @Shared
-   def priorityMapping
-   @Shared
    def allServiceNames = ([serviceName, serviceNameOnlyFromConnectionFactoryOne] + serviceNames).stream()
                                                                                                  .distinct()
                                                                                                  .sorted()
@@ -90,9 +90,9 @@ class CacheTest extends Specification
    {
       instance = new Cache()
       qInfoList.forEach({ q -> instance.store(q, [cacheEntryOne, cacheEntryTwo]) })
-      serviceNames.forEach({ s -> instance.store(s, ConnectionFactoriesByPriority.of([(priority): [cacheEntryTwo]])) })
-      instance.store(serviceName, ConnectionFactoriesByPriority.of([(priority): [cacheEntryOne, cacheEntryTwo]]))
-      instance.store(serviceNameOnlyFromConnectionFactoryOne, ConnectionFactoriesByPriority.of([(priority): [cacheEntryOne]]))
+      serviceNames.forEach({ s -> instance.store(s, createConnectionFactories([(priority): [cacheEntryTwo]])) })
+      instance.store(serviceName, createConnectionFactories([(priority): [cacheEntryOne, cacheEntryTwo]]))
+      instance.store(serviceNameOnlyFromConnectionFactoryOne, createConnectionFactories([(priority): [cacheEntryOne]]))
    }
 
    def 'store null cache entry'()
@@ -108,7 +108,7 @@ class CacheTest extends Specification
       given:
       def anotherServiceName = 'anotherServiceName'
       when:
-      instance.store(anotherServiceName, ConnectionFactoriesByPriority.of([(priority): [cacheEntryOne, cacheEntryTwo]]))
+      instance.store(anotherServiceName, createConnectionFactories([(priority): [cacheEntryOne, cacheEntryTwo]]))
       def entries = instance.get(anotherServiceName)
       then:
       entries.getForPriority(priority).size() == 2
@@ -116,7 +116,82 @@ class CacheTest extends Specification
       instance.removeService(anotherServiceName)
       entries = instance.get(anotherServiceName)
       then:
-      entries.empty
+      !entries.hasPrioritizedEntries()
+   }
+
+   def 'store service providers at different priorities'()
+   {
+      given:
+      def anotherServiceName = 'service-with-different-priorities'
+
+      when:
+      instance.store(anotherServiceName, createConnectionFactories([(lowerPriority): [cacheEntryOne]]))
+      instance.store(anotherServiceName, createConnectionFactories([(priority): [cacheEntryTwo]]))
+      ConnectionFactoriesByPriority entries = instance.get(anotherServiceName)
+
+      then:
+      entries.orderedKeys == [lowerPriority, priority]
+      entries.getForPriority(lowerPriority) == [cacheEntryOne]
+      entries.getForPriority(priority) == [cacheEntryTwo]
+      entries.randomizeWithPriority() == [cacheEntryOne, cacheEntryTwo]
+   }
+
+   def 'service updates do not mutate a previously published snapshot'()
+   {
+      given:
+      String snapshotService = 'snapshot.service'
+      instance.store(snapshotService, createConnectionFactories([(priority): [cacheEntryOne]]))
+      ConnectionFactoriesByPriority publishedSnapshot = instance.get(snapshotService)
+
+      when:
+      instance.store(snapshotService, createConnectionFactories([(priority): [cacheEntryTwo]]))
+      instance.purge(cacheEntryOne)
+
+      then:
+      publishedSnapshot.randomizeWithPriority() == [cacheEntryOne]
+      instance.get(snapshotService).randomizeWithPriority() == [cacheEntryTwo]
+   }
+
+   def 'new equal factory instance replaces stale cached instance'()
+   {
+      given:
+      String reconnectedService = 'reconnected.service'
+      ConnectionFactoryEntry staleEntry = createEqualEntry('same-domain')
+      ConnectionFactoryEntry reconnectedEntry = createEqualEntry('same-domain')
+      instance.store(reconnectedService, createConnectionFactories([(priority): [staleEntry]]))
+      staleEntry.invalidate()
+
+      when:
+      instance.store(reconnectedService, createConnectionFactories([(priority): [reconnectedEntry]]))
+
+      then:
+      List<ConnectionFactoryEntry> cachedEntries = instance.get(reconnectedService).randomizeWithPriority()
+      cachedEntries.size() == 1
+      cachedEntries[0].is(reconnectedEntry)
+      cachedEntries[0].isValid()
+   }
+
+   def 'repopulation replaces stale equal factory instance'()
+   {
+      given:
+      String repopulatedService = 'repopulated.service'
+      DiscoveryReturn discoveryReturn = Mock(DiscoveryReturn) {
+         getServiceDetails() >> [toServiceDetails(repopulatedService)]
+         getQueueDetails() >> []
+      }
+      ConnectionFactoryEntry staleEntry = createEqualEntry('same-domain')
+      ConnectionFactoryEntry reconnectedEntry = createEqualEntry('same-domain')
+      instance.repopulate(discoveryReturn, staleEntry)
+      staleEntry.invalidate()
+
+      when:
+      instance.repopulate(discoveryReturn, reconnectedEntry)
+
+      then:
+      List<ConnectionFactoryEntry> cachedEntries = instance.get(repopulatedService).randomizeWithPriority()
+      cachedEntries.size() == 1
+      cachedEntries[0].is(reconnectedEntry)
+      cachedEntries[0].isValid()
    }
 
    def 'get missing service entry'()
@@ -124,7 +199,37 @@ class CacheTest extends Specification
       when:
       def entries = instance.get('does-not-exist')
       then:
-      entries.isEmpty()
+      !entries.hasPrioritizedEntries()
+   }
+
+   def 'resolved factory metadata updates known services but does not create unknown services'()
+   {
+      given:
+      String resolvedFactory = 'resolved-factory'
+      ConnectionFactoriesByPriority metadata = ConnectionFactoriesByPriority.emptyInstance()
+              .withResolvedFactory(resolvedFactory)
+
+      when:
+      instance.store(serviceName, metadata)
+      instance.store('unknown-service', metadata)
+
+      then:
+      instance.get(serviceName).isResolved(resolvedFactory)
+      !instance.services.contains('unknown-service')
+   }
+
+   def 'storing a value without providers or metadata does nothing'()
+   {
+      given:
+      ConnectionFactoriesByPriority cached = instance.get(serviceName)
+
+      when:
+      instance.store(serviceName, ConnectionFactoriesByPriority.emptyInstance())
+      instance.store('unknown-service', ConnectionFactoriesByPriority.emptyInstance())
+
+      then:
+      instance.get(serviceName).is(cached)
+      !instance.services.contains('unknown-service')
    }
 
    def 'store queue null cache entry'()
@@ -155,6 +260,52 @@ class CacheTest extends Specification
       def entry = instance.getSingle(qInfo)
       then:
       !entry.isPresent()
+   }
+
+   def 'queue sticky is discarded when its connection factory becomes invalid'()
+   {
+      given:
+      boolean valid = true
+      ConnectionFactoryEntry connectionFactoryEntry = Mock(ConnectionFactoryEntry) {
+         isValid() >> { valid }
+      }
+      instance.store(qInfo, [connectionFactoryEntry])
+
+      expect:
+      instance.getSingle(qInfo).orElseThrow().is(connectionFactoryEntry)
+
+      when:
+      valid = false
+
+      then:
+      instance.getSingle(qInfo).isEmpty()
+   }
+
+   def 'queue cache stores an immutable snapshot of the supplied entries'()
+   {
+      given:
+      List<ConnectionFactoryEntry> entries = [cacheEntryOne]
+
+      when:
+      instance.store(qInfo, entries)
+      entries.clear()
+
+      then:
+      instance.get(qInfo) == [cacheEntryOne]
+   }
+
+   def 'queue cache updates do not mutate a previously published snapshot'()
+   {
+      given:
+      instance.store(qInfo, [cacheEntryOne])
+      List<ConnectionFactoryEntry> publishedSnapshot = instance.get(qInfo)
+
+      when:
+      instance.purge(cacheEntryOne)
+
+      then:
+      publishedSnapshot == [cacheEntryOne]
+      instance.get(qInfo).isEmpty()
    }
 
    def 'get missing queue entry'()
@@ -203,7 +354,7 @@ class CacheTest extends Specification
       instance.purge(cacheEntryOne)
       def afterPurge = instance.get(serviceNameOnlyFromConnectionFactoryOne)
       then:
-      afterPurge.isEmpty()
+      !afterPurge.hasPrioritizedEntries()
       when:
       instance.repopulate(discoveryReturn, cacheEntryOne)
       def afterRepopulate = instance.get(serviceNameOnlyFromConnectionFactoryOne)
@@ -285,5 +436,10 @@ class CacheTest extends Specification
               .withCategory('foo')
               .withTransactionType(TransactionType.AUTOMATIC)
               .build()
+   }
+
+   private static ConnectionFactoryEntry createEqualEntry(String uniqueName)
+   {
+      ConnectionFactoryEntry.of(ConnectionFactoryProducerImpl.of(uniqueName))
    }
 }

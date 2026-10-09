@@ -28,79 +28,79 @@ public class QueueCache
         return cacheMap.keySet();
     }
 
-    public List<ConnectionFactoryEntry> getAll(QueueInfo queueInfo) {
-        return cacheMap.get(queueInfo.getQueueName());
+    public List<ConnectionFactoryEntry> getAll(QueueInfo queueInfo)
+    {
+        return cacheMap.getOrDefault(queueInfo.getQueueName(), List.of());
     }
 
     public Optional<ConnectionFactoryEntry> getOrEmpty(QueueInfo queueInfo)
     {
         String queueName = queueInfo.getQueueName();
-        if (stickies.containsKey(queueName))
+        List<ConnectionFactoryEntry> currentEntries = cacheMap.getOrDefault(queueName, List.of());
+        ConnectionFactoryEntry sticky = stickies.get(queueName);
+        if (sticky != null && sticky.isValid() && currentEntries.contains(sticky))
         {
-            return Optional.of(stickies.get(queueName));
+            return Optional.of(sticky);
         }
-        else if (cacheMap.containsKey(queueName))
+        if (sticky != null)
         {
-            // Prevent the unlikely case that two different threads manage to find and set different stickies
-            synchronized (stickies) {
-                if (stickies.containsKey(queueName))
-                {
-                    // While waiting another thread may have already set a sticky
-                    return Optional.of(stickies.get(queueName));
-                }
-
-                List<ConnectionFactoryEntry> cachedForQueue = cacheMap.get(queueName)
-                        .stream()
-                        .filter(ConnectionFactoryEntry::isValid)
-                        .toList();
-
-                if(cachedForQueue.isEmpty())
-                {
-                    LOG.info(() -> "No valid connection for queuename: " + queueName);
-                    return Optional.empty();
-                }
-
-                // We never expect more than one source for a queue. Just pick first one and stick to it
-                ConnectionFactoryEntry selectedFactory = cachedForQueue.get(0);
-                stickies.put(queueName, selectedFactory);
-
-                if (cachedForQueue.size() > 1) {
-                    LOG.info(() -> "Found multiple (" + cachedForQueue.size() + ") sources for queue '" + queueName
-                            + "', selecting and setting sticky for CasualConnectionFactory=" + selectedFactory);
-                }
-
-                return Optional.of(selectedFactory);
-            }
+            stickies.remove(queueName, sticky);
         }
-        else
+
+        List<ConnectionFactoryEntry> cachedForQueue = currentEntries.stream()
+                .filter(ConnectionFactoryEntry::isValid)
+                .toList();
+
+        if (cachedForQueue.isEmpty())
         {
             return Optional.empty();
         }
+
+        // We never expect more than one source for a queue. Just pick the first one and stick to it.
+        ConnectionFactoryEntry selectedFactory = cachedForQueue.get(0);
+        ConnectionFactoryEntry selectedSticky = stickies.compute(queueName, (key, current) ->
+                current == null || !current.isValid() ? selectedFactory : current);
+
+        if (cachedForQueue.size() > 1)
+        {
+            LOG.info(() -> "Found multiple (" + cachedForQueue.size() + ") sources for queue '" + queueName
+                    + "', selecting and setting sticky for CasualConnectionFactory=" + selectedSticky);
+        }
+
+        return Optional.of(selectedSticky);
     }
 
     public void store(QueueInfo queueInfo, List<ConnectionFactoryEntry> entries)
     {
-        cacheMap.put(queueInfo.getQueueName(), entries);
+        Objects.requireNonNull(queueInfo, "queueInfo must not be null");
+        Objects.requireNonNull(entries, "entries must not be null");
+        cacheMap.put(queueInfo.getQueueName(), List.copyOf(entries));
     }
 
-    public void remove(ConnectionFactoryEntry connectionFactoryEntry)
+    public void remove(ConnectionFactoryEntry entryToRemove)
     {
-        for(Map.Entry<String, ConnectionFactoryEntry> entry : stickies.entrySet())
+        Objects.requireNonNull(entryToRemove, "entryToRemove must not be null");
+
+        for (String queueName : stickies.keySet())
         {
-            if(entry.getValue().getJndiName().equals(connectionFactoryEntry.getJndiName()))
-            {
-                stickies.remove(entry.getKey());
-            }
+            stickies.computeIfPresent(queueName, (key, current) ->
+                    sameFactory(current, entryToRemove) ? null : current);
         }
-        for(Map.Entry<String, List<ConnectionFactoryEntry>> entry : cacheMap.entrySet())
+
+        for (String queueName : cacheMap.keySet())
         {
-            List<ConnectionFactoryEntry> l = entry.getValue();
-            l.removeIf(cachedEntry -> Objects.equals(cachedEntry.getJndiName(), connectionFactoryEntry.getJndiName()));
-            if(l.isEmpty())
-            {
-                cacheMap.remove(entry.getKey());
-            }
+            cacheMap.computeIfPresent(queueName, (key, currentEntries) -> {
+                List<ConnectionFactoryEntry> remaining = currentEntries.stream()
+                        .filter(entry -> !sameFactory(entry, entryToRemove))
+                        .toList();
+                return remaining.isEmpty() ? null : remaining;
+            });
         }
+    }
+
+    private static boolean sameFactory(ConnectionFactoryEntry first, ConnectionFactoryEntry second)
+    {
+        return Objects.equals(first.getJndiName(), second.getJndiName());
     }
 
     public void clear()

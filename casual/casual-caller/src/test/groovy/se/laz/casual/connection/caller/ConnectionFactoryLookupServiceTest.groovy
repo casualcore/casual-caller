@@ -12,6 +12,8 @@ import se.laz.casual.jca.CasualConnectionFactory
 import spock.lang.Shared
 import spock.lang.Specification
 
+import static se.laz.casual.connection.caller.ConnectionFactoriesByPriorityFixture.createConnectionFactories
+
 class ConnectionFactoryLookupServiceTest extends Specification
 {
     @Shared
@@ -153,7 +155,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         setup:
         ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(producerTwo)
         connnectionFactoryProvider.get() >> [entry]
-        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of([(priority): [entry]])
+        lookup.find(serviceName, _, transactionLess) >> createConnectionFactories([(priority): [entry]])
         when:
         def entries = instance.get(serviceName)
         then:
@@ -165,7 +167,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
     {
         setup:
         connnectionFactoryProvider.get() >> []
-        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of([:])
+        lookup.find(serviceName, _, transactionLess) >> createConnectionFactories([:])
         when:
         def entries = instance.get(serviceName)
         then:
@@ -177,13 +179,35 @@ class ConnectionFactoryLookupServiceTest extends Specification
         setup:
         ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(producerTwo)
         connnectionFactoryProvider.get() >> [entry]
-        cache.store(serviceName, ConnectionFactoriesByPriority.of([(priority): [entry]], [entry.getJndiName()]))
+        cache.store(serviceName, createConnectionFactories([(priority): [entry]], [entry.getJndiName()]))
         when:
         def entries = instance.get(serviceName)
         then:
         entries.size() == 1
         entries[0] == entry
         0 * lookup.find(serviceName, _, transactionLess)
+    }
+
+    def 'service lookup uses one cache snapshot and returns entries stored concurrently'()
+    {
+        given:
+        ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(producerTwo)
+        ConnectionFactoriesByPriority concurrentlyStored =
+                createConnectionFactories([(priority): [entry]], [entry.getJndiName()])
+        Cache changingCache = Mock(Cache)
+        instance = new ConnectionFactoryLookupService(connnectionFactoryProvider, changingCache,
+                                                       lookup, transactionLess)
+        connnectionFactoryProvider.get() >> [entry]
+
+        // Another lookup stores the resolved entry after this lookup captures its initial empty snapshot.
+        changingCache.get(serviceName) >>> [ConnectionFactoriesByPriority.emptyInstance(), concurrentlyStored]
+
+        when:
+        List<ConnectionFactoryEntry> entries = instance.get(serviceName)
+
+        then:
+        1 * lookup.find(serviceName, [entry], transactionLess) >> ConnectionFactoriesByPriority.emptyInstance()
+        entries == [entry]
     }
 
     def "order is randomized"()
@@ -209,7 +233,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
 
         connnectionFactoryProvider.get() >> listOfEntries
 
-        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of(lookupMap)
+        lookup.find(serviceName, _, transactionLess) >> createConnectionFactories(lookupMap)
 
         when:
         def result1 = instance.get(serviceName)
@@ -276,7 +300,7 @@ class ConnectionFactoryLookupServiceTest extends Specification
         def conFac4Entry = ConnectionFactoryEntry.of(producerFourLocal)
 
         connnectionFactoryProvider.get() >> [conFac1Entry, conFac2Entry, conFac3Entry, conFac4Entry]
-        lookup.find(serviceName, _, transactionLess) >> ConnectionFactoriesByPriority.of([
+        lookup.find(serviceName, _, transactionLess) >> createConnectionFactories([
                 (3L): [conFac1Entry],
                 (2L): [conFac2Entry],
                 (1L): [conFac3Entry],

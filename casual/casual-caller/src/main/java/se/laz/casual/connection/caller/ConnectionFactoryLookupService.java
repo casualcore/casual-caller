@@ -45,7 +45,7 @@ public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
         {
             cache.store(qinfo, newEntries);
         }
-        return cache.getSingle(qinfo); // May be something or empty depending on if
+        return cache.getSingle(qinfo);
     }
 
     @Override
@@ -54,7 +54,7 @@ public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
         Objects.requireNonNull(serviceName, "serviceName can not be null");
         List<ConnectionFactoryEntry> possibleConnectionFactories = connectionFactoryProvider.get();
         ConnectionFactoriesByPriority cachedEntries = cache.get(serviceName);
-        if (!cachedEntries.isEmpty() && cachedEntries.hasCheckedAllValid(possibleConnectionFactories))
+        if (cachedEntries.hasPrioritizedEntries() && cachedEntries.hasCheckedAllValid(possibleConnectionFactories))
         {
             // Using cached entries and no further discovery is appropriate
             return cachedEntries.randomizeWithPriority();
@@ -63,18 +63,20 @@ public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
         // Services by lookup. Only lookup against previously unresolved connection factories.
         ConnectionFactoriesByPriority newEntries = lookup.find(serviceName, possibleConnectionFactories
                 .stream()
-                .filter(entry -> !cache.get(serviceName).isResolved(entry.getJndiName()))
+                .filter(entry -> !cachedEntries.isResolved(entry.getJndiName()))
                 .toList(), transactionLess);
-        if (!newEntries.isEmpty() || newEntries.containsCheckedConnectionFactories())
+        if (newEntries.hasPrioritizedEntries() || newEntries.containsCheckedConnectionFactories())
         {
             cache.store(serviceName, newEntries);
-            return cache.get(serviceName).randomizeWithPriority();
         }
 
         // If we only have a bunch of invalid connection-factories to report it should be done so,
         // because a different error may be reported depending on if the service has no known backend
         // or if none of the known backends are available
-        return cachedEntries.isEmpty() ? Collections.emptyList() : cachedEntries.randomizeWithPriority();
+        ConnectionFactoriesByPriority latestEntries = cache.get(serviceName);
+        return latestEntries.hasPrioritizedEntries()
+                ? latestEntries.randomizeWithPriority()
+                : Collections.emptyList();
     }
 
     @Override

@@ -6,6 +6,7 @@
 
 package se.laz.casual.connection.caller;
 
+import se.laz.casual.api.CasualRuntimeException;
 import se.laz.casual.api.queue.QueueInfo;
 import se.laz.casual.api.service.ServiceDetails;
 import se.laz.casual.jca.CasualConnection;
@@ -41,11 +42,13 @@ public class Lookup
             {
                 try
                 {
-                   foundEntries.store(transactionLess.serviceDetails(entry, fetchFunction), entry);
-                   foundEntries.setResolved(entry.getJndiName());
+                   foundEntries = foundEntries
+                           .withServices(transactionLess.serviceDetails(entry, fetchFunction), entry)
+                           .withResolvedFactory(entry.getJndiName());
                 }
-                catch (ResourceException e)
+                catch (ResourceException | CasualRuntimeException e)
                 {
+                   entry.invalidate();
                    LOG.log(Level.WARNING, e, ()->"Skipping connection factory " + entry.getJndiName() + " for service lookup, received error: " + e.getMessage());
                 }
             }
@@ -65,8 +68,9 @@ public class Lookup
                     foundEntries.add(entry);
                 }
             }
-            catch (ResourceException e)
+            catch (ResourceException | CasualRuntimeException e)
             {
+                entry.invalidate();
                 LOG.log(Level.WARNING, e, ()->"Skipping connection factory " + entry.getJndiName() + " for queue lookup on, received error: " + e.getMessage());
             }
         }
