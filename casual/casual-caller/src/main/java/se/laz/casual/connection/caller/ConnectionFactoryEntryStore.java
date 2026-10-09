@@ -129,7 +129,7 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
                 }
             }
         }
-        for(DomainId knownDomainId : new ArrayList<>(entriesByDomain.keySet()))
+        for(DomainId knownDomainId : entriesByDomain.keySet())
         {
             if(!domainIds.contains(knownDomainId))
             {
