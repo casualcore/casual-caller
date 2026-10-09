@@ -17,8 +17,9 @@ class ConnectionValidatorTest extends Specification
    {
       given:
       ConnectionFactoryEntry entry = Mock(ConnectionFactoryEntry){
-         2 * isValid() >>> [false, true]
+         1 * isInvalid() >> true
          1 * validate()
+         1 * isValid() >> true
       }
       CacheRepopulator cacheRepopulator = Mock(CacheRepopulator){
          1 * repopulate(entry)
@@ -39,7 +40,7 @@ class ConnectionValidatorTest extends Specification
    {
       given:
       ConnectionFactoryEntry entry = Mock(ConnectionFactoryEntry){
-         1 * isValid() >>> [false, true]
+         1 * isInvalid() >> true
          1 * validate() >> {
             throw new RuntimeException('Bazinga!')
          }
@@ -64,8 +65,8 @@ class ConnectionValidatorTest extends Specification
    {
       given:
       ConnectionFactoryEntry addedEntry = Mock(ConnectionFactoryEntry){
-         isValid() >> true
          1 * validate()
+         1 * isValid() >> true
       }
       ConnectionFactoryEntry purgedEntry = Mock(ConnectionFactoryEntry)
       Cache cache = Mock(Cache){

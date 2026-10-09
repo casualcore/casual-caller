@@ -45,7 +45,7 @@ public class ConnectionFactoryLookupService implements ConnectionFactoryLookup
         {
             cache.store(qinfo, newEntries);
         }
-        return cache.getSingle(qinfo); // May be something or empty depending on if
+        return cache.getSingle(qinfo);
     }
 
     @Override

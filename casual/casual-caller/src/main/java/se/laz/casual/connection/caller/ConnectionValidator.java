@@ -32,12 +32,13 @@ public class ConnectionValidator
 
     public void validateAllConnections()
     {
-        refreshReverseEntries();
+        ReverseRefreshResult refreshResult = refreshReverseEntries();
         connectionFactoryEntryStore.get()
                                    .forEach( connectionFactoryEntry -> {
                                        try
                                        {
-                                           validate(connectionFactoryEntry);
+                                           validate(connectionFactoryEntry,
+                                                   refreshResult.added().contains(connectionFactoryEntry));
                                        }
                                        catch(Exception e)
                                        {
@@ -47,38 +48,22 @@ public class ConnectionValidator
                                    });
     }
 
-    private void refreshReverseEntries()
+    private ReverseRefreshResult refreshReverseEntries()
     {
         ReverseRefreshResult result = connectionFactoryEntryStore.refreshReverseEntries();
         result.purged().forEach(cache::purge);
-        result.added().forEach(entry -> {
-            try
-            {
-                repopulator.repopulate(entry);
-                connectionFactoryEntryStore.addConnectionObserver(entry);
-            }
-            catch(Exception e)
-            {
-                entry.invalidate();
-                LOG.log(Level.WARNING, e, () -> "Failed handling reverse domain entry: " + entry.getJndiName());
-            }
-        });
+        return result;
     }
 
-    private void validate(final ConnectionFactoryEntry connectionFactoryEntry)
+    private void validate(final ConnectionFactoryEntry connectionFactoryEntry, boolean newlyAdded)
     {
-        boolean invalidBeforeValidation = !connectionFactoryEntry.isValid();
+        boolean initializationRequired = newlyAdded || connectionFactoryEntry.isInvalid();
         connectionFactoryEntry.validate();
-        if(connectionReestablished(invalidBeforeValidation, connectionFactoryEntry.isValid()))
+        if(initializationRequired && connectionFactoryEntry.isValid())
         {
             repopulator.repopulate(connectionFactoryEntry);
             connectionFactoryEntryStore.addConnectionObserver(connectionFactoryEntry);
         }
-    }
-
-    private boolean connectionReestablished(boolean invalidBeforeRevalidation, boolean valid)
-    {
-        return invalidBeforeRevalidation && valid;
     }
 
 }

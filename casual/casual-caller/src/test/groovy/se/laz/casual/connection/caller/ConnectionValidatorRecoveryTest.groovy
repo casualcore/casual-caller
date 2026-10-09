@@ -16,6 +16,7 @@ class ConnectionValidatorRecoveryTest extends Specification
         given:
         CasualConnectionFactory failingFactory = Mock(CasualConnectionFactory)
         CasualConnectionFactory healthyFactory = Mock(CasualConnectionFactory)
+        CasualConnection initialConnection = Mock(CasualConnection)
         CasualConnection recoveredConnection = Mock(CasualConnection)
         CasualConnection healthyConnection = Mock(CasualConnection)
 
@@ -32,9 +33,10 @@ class ConnectionValidatorRecoveryTest extends Specification
         store.get() >> [failingEntry, healthyEntry]
         failingFactory.isDomainDisconnecting() >> false
         healthyFactory.isDomainDisconnecting() >> false
+        failingFactory.getConnection() >>> [initialConnection, recoveredConnection]
         healthyFactory.getConnection() >> healthyConnection
 
-        when: 'discovery fails and the domain remains unavailable this tick'
+        when: 'discovery fails after the new domain passes validation'
         validator.validateAllConnections()
 
         then:
@@ -43,11 +45,10 @@ class ConnectionValidatorRecoveryTest extends Specification
         1 * repopulator.repopulate(failingEntry) >> {
             throw new IllegalStateException('Discovery failed')
         }
-        1 * failingFactory.getConnection() >> {
-            throw new ResourceException('Domain unavailable')
-        }
+        1 * initialConnection.close()
         0 * store.addConnectionObserver(failingEntry)
 
+        1 * healthyConnection.close()
         1 * repopulator.repopulate(healthyEntry)
         1 * store.addConnectionObserver(healthyEntry)
 
@@ -61,8 +62,8 @@ class ConnectionValidatorRecoveryTest extends Specification
         then:
         1 * store.refreshReverseEntries() >>
                 new ReverseRefreshResult([], [])
-        1 * failingFactory.getConnection() >> recoveredConnection
         1 * recoveredConnection.close()
+        1 * healthyConnection.close()
         1 * repopulator.repopulate(failingEntry)
         1 * store.addConnectionObserver(failingEntry)
 
