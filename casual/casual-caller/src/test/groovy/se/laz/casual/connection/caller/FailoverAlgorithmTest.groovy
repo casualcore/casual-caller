@@ -200,7 +200,7 @@ class FailoverAlgorithmTest extends Specification
       TransactionPoolMapper.getInstance().getStickyInformationForCurrentTransaction().poolName() == pool1name
    }
 
-   // it should fail hard and retry will then distpach all calls to another pool ( if available)
+   // it should fail hard and retry will then dispatch all calls to another pool ( if available)
    def 'stickies, failover: when calling stickied service failover is possible to other non-stickied pool'()
    {
       setup:
