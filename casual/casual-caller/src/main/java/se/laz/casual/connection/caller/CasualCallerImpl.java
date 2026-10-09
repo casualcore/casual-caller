@@ -14,10 +14,12 @@ import jakarta.inject.Inject;
 import jakarta.resource.ResourceException;
 import se.laz.casual.api.buffer.CasualBuffer;
 import se.laz.casual.api.buffer.ServiceReturn;
+import se.laz.casual.api.buffer.type.ServiceBuffer;
 import se.laz.casual.api.conversation.TpConnectReturn;
 import se.laz.casual.api.flags.AtmiFlags;
 import se.laz.casual.api.flags.ErrorState;
 import se.laz.casual.api.flags.Flag;
+import se.laz.casual.api.flags.ServiceReturnState;
 import se.laz.casual.api.queue.DequeueReturn;
 import se.laz.casual.api.queue.EnqueueReturn;
 import se.laz.casual.api.queue.MessageSelector;
@@ -27,6 +29,7 @@ import se.laz.casual.api.service.ServiceDetails;
 import se.laz.casual.connection.caller.services.ServiceRoutes;
 import se.laz.casual.http.HttpClient;
 import se.laz.casual.jca.CasualConnection;
+import se.laz.casual.jca.RuntimeInformation;
 
 import java.util.List;
 import java.util.Optional;
@@ -76,6 +79,10 @@ public class CasualCallerImpl implements CasualCaller
     @Override
     public ServiceReturn<CasualBuffer> tpcall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags)
     {
+        if (RuntimeInformation.isDomainBeingShutdown())
+        {
+            return tpenoentReply();
+        }
         failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         return serviceRoutes.getRoute(serviceName).map(uri -> httpClient.request(uri, data))
                             .orElseGet(() -> flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpcall(() -> tpCaller.tpcall(serviceName, data, flags, lookup)) : tpCaller.tpcall(serviceName, data, flags, lookup));
@@ -90,6 +97,10 @@ public class CasualCallerImpl implements CasualCaller
     @Override
     public CompletableFuture<Optional<ServiceReturn<CasualBuffer>>> tpacall(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags)
     {
+        if (RuntimeInformation.isDomainBeingShutdown())
+        {
+            return CompletableFuture.completedFuture(Optional.of(tpenoentReply()));
+        }
         failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         return flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpacall(() -> tpCaller.tpacall(serviceName, data, flags, lookup)) : tpCaller.tpacall(serviceName, data, flags, lookup);
     }
@@ -115,6 +126,10 @@ public class CasualCallerImpl implements CasualCaller
     @Override
     public EnqueueReturn enqueue(QueueInfo qinfo, QueueMessage msg)
     {
+        if (RuntimeInformation.isDomainBeingShutdown())
+        {
+            return EnqueueReturn.createBuilder().withErrorState(ErrorState.TPENOENT).build();
+        }
         failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         Optional<ConnectionFactoryEntry> entry = lookup.get(qinfo);
 
@@ -136,6 +151,10 @@ public class CasualCallerImpl implements CasualCaller
     @Override
     public DequeueReturn dequeue(QueueInfo qinfo, MessageSelector selector)
     {
+        if (RuntimeInformation.isDomainBeingShutdown())
+        {
+            return DequeueReturn.createBuilder().withErrorState(ErrorState.TPENOENT).build();
+        }
         failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         Optional<ConnectionFactoryEntry> entry = lookup.get(qinfo);
 
@@ -157,6 +176,10 @@ public class CasualCallerImpl implements CasualCaller
     @Override
     public boolean queueExists(QueueInfo qinfo)
     {
+        if (RuntimeInformation.isDomainBeingShutdown())
+        {
+            return false;
+        }
         return lookup.get(qinfo).isPresent();
     }
 
@@ -176,7 +199,16 @@ public class CasualCallerImpl implements CasualCaller
     @Override
     public TpConnectReturn tpconnect(String serviceName, CasualBuffer data, Flag<AtmiFlags> flags)
     {
+        if (RuntimeInformation.isDomainBeingShutdown())
+        {
+            return TpConnectReturn.of(ErrorState.TPENOENT);
+        }
         return flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpconnect(() -> tpCaller.tpconnect(serviceName, data, flags, lookup)) : tpCaller.tpconnect(serviceName, data, flags, lookup);
+    }
+
+    private static ServiceReturn<CasualBuffer> tpenoentReply()
+    {
+        return new ServiceReturn<>(ServiceBuffer.empty(), ServiceReturnState.TPFAIL, ErrorState.TPENOENT, 0L);
     }
 
 }

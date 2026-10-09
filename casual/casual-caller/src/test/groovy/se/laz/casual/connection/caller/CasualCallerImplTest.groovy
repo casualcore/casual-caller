@@ -28,6 +28,7 @@ import se.laz.casual.connection.caller.services.ServiceRoutes
 import se.laz.casual.http.HttpClient
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
+import se.laz.casual.jca.RuntimeInformation
 import spock.lang.Specification
 
 import java.util.concurrent.CompletableFuture
@@ -43,9 +44,11 @@ class CasualCallerImplTest extends Specification
     HttpClient httpClient
     TpCallerFailover tpCallerFailover
     FailoverAlgorithm failoverAlgorithm
+    FailedDomainDiscoveryHandler failedDomainDiscoveryHandler
 
     def setup()
     {
+        RuntimeInformation.setDomainIsBeingShutdown(false)
         TransactionManager transactionManager = Mock(TransactionManager)
         failoverAlgorithm = new FailoverAlgorithm()
         failoverAlgorithm.setTransactionManager(transactionManager)
@@ -75,8 +78,96 @@ class CasualCallerImplTest extends Specification
         }
         transactionLess = new TransactionLess()
         httpClient = HttpClient.of()
-        instance = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), tpCallerFailover)
+        failedDomainDiscoveryHandler = Mock(FailedDomainDiscoveryHandler)
+        instance = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, failedDomainDiscoveryHandler, httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), tpCallerFailover)
         0 * httpClient.request(_,_)
+    }
+
+    def cleanup()
+    {
+        RuntimeInformation.setDomainIsBeingShutdown(false)
+    }
+
+    def 'local shutdown rejects a synchronous service call before discovery'()
+    {
+        given:
+        RuntimeInformation.setDomainIsBeingShutdown(true)
+
+        when:
+        def result = instance.tpcall('echo', Mock(CasualBuffer), Flag.of(AtmiFlags.NOFLAG))
+
+        then:
+        result.errorState == ErrorState.TPENOENT
+        0 * failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache()
+        0 * lookup.get(_ as String)
+    }
+
+    def 'local shutdown rejects an asynchronous service call before discovery'()
+    {
+        given:
+        RuntimeInformation.setDomainIsBeingShutdown(true)
+
+        when:
+        def result = instance.tpacall('echo', Mock(CasualBuffer), Flag.of(AtmiFlags.NOFLAG)).join()
+
+        then:
+        result.orElseThrow().errorState == ErrorState.TPENOENT
+        0 * failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache()
+        0 * lookup.get(_ as String)
+    }
+
+    def 'local shutdown rejects enqueue before discovery'()
+    {
+        given:
+        RuntimeInformation.setDomainIsBeingShutdown(true)
+
+        when:
+        def result = instance.enqueue(QueueInfo.of('orders'), QueueMessage.of(Mock(CasualBuffer)))
+
+        then:
+        result.errorState == ErrorState.TPENOENT
+        0 * failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache()
+        0 * lookup.get(_ as QueueInfo)
+    }
+
+    def 'local shutdown rejects dequeue before discovery'()
+    {
+        given:
+        RuntimeInformation.setDomainIsBeingShutdown(true)
+
+        when:
+        def result = instance.dequeue(QueueInfo.of('orders'), MessageSelector.of())
+
+        then:
+        result.errorState == ErrorState.TPENOENT
+        0 * failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache()
+        0 * lookup.get(_ as QueueInfo)
+    }
+
+    def 'local shutdown prevents queue discovery'()
+    {
+        given:
+        RuntimeInformation.setDomainIsBeingShutdown(true)
+
+        when:
+        def exists = instance.queueExists(QueueInfo.of('orders'))
+
+        then:
+        !exists
+        0 * lookup.get(_ as QueueInfo)
+    }
+
+    def 'local shutdown rejects a new conversation before lookup'()
+    {
+        given:
+        RuntimeInformation.setDomainIsBeingShutdown(true)
+
+        when:
+        def result = instance.tpconnect('echo', Mock(CasualBuffer), Flag.of(AtmiFlags.TPRECVONLY))
+
+        then:
+        result.errorState == ErrorState.TPENOENT
+        0 * lookup.get(_ as String)
     }
 
     def 'construction, no entries found - should throw'()

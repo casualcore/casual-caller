@@ -14,11 +14,13 @@ import jakarta.transaction.TransactionManager
 import se.laz.casual.api.buffer.CasualBuffer
 import se.laz.casual.api.buffer.ServiceReturn
 import se.laz.casual.api.buffer.type.ServiceBuffer
+import se.laz.casual.api.conversation.TpConnectReturn
 import se.laz.casual.api.flags.ErrorState
 import se.laz.casual.api.flags.Flag
 import se.laz.casual.api.flags.ServiceReturnState
 import se.laz.casual.jca.CasualConnection
 import se.laz.casual.jca.CasualConnectionFactory
+import se.laz.casual.jca.RuntimeInformation
 import se.laz.casual.network.connection.CasualConnectionException
 import spock.lang.Shared
 import spock.lang.Specification
@@ -41,12 +43,111 @@ class FailoverAlgorithmTest extends Specification
 
    def setup()
    {
+      RuntimeInformation.setDomainIsBeingShutdown(false)
       failoverAlgorithm.setTransactionManager(transactionManager)
    }
 
    def cleanup()
    {
+      RuntimeInformation.setDomainIsBeingShutdown(false)
       TransactionPoolMapper.resetForTest()
+   }
+
+   def 'local shutdown rejects synchronous calls before lookup'()
+   {
+      given:
+      RuntimeInformation.setDomainIsBeingShutdown(true)
+      def lookup = Mock(ConnectionFactoryLookup)
+
+      when:
+      def result = failoverAlgorithm.tpcallWithFailover('service1', lookup,
+              { con, execution -> throw new IllegalStateException('Call must not be issued') },
+              { serviceReturnTpenoent })
+
+      then:
+      result.is(serviceReturnTpenoent)
+      0 * lookup.get(_)
+      0 * lookup.removeFromServiceCache(_)
+   }
+
+   def 'local shutdown rejects asynchronous calls before lookup'()
+   {
+      given:
+      RuntimeInformation.setDomainIsBeingShutdown(true)
+      def lookup = Mock(ConnectionFactoryLookup)
+      def expected = CompletableFuture.completedFuture(Optional.of(serviceReturnTpenoent))
+
+      when:
+      def result = failoverAlgorithm.tpacallWithFailover('service1', lookup,
+              { con, execution -> throw new IllegalStateException('Call must not be issued') },
+              { expected })
+
+      then:
+      result.is(expected)
+      0 * lookup.get(_)
+   }
+
+   def 'local shutdown rejects new conversations before lookup'()
+   {
+      given:
+      RuntimeInformation.setDomainIsBeingShutdown(true)
+      def lookup = Mock(ConnectionFactoryLookup)
+      def expected = TpConnectReturn.of(ErrorState.TPENOENT)
+
+      when:
+      def result = failoverAlgorithm.tpconnectWithFailover('service1', lookup,
+              { con -> throw new IllegalStateException('Call must not be issued') },
+              { expected })
+
+      then:
+      result.is(expected)
+      0 * lookup.get(_)
+   }
+
+   def 'shutdown starting during a synchronous call prevents discovery and retry'()
+   {
+      given:
+      def connection = Mock(CasualConnection)
+      def factory = Mock(CasualConnectionFactory)
+      def entry = Mock(ConnectionFactoryEntry) {
+         isValid() >> true
+         getConnectionFactory() >> factory
+      }
+      def lookup = Mock(ConnectionFactoryLookup)
+
+      when:
+      def result = failoverAlgorithm.tpcallWithFailover('service1', lookup,
+              { con, execution -> con.tpcall('service1', ServiceBuffer.empty(), Flag.of(), execution) },
+              { throw new IllegalStateException('Fallback must not be used') })
+
+      then:
+      1 * lookup.get('service1') >> [entry]
+      1 * factory.getConnection() >> connection
+      1 * connection.tpcall(*_) >> {
+         RuntimeInformation.setDomainIsBeingShutdown(true)
+         serviceReturnTpenoent
+      }
+      1 * connection.close()
+      0 * lookup.removeFromServiceCache(_)
+      result.is(serviceReturnTpenoent)
+   }
+
+   def 'tpenoent triggers discovery and retry while the local domain remains active'()
+   {
+      given:
+      def initialEntry = getFactoryMockServiceReturn('eis/initial', serviceReturnTpenoent)
+      def discoveredEntry = getFactoryMockServiceReturn('eis/discovered', serviceReturnSuccess)
+      def lookup = Mock(ConnectionFactoryLookup)
+
+      when:
+      def result = failoverAlgorithm.tpcallWithFailover('service1', lookup,
+              { con, execution -> con.tpcall('service1', ServiceBuffer.empty(), Flag.of(), execution) },
+              { serviceReturnTpenoent })
+
+      then:
+      2 * lookup.get('service1') >>> [[initialEntry], [discoveredEntry]]
+      1 * lookup.removeFromServiceCache('service1')
+      result.is(serviceReturnSuccess)
    }
 
    def 'called for service with no valid pools, results in tpenoent'()

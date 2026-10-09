@@ -20,6 +20,7 @@ import se.laz.casual.connection.caller.functions.BiFunctionThrowsResourceExcepti
 import se.laz.casual.connection.caller.functions.FunctionThrowsResourceException;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.jca.CasualConnectionFactory;
+import se.laz.casual.jca.RuntimeInformation;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +42,11 @@ public class FailoverAlgorithm
             BiFunctionThrowsResourceException<CasualConnection, UUID, ServiceReturn<CasualBuffer>> doCall,
             Supplier<ServiceReturn<CasualBuffer>> doTpenoent)
     {
+        if (RuntimeInformation.isDomainBeingShutdown())
+        {
+            // Reject new service calls while allowing calls that are already in flight to complete.
+            return doTpenoent.get();
+        }
         List<ConnectionFactoryEntry> validEntries = getFoundAndValidEntries(lookup, serviceName);
         // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
         if (validEntries.isEmpty())
@@ -51,6 +57,11 @@ public class FailoverAlgorithm
         ServiceReturn<CasualBuffer> result = issueCall(serviceName, validEntries, doCall);
         if (result.getErrorState() == ErrorState.TPENOENT)
         {
+            // Shutdown may have started while the first call was in flight.
+            if (RuntimeInformation.isDomainBeingShutdown())
+            {
+                return result;
+            }
             // using a known cached service entry results in TPENOENT
             // clear the service from the cache ( for all pools), get potentially new entries
             // issue call again if possible
@@ -73,6 +84,10 @@ public class FailoverAlgorithm
             BiFunctionThrowsResourceException<CasualConnection, UUID, CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doCall,
             Supplier<CompletableFuture<Optional<ServiceReturn<CasualBuffer>>>> doTpenoent)
     {
+        if (RuntimeInformation.isDomainBeingShutdown())
+        {
+            return doTpenoent.get();
+        }
         List<ConnectionFactoryEntry> validEntries = getFoundAndValidEntries(lookup, serviceName);
         // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
         if (validEntries.isEmpty())
@@ -88,6 +103,10 @@ public class FailoverAlgorithm
                                                  FunctionThrowsResourceException<TpConnectReturn, CasualConnection> doCall,
                                                  Supplier<TpConnectReturn> doTpenoent)
     {
+        if (RuntimeInformation.isDomainBeingShutdown())
+        {
+            return doTpenoent.get();
+        }
         List<ConnectionFactoryEntry> validEntries = getFoundAndValidEntries(lookup, serviceName);
         // No valid casual server found (revalidation is on a timer in ConnectionFactoryEntryValidationTimer)
         if (validEntries.isEmpty())
