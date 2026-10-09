@@ -351,7 +351,7 @@ class FailoverAlgorithmTest extends Specification
 
       when:
       def result = failoverAlgorithm.tpacallWithFailover('service1', lookup,
-              { con, execution -> future }, { throw new AssertionError('Unexpected TPENOENT') })
+              { con, execution -> future }, { throw new IllegalStateException('Unexpected TPENOENT') })
       future.completeExceptionally(failure)
       result.join()
 
@@ -385,7 +385,7 @@ class FailoverAlgorithmTest extends Specification
 
       when:
       failoverAlgorithm.tpcallWithFailover('service1', lookup,
-              { con, execution -> throw new AssertionError('No connection acquired') },
+              { con, execution -> throw new IllegalStateException('No connection acquired') },
               { serviceReturnTpenoent })
 
       then:
@@ -415,7 +415,7 @@ class FailoverAlgorithmTest extends Specification
 
       when:
       failoverAlgorithm.tpcallWithFailover('service1', lookup,
-              { con, execution -> throw new AssertionError('No connection acquired') },
+              { con, execution -> throw new IllegalStateException('No connection acquired') },
               { serviceReturnTpenoent })
 
       then:

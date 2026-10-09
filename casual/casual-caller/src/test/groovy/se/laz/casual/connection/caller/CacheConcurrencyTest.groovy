@@ -157,7 +157,7 @@ class CacheConcurrencyTest extends Specification
       @Override
       CasualConnectionFactory getConnectionFactory()
       {
-         throw new AssertionError('The test must not request a connection factory')
+         throw new IllegalStateException('The test must not request a connection factory')
       }
 
       @Override
@@ -185,13 +185,13 @@ class CacheConcurrencyTest extends Specification
             {
                if (!hashCodeMayResume.await(TIMEOUT_SECONDS, TimeUnit.SECONDS))
                {
-                  throw new AssertionError('Timed out while waiting to resume hashCode')
+                  throw new IllegalStateException('Timed out while waiting to resume hashCode')
                }
             }
             catch (InterruptedException e)
             {
                Thread.currentThread().interrupt()
-               throw new AssertionError('Interrupted while waiting to resume hashCode', e)
+               throw new IllegalStateException('Interrupted while waiting to resume hashCode', e)
             }
          }
          uniqueName.hashCode()

@@ -1,5 +1,6 @@
 package se.laz.casual.connection.caller.conversation
 
+import jakarta.resource.ResourceException
 import se.laz.casual.api.Conversation
 import se.laz.casual.api.conversation.TpConnectReturn
 import se.laz.casual.api.flags.AtmiFlags
@@ -99,7 +100,7 @@ class ConversationFailoverTest extends Specification
       }
       def failedConnectionFactory = Mock(CasualConnectionFactory){
          1 * getConnection() >> {
-            throw new jakarta.resource.ResourceException('Bazinga!')
+            throw new ResourceException('Bazinga!')
          }
       }
       def failedConnectionFactoryEntry = Mock(ConnectionFactoryEntry){
@@ -157,12 +158,12 @@ class ConversationFailoverTest extends Specification
       def factory = Mock(CasualConnectionFactory)
       def entry = Mock(ConnectionFactoryEntry)
       def next = Mock(ConnectionFactoryEntry)
-      def failure = new jakarta.resource.ResourceException('Invocation failed')
+      def failure = new ResourceException('Invocation failed')
       def closeFailure = new IllegalStateException('Close failed')
 
       when:
       ConversationFailover.tpconnectWithFailover('chatty', [entry, next],
-              { con -> throw failure }, { throw new AssertionError('Must not consider retry') })
+              { con -> throw failure }, { throw new IllegalStateException('Must not consider retry') })
 
       then:
       1 * entry.getConnectionFactory() >> factory
@@ -181,11 +182,11 @@ class ConversationFailoverTest extends Specification
       def factory = Mock(CasualConnectionFactory)
       def entry = Mock(ConnectionFactoryEntry)
       def next = Mock(ConnectionFactoryEntry)
-      def failure = new jakarta.resource.ResourceException('Domain unavailable')
+      def failure = new ResourceException('Domain unavailable')
 
       when:
       ConversationFailover.tpconnectWithFailover('chatty', [entry, next],
-              { con -> throw new AssertionError('No connection acquired') }, { false })
+              { con -> throw new IllegalStateException('No connection acquired') }, { false })
 
       then:
       1 * entry.getConnectionFactory() >> factory
@@ -194,6 +195,31 @@ class ConversationFailoverTest extends Specification
       0 * next.getConnectionFactory()
       def thrownFailure = thrown(CasualResourceException)
       thrownFailure.cause.is(failure)
+   }
+
+   def 'all acquisition failures invalidate their entries and report the final failure'()
+   {
+      given:
+      def firstFactory = Mock(CasualConnectionFactory)
+      def secondFactory = Mock(CasualConnectionFactory)
+      def firstEntry = Mock(ConnectionFactoryEntry)
+      def secondEntry = Mock(ConnectionFactoryEntry)
+      def firstFailure = new ResourceException('First domain unavailable')
+      def finalFailure = new ResourceException('Second domain unavailable')
+
+      when:
+      ConversationFailover.tpconnectWithFailover('chatty', [firstEntry, secondEntry],
+              { con -> throw new IllegalStateException('No connection acquired') }, { true })
+
+      then:
+      1 * firstEntry.getConnectionFactory() >> firstFactory
+      1 * firstFactory.getConnection() >> { throw firstFailure }
+      1 * firstEntry.invalidate()
+      1 * secondEntry.getConnectionFactory() >> secondFactory
+      1 * secondFactory.getConnection() >> { throw finalFailure }
+      1 * secondEntry.invalidate()
+      def thrownFailure = thrown(CasualResourceException)
+      thrownFailure.cause.is(finalFailure)
    }
 
    def 'unsuccessful conversation response closes the handle without retry'()
@@ -207,7 +233,7 @@ class ConversationFailoverTest extends Specification
 
       when:
       def result = ConversationFailover.tpconnectWithFailover('chatty', [entry, next],
-              { con -> response }, { throw new AssertionError('Must not consider retry') })
+              { con -> response }, { throw new IllegalStateException('Must not consider retry') })
 
       then:
       1 * entry.getConnectionFactory() >> factory

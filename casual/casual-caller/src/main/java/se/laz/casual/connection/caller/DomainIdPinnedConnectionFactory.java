@@ -62,7 +62,8 @@ public class DomainIdPinnedConnectionFactory implements CasualConnectionFactory
     @Override
     public boolean isReverse()
     {
-        return delegate.isReverse();
+        // is always reverse, can not be anything else
+        return true;
     }
 
     @Override

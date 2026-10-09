@@ -409,7 +409,7 @@ class ReverseOutboundChurnConcurrencyTest extends Specification
         if (!executor.awaitTermination(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS))
         {
             executor.shutdownNow()
-            throw new AssertionError('Executor did not stop after reverse outbound churn completed')
+            throw new IllegalStateException('Executor did not stop after reverse outbound churn completed')
         }
     }
 
