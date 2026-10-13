@@ -191,6 +191,26 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
         topologyChangedHandler.topologyChanged(domainId);
     }
 
+    @Override
+    public void domainIsDisconnecting(DomainId domainId)
+    {
+        Objects.requireNonNull(domainId, "domainId must not be null");
+        synchronized (lock)
+        {
+            normalEntries.stream()
+                         .filter(entry -> entry.getConnectionFactory().getDomainIds().contains(domainId))
+                         .forEach(ConnectionFactoryEntry::invalidate);
+
+            reverseEntries.values().forEach(entriesByDomain -> {
+                ConnectionFactoryEntry entry = entriesByDomain.get(domainId);
+                if(entry != null)
+                {
+                    entry.invalidate();
+                }
+            });
+        }
+    }
+
     void setConnectionObserverHandler(ConnectionObserverHandler connectionObserverHandler)
     {
         Objects.requireNonNull(connectionObserverHandler, "connectionObserverHandler can not be null");
