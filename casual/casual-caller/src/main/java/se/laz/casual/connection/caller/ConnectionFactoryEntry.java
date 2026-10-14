@@ -123,7 +123,12 @@ public class ConnectionFactoryEntry
         needsDomainDiscovery.set(value);
     }
 
-    public boolean getNeedsDomainDiscovery()
+    boolean isDomainDiscoveryRequired()
+    {
+        return needsDomainDiscovery.get();
+    }
+
+    boolean claimDomainDiscovery()
     {
         return needsDomainDiscovery.getAndSet(false);
     }

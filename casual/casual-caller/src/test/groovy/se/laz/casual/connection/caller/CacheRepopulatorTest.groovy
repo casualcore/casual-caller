@@ -77,6 +77,7 @@ class CacheRepopulatorTest extends Specification
          }
       }
       ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(producer)
+      entry.setNeedsDomainDiscovery(true)
       Cache cache = Mock(Cache){
          1 * getAll() >> {
             Map<CacheType, List<String>> entries = new EnumMap<>(CacheType.class)
@@ -92,5 +93,6 @@ class CacheRepopulatorTest extends Specification
       instance.repopulate(entry)
       then:
       entry.isValid()
+      !entry.isDomainDiscoveryRequired()
    }
 }

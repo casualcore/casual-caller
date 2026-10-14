@@ -32,17 +32,38 @@ public class CacheRepopulator
 
     public void repopulate(ConnectionFactoryEntry connectionFactoryEntry)
     {
-        // note:
-        // We only ever want one pool at a time do handle domain discovery.
-        // This so that we do not end up with a scenario where we have multiple discoveries in flight
-        // and the known state of the world, cache, is currently very small when another discovery is issued
         synchronized (repopulateLock)
         {
-            Map<CacheType, List<String>> cachedItems = cache.getAll();
-            cache.purge(connectionFactoryEntry);
-            Optional<DiscoveryReturn> maybeDiscoveryReturn = transactionLess.discover(connectionFactoryEntry, cachedItems);
-            maybeDiscoveryReturn.ifPresent(discoveryReturn -> cache.repopulate(discoveryReturn, connectionFactoryEntry));
+            // This discovery also satisfies a fallback request recorded before the lock was acquired.
+            connectionFactoryEntry.claimDomainDiscovery();
+            repopulateCache(connectionFactoryEntry);
         }
+    }
+
+    public void repopulateIfRequired(ConnectionFactoryEntry connectionFactoryEntry)
+    {
+        if (!connectionFactoryEntry.isDomainDiscoveryRequired())
+        {
+            return;
+        }
+        synchronized (repopulateLock)
+        {
+            // Recheck while holding the discovery lock because several callers can observe the pending request.
+            if (!connectionFactoryEntry.claimDomainDiscovery())
+            {
+                return;
+            }
+            repopulateCache(connectionFactoryEntry);
+        }
+    }
+
+    private void repopulateCache(ConnectionFactoryEntry connectionFactoryEntry)
+    {
+        // Run one discovery at a time so each request sees a stable view of the cache.
+        Map<CacheType, List<String>> cachedItems = cache.getAll();
+        cache.purge(connectionFactoryEntry);
+        Optional<DiscoveryReturn> maybeDiscoveryReturn = transactionLess.discover(connectionFactoryEntry, cachedItems);
+        maybeDiscoveryReturn.ifPresent(discoveryReturn -> cache.repopulate(discoveryReturn, connectionFactoryEntry));
     }
 
 }
