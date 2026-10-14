@@ -48,7 +48,7 @@ public class CasualCallerImpl implements CasualCaller
     private final HttpClient httpClient;
     private final ServiceRoutes serviceRoutes;
 
-    // NOP constructor needed for WLS
+    // Needed due to: https://jakarta.ee/specifications/enterprise-beans/4.0/jakarta-enterprise-beans-spec-core-4.0.html#session-bean-class
     public CasualCallerImpl()
     {
         tpCaller = null;
