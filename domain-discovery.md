@@ -119,8 +119,9 @@ flowchart TD
 
     TopologyUpdate["Scheduled topology update"] --> Repopulate["CacheRepopulator.repopulate"]
     RevalidatedFactory["New or revalidated factory"] --> Repopulate
-    RejectedTask["Rejected topology task"] --> MarkPending["Mark factory for domain discovery"]
-    MarkPending --> RepopulateRequired["CacheRepopulator.repopulateIfRequired"]
+    RejectedTask["Managed executor rejects task scheduling"] --> MarkPending["Mark factory for domain discovery"]
+    MarkPending --> CallerBoundary["Next tpcall, tpacall, enqueue, or dequeue"]
+    CallerBoundary --> RepopulateRequired["CacheRepopulator.repopulateIfRequired"]
     Repopulate --> Claim["Atomically claim required discovery"]
     RepopulateRequired --> Claim
     Claim --> Claimed{"Claim succeeded?"}
@@ -466,3 +467,10 @@ The test suite must verify these scenarios deterministically:
 - Callers cannot cancel a shared discovery through the synchronous coordinator API.
 - Applying a negative result for one factory preserves providers discovered through other factories.
 - Concurrent updates through different factories do not lose either factory's result.
+
+The integration suite verifies these combined behaviors:
+
+- Service calls across many service names continue while topology events repeatedly replace provider sets.
+- Default non-sticky selection sends calls through multiple equal-priority factories.
+- After topology changes stop, normal lookup resolves provider moves and the cache converges on the final topology.
+- Targeted lookups that arrive during topology discovery use its result without issuing redundant network discovery.
