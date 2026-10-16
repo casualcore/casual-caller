@@ -6,7 +6,7 @@ This document explains how `casual-caller` handles reverse outbound connections 
 
 For standard outbound operations, `casual-caller` discovers connection factories bound in JNDI, performs domain discovery through each factory, and routes service calls to matching endpoints.
 
-For reverse outbound operations, the EIS initiates the TCP connection to `casual-jca`. After the connection is established, `casual-jca` uses it as an outbound connection. Applications that use `casual-caller` can use reverse outbound targets with the following features:
+For reverse outbound operations, casual-jca listens on a specific port awaiting the EIS to initiate the TCP connection. After the connection is established, `casual-jca` uses it as an outbound connection. Applications that use `casual-caller` can use reverse outbound targets with the following features:
 
 * Per-instance domain discovery
 * Service routing and priority failover
@@ -78,6 +78,9 @@ During each validation cycle, configured by `CASUAL_CALLER_VALIDATION_INTERVAL`,
 After a service invocation begins, an invocation failure propagates to the application without retrying another connection factory in the same transaction. Subsequent calls use the remaining virtual entries.
 
 ## Application server configuration
+
+For the complete `casual-jca` configuration, see
+[Reverse outbound in `casual-java`](https://github.com/casualcore/casual-java/blob/dev/reverse-outbound.md).
 
 Configure the reverse connection factory as a pooled connection factory in your application server. Set `networkConnectionPoolName` to the name of the corresponding reverse outbound configuration in `casual-jca`.
 
