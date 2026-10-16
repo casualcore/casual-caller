@@ -11,7 +11,7 @@ import spock.lang.Specification
 
 class ConnectionFactoryProviderTest extends Specification
 {
-   def 'normal operation, everything is found during deployment - only 1 call to initialize ( 0 calls during test of get)'()
+   def 'returns connection factories found during initialization'()
    {
       given:
       CasualConnectionFactory normalFactory = Mock(CasualConnectionFactory) {
@@ -22,38 +22,11 @@ class ConnectionFactoryProviderTest extends Specification
                  getUniqueName() >> 'eis/casual'
                  getConnectionFactory() >> normalFactory
               })
-      ConnectionFactoryFinder connectionFactoryFinder = Mock(ConnectionFactoryFinder)
-      connectionFactoryFinder.findConnectionFactory(_) >>> [[entry]]
-      // spying to verify the interaction
-      ConnectionFactoryEntryStore instance = Spy(ConnectionFactoryEntryStore, constructorArgs: [connectionFactoryFinder, Mock(TopologyChangedHandler)]) {
-         1 * initialize()
+      ConnectionFactoryFinder connectionFactoryFinder = Mock(ConnectionFactoryFinder) {
+         findConnectionFactory(_) >> [entry]
       }
-      instance.setConnectionObserverHandler(Mock(ConnectionObserverHandler))
-      // @PostConstruct
-      instance.initialize()
-      when:
-      List<ConnectionFactoryEntry> result = instance.get()
-      then:
-      result.size() == 1
-   }
-
-   def 'abnormal wls operation, nothing is found during deployment - 2 calls to initialize ( 1 calls during test of get)'()
-   {
-      given:
-      CasualConnectionFactory normalFactory = Mock(CasualConnectionFactory) {
-         isReverse() >> false
-      }
-      ConnectionFactoryEntry entry = ConnectionFactoryEntry.of(
-              Mock(ConnectionFactoryProducer) {
-                 getUniqueName() >> 'eis/casual'
-                 getConnectionFactory() >> normalFactory
-              })
-      ConnectionFactoryFinder connectionFactoryFinder = Mock(ConnectionFactoryFinder)
-      connectionFactoryFinder.findConnectionFactory(_) >>> [[], [entry]]
-      // spying to verify the interactions
-      ConnectionFactoryEntryStore instance = Spy(ConnectionFactoryEntryStore, constructorArgs: [connectionFactoryFinder, Mock(TopologyChangedHandler)]) {
-         2 * initialize()
-      }
+      ConnectionFactoryEntryStore instance = new ConnectionFactoryEntryStore(
+              connectionFactoryFinder, Mock(TopologyChangedHandler))
       instance.setConnectionObserverHandler(Mock(ConnectionObserverHandler))
       // @PostConstruct
       instance.initialize()

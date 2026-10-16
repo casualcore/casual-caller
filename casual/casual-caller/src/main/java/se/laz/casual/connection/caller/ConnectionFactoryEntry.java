@@ -123,12 +123,21 @@ public class ConnectionFactoryEntry
         needsDomainDiscovery.set(value);
     }
 
-    boolean isDomainDiscoveryRequired()
+    public boolean isDomainDiscoveryRequired()
     {
         return needsDomainDiscovery.get();
     }
 
-    boolean claimDomainDiscovery()
+    /**
+     * Atomically claims and clears a pending domain discovery request.
+     *
+     * <p>Several callers can observe that domain discovery is required before any caller reaches
+     * the serialized discovery operation. Only the first caller to claim that request receives
+     * {@code true}; later callers receive {@code false} and can skip duplicate discovery.
+     *
+     * @return {@code true} if this call claimed a pending request; otherwise, {@code false}
+     */
+    public boolean claimDomainDiscovery()
     {
         return needsDomainDiscovery.getAndSet(false);
     }

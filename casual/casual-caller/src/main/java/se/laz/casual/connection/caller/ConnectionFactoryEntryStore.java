@@ -63,10 +63,6 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
     {
         synchronized (lock)
         {
-            if (normalEntries.isEmpty() && reverseBases.isEmpty())
-            {
-                initialize();
-            }
             return !normalEntries.isEmpty() || !reverseBases.isEmpty();
         }
     }
@@ -76,15 +72,6 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
     {
         synchronized (lock)
         {
-            if (normalEntries.isEmpty() && reverseBases.isEmpty())
-            {
-                initialize();
-                if (normalEntries.isEmpty() && reverseBases.isEmpty())
-                {
-                    LOG.warning(
-                            "No connection factories found. Retrying on next access.");
-                }
-            }
             List<ConnectionFactoryEntry> entries =
                     new ArrayList<>(normalEntries);
             reverseEntries.values()
@@ -149,11 +136,6 @@ public class ConnectionFactoryEntryStore implements ConnectionObserver
     {
         synchronized (lock)
         {
-            // preserve existing virtual entries if initialization runs again.
-            if (!normalEntries.isEmpty() || !reverseBases.isEmpty())
-            {
-                return;
-            }
             List<ConnectionFactoryEntry> discovered =
                     connectionFactoryFinder.findConnectionFactory(getJndiRoot());
             List<ConnectionFactoryEntry> normal = new ArrayList<>();
