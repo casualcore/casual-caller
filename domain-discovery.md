@@ -17,7 +17,18 @@ discovery through unrelated factories can run concurrently.
 
 ## Discovery model
 
-A logical discovery resolves a set of service or queue names across a set of connection factories. A service or queue can exist through many connection factories, one connection factory, or no connection factory.
+A logical discovery resolves a set of service or queue names across a set of connection factories. A service can exist
+through many connection factories, one connection factory, or no connection factory. A valid topology provides a queue
+through at most one connection factory. If discovery finds the same queue through several factories, the topology is
+misconfigured.
+
+Queue discovery still queries every candidate factory. The caller cannot know which factory provides the queue before
+discovery, and querying every factory also identifies an invalid topology with several providers. While at least one
+provider remains cached, the cache tracks which factories returned positive and negative results. If a topology exposes
+the queue through several factories, `QueueCache` selects one valid factory and keeps that selection sticky for the
+queue. Enqueue and dequeue operations continue through the selected factory while it remains valid and continues to
+provide the queue. This prevents the caller from distributing operations for one logical queue across several factories
+while the topology error exists.
 
 The smallest independently tracked unit of discovery is therefore this combination:
 
@@ -79,6 +90,12 @@ The discovery implementation preserves these invariants:
 - After a topology discovery becomes pending, new targeted discovery does not overtake it for that connection factory.
 - After waiting, a targeted discovery checks the cache again before it issues network work.
 - Discovery through unrelated connection factories can proceed concurrently.
+- Service lookup orders factories by priority and randomizes factories that have the same priority.
+- By default, each service call independently selects from the randomized, priority-ordered factories.
+- If transaction stickiness is enabled, service calls in a transaction use its sticky factory when that factory remains
+  usable and provides the requested service.
+- Queue lookup checks every valid candidate factory and never load balances between multiple discovered providers.
+- Queue operations remain sticky to one factory until that factory becomes invalid or stops providing the queue.
 - A thread never holds discovery locks for more than one connection factory.
 - The coordinator applies discovery results according to the established operation order.
 - Exceptional completion always releases registered in-flight coverage so a later request can retry.
@@ -296,6 +313,24 @@ Applying a discovery result must replace only the queried factory's contribution
 - A negative result removes that factory as a provider.
 - A result from one factory does not replace providers learned through other factories.
 
+Service lookup retains every discovered provider. It orders factories by service priority and randomizes factories
+within each priority. By default, each service call uses the first factory in that randomized, priority-ordered list.
+This selection load balances calls among providers that have the same priority.
+
+Transaction stickiness is disabled by default. If you enable it and a call runs in a transaction without an existing
+sticky factory, the call selects from the same randomized, priority-ordered list and records the selected factory for
+that transaction. Later calls in that transaction use the sticky factory when it remains usable and provides the
+requested service. If the sticky factory does not provide the requested service, selection continues through the
+randomized, priority-ordered list.
+
+If connection acquisition fails before service invocation and the transaction still permits retry, the caller tries
+the next factory in the randomized, priority-ordered list. After service invocation begins, a failure does not cause the
+caller to try another provider in the same transaction.
+
+Queue lookup expects one provider but retains all discovery results so it can detect multiple providers and select a
+sticky factory. If the selected queue factory becomes invalid or stops providing the queue, the cache removes the
+sticky selection and can select another valid provider.
+
 Topology discovery does not purge the factory before it sends the network request. It applies the response as an
 ordered replacement for the queried factory and item set. This prevents readers from observing an unnecessarily empty
 intermediate state and prevents concurrent updates from being lost between snapshot and purge.
@@ -346,7 +381,8 @@ Discovery coordinator
 Cache
 ├── provides immutable snapshots
 ├── atomically merges one factory's results
-└── atomically removes one factory's results
+├── atomically removes one factory's results
+└── keeps queue operations sticky to one discovered factory
 ```
 
 With this separation:
@@ -402,7 +438,10 @@ The implementation now:
 - Applies positive and negative results as per-factory cache replacements.
 - Contains discovery runtime failures at the affected factory and propagates only `Error`.
 - Removes only the responding connection factory's service contribution after `TPENOENT`.
+- Preserves priority-based service selection and random load balancing among equal-priority factories.
+- Applies transaction stickiness only when configuration enables it; the default remains non-sticky selection.
 - Tracks checked factories for services and queues while a provider remains cached.
+- Keeps each queue sticky to one valid factory and logs when discovery finds multiple providers.
 - Removes the former global `CacheRepopulator` network-operation lock.
 
 The synchronous coordinator API does not expose its internal futures. A caller therefore cannot cancel shared network
