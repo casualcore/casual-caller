@@ -13,6 +13,13 @@ For reverse outbound operations, the EIS initiates the TCP connection to `casual
 * Transactional stickiness and conversations
 * Dynamic addition and removal of EIS instances
 
+## Version requirement
+
+Use `casual-caller` 3.4.0 with `casual-jca` 3.7.1 or later. The reverse outbound factory and
+domain APIs first appear in `casual-jca` 3.7.0. `casual-caller` 3.4.0 also uses the
+domain-disconnect observer notification added in `casual-jca` 3.7.1 to invalidate a connection
+factory as soon as its domain starts disconnecting.
+
 ## Architecture and concepts
 
 ```text
