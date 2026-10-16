@@ -154,8 +154,9 @@ flowchart TD
     Unresolved -- No --> Unlock
     Unresolved -- Yes --> Register["Atomically register discovery units"]
 
-    Register --> Joined["Collect completions for units already in flight"]
-    Register --> Owned{"Any units have no discovery in flight?"}
+    Register --> Partition["Partition units by existing in-flight coverage"]
+    Partition --> Joined["Covered units: collect their shared completions"]
+    Partition --> Owned{"Any uncovered units?"}
     Owned -- Yes --> RegisterOwned["Register one shared completion for those units"]
     RegisterOwned --> Execute["Execute one discovery request for owned units"]
     Execute --> Response{"Discovery response present?"}
@@ -180,6 +181,11 @@ flowchart TD
     MoreFactories -- Yes --> NextFactory
     MoreFactories -- No --> Latest["Return to the lookup, which reads the latest cache result"]
 ```
+
+Both branches after registration can apply to one request. The left branch joins discovery units that another
+caller already owns, while the right branch registers and executes only the uncovered units. A fully overlapping
+request only joins existing work. A partially overlapping request joins existing work and discovers the remaining
+units.
 
 ### Joining partially overlapping discovery
 
