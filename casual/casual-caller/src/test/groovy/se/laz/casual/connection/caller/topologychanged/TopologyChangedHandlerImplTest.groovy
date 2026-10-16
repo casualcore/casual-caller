@@ -15,10 +15,12 @@ import se.laz.casual.jca.DomainId
 import spock.lang.Specification
 
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.Supplier
 
 class TopologyChangedHandlerImplTest extends Specification
@@ -89,5 +91,53 @@ class TopologyChangedHandlerImplTest extends Specification
       outerFuture.join()
       then:
       noExceptionThrown()
+   }
+
+   def 'failed discovery does not suppress a later topology update'()
+   {
+      given:
+      DomainId domainId = DomainId.of(UUID.randomUUID())
+      CasualConnection connection = Mock(CasualConnection) {
+         getDomainId() >> domainId
+      }
+      CasualConnectionFactory connectionFactory = Mock(CasualConnectionFactory) {
+         getConnection() >> connection
+      }
+      ConnectionFactoryEntry connectionFactoryEntry = Mock(ConnectionFactoryEntry) {
+         getConnectionFactory() >> connectionFactory
+      }
+      AtomicInteger discoveryCount = new AtomicInteger()
+      CacheRepopulator cacheRepopulator = Mock(CacheRepopulator) {
+         repopulate(connectionFactoryEntry) >> {
+            if (discoveryCount.incrementAndGet() == 1)
+            {
+               throw new IllegalStateException('Discovery failed')
+            }
+         }
+      }
+      TopologyChangedHandlerImpl instance = new TopologyChangedHandlerImpl(cacheRepopulator)
+      instance.setSupplier({ [connectionFactoryEntry] })
+      Queue<Runnable> scheduledTasks = new ConcurrentLinkedQueue<>()
+      AtomicInteger scheduleCount = new AtomicInteger()
+      ManagedScheduledExecutorService executor = Mock(ManagedScheduledExecutorService) {
+         schedule(_ as Runnable, _, TimeUnit.MILLISECONDS) >> {
+            Runnable task, long delay, TimeUnit unit ->
+               scheduleCount.incrementAndGet()
+               scheduledTasks.add(task)
+               Mock(ScheduledFuture)
+         }
+      }
+      instance.setManagedScheduledExecutorService(executor)
+
+      when:
+      instance.topologyChanged(domainId)
+      scheduledTasks.remove().run()
+      instance.topologyChanged(domainId)
+      scheduledTasks.remove().run()
+
+      then:
+      scheduleCount.get() == 2
+      discoveryCount.get() == 2
+      scheduledTasks.isEmpty()
    }
 }

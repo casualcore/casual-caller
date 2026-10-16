@@ -112,7 +112,7 @@ class LookupTest extends Specification
         when:
         def entries = instance.find(serviceName, cacheEntries, new TransactionLess())
         then:
-        !entries.isEmpty()
+        entries.hasPrioritizedEntries()
         entries.getForPriority(priority)[0].jndiName == jndiNameTwo
     }
 
@@ -127,6 +127,6 @@ class LookupTest extends Specification
         when:
         def entries = instance.find(serviceName, cacheEntries, new TransactionLess())
         then:
-        entries.isEmpty()
+        !entries.hasPrioritizedEntries()
     }
 }
