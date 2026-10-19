@@ -21,7 +21,7 @@ public class DomainIdChecker
     {
         try(CasualConnection casualConnection = connectionFactoryEntry.getConnectionFactory().getConnection())
         {
-            if(domainId == casualConnection.getDomainId())
+            if(domainId.equals(casualConnection.getDomainId()))
             {
                 return true;
             }

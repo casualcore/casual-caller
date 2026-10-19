@@ -9,11 +9,14 @@ This is just a convenience layer for applications to make use, it does not in an
 
 
 ## Note
-This, 3.2, branch is for Jakarta EE and Java 17.
-If you want to use Java 8 and Java EE - please check out the 2.2 branch.
 
-## casual jca version dependency
-```casual-caller``` v3.2.20+ needs ```casual-jca``` version 3.2.44+
+This branch requires Jakarta EE and Java 17. To use Java EE and Java 8, use the 2.2 branch.
+
+## `casual-jca` version requirement
+
+`casual-caller` 3.4.0 requires `casual-jca` 3.7.1 or later. Reverse outbound support uses the
+connection factory and domain APIs introduced in `casual-jca` 3.7.0 and the domain-disconnect
+observer notification introduced in `casual-jca` 3.7.1.
 
 ## Requirements on setup of connection pools
 
@@ -164,3 +167,7 @@ Enable the feature with environment `CASUAL_CALLER_TRANSACTION_STICKY=true` or w
 ## Code examples
 
 [Code examples](code-examples.md)
+
+## Reverse outbound
+
+For details about reverse outbound configuration and architecture, see [reverse-outbound.md](reverse-outbound.md).

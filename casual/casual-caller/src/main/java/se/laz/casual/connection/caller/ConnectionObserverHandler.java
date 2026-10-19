@@ -8,8 +8,12 @@ package se.laz.casual.connection.caller;
 import se.laz.casual.jca.CasualConnection;
 import se.laz.casual.jca.ConnectionObserver;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class ConnectionObserverHandler
 {
+    private static final Logger LOG = Logger.getLogger(ConnectionObserverHandler.class.getName());
     public static ConnectionObserverHandler of()
     {
         return new ConnectionObserverHandler();
@@ -28,8 +32,8 @@ public class ConnectionObserverHandler
         }
         catch (Exception e)
         {
-            // NOP
-            // will be handled whenever the connection is reestablished
+            connectionFactoryEntry.invalidate();
+            LOG.log(Level.FINE, e, () -> "Failed registering connection observer for " + connectionFactoryEntry.getJndiName());
         }
     }
 }

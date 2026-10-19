@@ -11,8 +11,6 @@ import se.laz.casual.api.discovery.DiscoveryReturn;
 import se.laz.casual.api.queue.QueueInfo;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +30,8 @@ public class Cache
 
     public List<ConnectionFactoryEntry> get(QueueInfo qinfo)
     {
-        return Optional.ofNullable(queueCache.getAll(qinfo)).orElseGet(Collections::emptyList);
+        Objects.requireNonNull(qinfo, "qinfo can not be null");
+        return queueCache.getAll(qinfo);
     }
 
     public Optional<ConnectionFactoryEntry> getSingle(QueueInfo qinfo)
@@ -44,7 +43,6 @@ public class Cache
     {
         Objects.requireNonNull(serviceName, "serviceInfo can not be null");
         Objects.requireNonNull(entries, "entry can not be null");
-
         serviceCache.store(serviceName, entries);
     }
 
@@ -52,12 +50,7 @@ public class Cache
     {
         Objects.requireNonNull(qinfo, "qinfo can not be null");
         Objects.requireNonNull(entries, "entry can not be null");
-        // note, by not using the list coming as is we guard against such things as Arrays.asList
-        // being used by the caller.
-        // This since it should be possible to remove entries from the list
-        // If the caller would use Arrays.asList, and we just stored the list value -
-        // remove would throw UnsupportedOperationException
-        queueCache.store(qinfo, new ArrayList<>(entries));
+        queueCache.store(qinfo, entries);
     }
 
     public void purgeServices()
@@ -85,14 +78,9 @@ public class Cache
     public void repopulate(DiscoveryReturn discoveryReturn, ConnectionFactoryEntry connectionFactoryEntry)
     {
         discoveryReturn.getServiceDetails().forEach(
-                serviceDetails -> {
-                    ConnectionFactoriesByPriority connectionFactoriesByPriority = get(serviceDetails.getName());
-                    connectionFactoriesByPriority.store(Arrays.asList(serviceDetails), connectionFactoryEntry);
-                    store(serviceDetails.getName(), connectionFactoriesByPriority);
-                });
+                serviceDetails -> serviceCache.store(serviceDetails, connectionFactoryEntry));
         discoveryReturn.getQueueDetails().forEach(
-                queueDetails ->
-                        store(QueueInfo.of(queueDetails.getName()), Arrays.asList(connectionFactoryEntry))
+                queueDetails -> queueCache.store(QueueInfo.of(queueDetails.getName()), List.of(connectionFactoryEntry))
         );
     }
 

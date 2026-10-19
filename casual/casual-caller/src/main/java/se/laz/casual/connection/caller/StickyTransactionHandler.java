@@ -29,7 +29,7 @@ public class StickyTransactionHandler
      * @param factories   Currently available factories for service to call
      * @param doCall      Provided service call procedure
      * @return Optional ServiceReturn. An empty result could indicate that stickiness isn't enabled, sticky isn't set yet for the current transaction (which will be the case for the first call) or the stickied pool was unavailable so call to sticky was skipped. Empty should always lead to retry down the line if possible, otherwise a TPENOENT response.
-     * @throws ResourceException Some softer errors are reported as resource exceptions. If these are thrown later retries with other pools is possible.
+     * @throws ResourceException if connection acquisition fails; the caller must check transaction status before retrying.
      */
     public static <T> Optional<T> handleTransactionSticky(
             String serviceName,
@@ -50,17 +50,28 @@ public class StickyTransactionHandler
             StickiedCallInfo sticky = stickyMaybe.get();
             factories.remove(sticky.connectionFactoryEntry()); // If we later need to do failover stuff we don't want to retry with this one
             LOG.finest(() -> "Attempting to use pool=" + sticky.connectionFactoryEntry().getJndiName() + " with sticky to current transaction.");
-            try (CasualConnection con = sticky.connectionFactoryEntry().getConnectionFactory().getConnection())
+            final CasualConnection connection;
+            try
             {
-                return Optional.of(doCall.apply(con, sticky.execution()));
+                // enlists resource in transaction
+                connection = sticky.connectionFactoryEntry().getConnectionFactory().getConnection();
+            }
+            catch (ResourceException e)
+            {
+                sticky.connectionFactoryEntry().invalidate();
+                throw e;
+            }
+            try (connection)
+            {
+                return Optional.of(doCall.apply(connection, sticky.execution()));
             }
             catch (Exception e)
             {
                 sticky.connectionFactoryEntry().invalidate();
-                // These exceptions are rollback-only, do not attempt any retries.
+                // Propagate invocation and close failures without trying another factory.
                 throw new CasualResourceException("Call failed during execution to service=" + serviceName
                         + " on connection=" + sticky.connectionFactoryEntry().getJndiName()
-                        + " because of a network connection error, retries not possible.", e);
+                        + "; no retry is attempted.", e);
             }
         }
         else

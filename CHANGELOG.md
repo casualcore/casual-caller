@@ -1,6 +1,49 @@
 # Changelog
 This is the changelog for *casual caller* and all changes are listed in this document.
 
+## [3.4.0] - 2026-10-19
+
+### feat: reverse outbound ([#54](https://github.com/casualcore/casual-caller/issues/54))
+Reverse outbound pools act as virtual pools where every connected EIS
+domain becomes an independently routable connection factory entry. This
+change lets applications use reverse outbound services through the
+existing casual-caller API; users only need to configure the reverse
+pool.
+
+The caller now:
+
+- Keeps reverse pool base entries internal and never routes calls
+through an unpinned base factory.
+- Creates a domain-pinned virtual entry for every connected EIS domain.
+- Discovers and caches services and queues separately for each domain.
+- Adds, validates, and removes virtual entries as domains connect and
+disconnect.
+- Purges cached topology when a reverse domain disappears.
+- Preserves priority failover, transaction stickiness, conversations,
+and topology observers for reverse connections.
+
+Connection acquisition and service invocation now have explicit retry
+boundaries. If connection acquisition fails before enlistment, the
+caller can try another factory while the transaction remains active.
+After service invocation begins, the caller propagates failures without
+enlisting another resource or retrying through another factory in the
+same transaction. Sticky calls and conversations follow the same rule.
+
+The cache and topology handling has also been updated for concurrent
+validation, discovery, lookup, and removal:
+
+- Service and queue caches use atomic concurrent-map operations.
+- Cache values use immutable snapshots with value equality.
+- Concurrent removal cannot overwrite a newer cache update.
+- Topology updates for each domain are coalesced while discovery runs.
+- An update received during discovery schedules exactly one follow-up
+discovery.
+- Failed scheduling and discovery leave the domain eligible for later
+recovery.
+
+This change depends on casual-jca 3.7.0 for reverse-pool identification,
+connected domain IDs, and domain-pinned connection allocation.
+
 ## [3.3.3] - 2026-06-16
 
 ### feat: changes for quarkus extension ([#52](https://github.com/casualcore/casual-caller/issues/52))

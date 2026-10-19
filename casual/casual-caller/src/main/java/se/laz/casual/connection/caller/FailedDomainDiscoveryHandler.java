@@ -29,9 +29,7 @@ public class FailedDomainDiscoveryHandler
 
     public void issueDomainDiscoveryAndRepopulateCache()
     {
-        connectionFactoryProvider.get().stream()
-                                 .filter(ConnectionFactoryEntry::getNeedsDomainDiscovery)
-                                 .forEach(cacheRepopulator::repopulate);
+        connectionFactoryProvider.get().forEach(cacheRepopulator::repopulateIfRequired);
     }
 
 }
