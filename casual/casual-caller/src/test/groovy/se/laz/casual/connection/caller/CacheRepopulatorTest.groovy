@@ -37,7 +37,7 @@ class CacheRepopulatorTest extends Specification
             entries.put(CacheType.QUEUE, [])
             return entries
          }
-         1 * purge(entry)
+         0 * purge(_)
          0 * repopulate(_, entry)
       }
       CacheRepopulator instance = new CacheRepopulator(cache, new TransactionLess())
@@ -85,7 +85,7 @@ class CacheRepopulatorTest extends Specification
             entries.put(CacheType.QUEUE, [queueName])
             return entries
          }
-         1 * purge(entry)
+         0 * purge(_)
          1 * repopulate(discoveryReturn, entry)
       }
       CacheRepopulator instance = new CacheRepopulator(cache, new TransactionLess())

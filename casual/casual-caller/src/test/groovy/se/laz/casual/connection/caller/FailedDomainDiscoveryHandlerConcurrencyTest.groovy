@@ -54,7 +54,7 @@ class FailedDomainDiscoveryHandlerConcurrencyTest extends Specification
       CALLER_COUNT * entry.isDomainDiscoveryRequired() >> true
       CALLER_COUNT * entry.claimDomainDiscovery() >> { pendingDiscovery.getAndSet(false) }
       1 * cache.getAll() >> cachedItems
-      1 * cache.purge(entry)
+      0 * cache.purge(_)
       1 * transactionLess.discover(entry, cachedItems) >> Optional.empty()
       0 * cache.repopulate(_, _)
 

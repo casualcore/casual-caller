@@ -12,7 +12,7 @@ class ConfigurationTest extends Specification
       then:
       config.getJndiSearchRoot() == Configuration.DEFAULT_JNDI_SEARCH_ROOT
       config.getRouteFileName() == Optional.empty()
-      config.getTopologyChangeDelayMillis() == Long.parseLong(Configuration.DEFAULT_TOPOLOGY_CHANGED_DELAY)
+      config.getTopologyChangeDelayMillis() == Long.parseLong(Configuration.DEFAULT_TOPOLOGY_CHANGED_DELAY_MILLIS)
       config.getValidationIntervalMillis() == Integer.parseInt(Configuration.DEFAULT_VALIDATION_INTERVAL_MILLIS)
       config.isTransactionStickyEnabled() == Boolean.parseBoolean(Configuration.DEFAULT_TRANSACTION_STICKY)
    }
