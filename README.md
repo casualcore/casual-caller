@@ -54,7 +54,7 @@ The following environment variables are expected
 - `CASUAL_CALLER_CONNECTION_FACTORY_JNDI_SEARCH_ROOT`, String, default value "eis"
 - `CASUAL_CALLER_VALIDATION_INTERVAL`, int, default value 5000
 - `CASUAL_CALLER_TRANSACTION_STICKY`, boolean, default value false
-- `CASUAL_CALLER_TOPOLOGY_CHANGED_DELAY`, long, defaults to 2000 (ms)
+- `CASUAL_CALLER_TOPOLOGY_CHANGED_DELAY`, long, defaults to 1000 (ms)
 - `CASUAL_CALLER_SERVICE_ROUTES_FILE`, String, default - not set
 
 A typical config file can look like the following:

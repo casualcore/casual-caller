@@ -20,7 +20,7 @@ public class Configuration
     public static final String DEFAULT_JNDI_SEARCH_ROOT = "eis";
     public static final String DEFAULT_VALIDATION_INTERVAL_MILLIS = "5000";
     public static final String DEFAULT_TRANSACTION_STICKY = "false";
-    public static final String DEFAULT_TOPOLOGY_CHANGED_DELAY_MILLIS = "2000";
+    public static final String DEFAULT_TOPOLOGY_CHANGED_DELAY_MILLIS = "1000";
 
     private String jndiSearchRoot;
     private Integer validationIntervalMillis;
