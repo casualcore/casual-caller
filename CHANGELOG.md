@@ -1,6 +1,14 @@
 # Changelog
 This is the changelog for *casual caller* and all changes are listed in this document.
 
+## [3.4.1] - 2026-10-21
+
+### fix: Topology update discovery ([#56](https://github.com/casualcore/casual-caller/issues/56))
+Remove cache purge with repopulate.
+Increase default delay for accumulating topology updates from 50ms to 1000ms.
+(CASUAL_CALLER_TOPOLOGY_CHANGED_DELAY)
+Reference Issue [#55](https://github.com/casualcore/casual-caller/issues/55)
+
 ## [3.4.0] - 2026-10-19
 
 ### feat: reverse outbound ([#54](https://github.com/casualcore/casual-caller/issues/54))
