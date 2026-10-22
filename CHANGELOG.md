@@ -1,6 +1,15 @@
 # Changelog
 This is the changelog for *casual caller* and all changes are listed in this document.
 
+## [3.4.2] - 2026-10-22
+
+### feat: gradle upgrade ([#57](https://github.com/casualcore/casual-caller/issues/57))
+Upgrade gradle to version 9.8.2. 
+
+Primarily to reduce number of artifacts generated during publish due to
+upcoming restrictions from maven central. Generated artifacts reduced
+from 230 to 146.
+
 ## [3.4.1] - 2026-10-21
 
 ### fix: Topology update discovery ([#56](https://github.com/casualcore/casual-caller/issues/56))

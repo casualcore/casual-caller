@@ -62,6 +62,7 @@ subprojects{
   }
   apply plugin: 'jacoco'
   test {
+    jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED', '--add-opens=java.base/java.util=ALL-UNNAMED'
     finalizedBy jacocoTestReport
     useJUnitPlatform()
       testLogging {

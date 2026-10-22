@@ -320,7 +320,7 @@ class CasualCallerImplTest extends Specification
               'someJndiName'
            }
         }
-        def entries = [ConnectionFactoryEntry.of(producer)]
+        def entries = Optional.of( ConnectionFactoryEntry.of(producer) )
         lookup.get(queueInfo) >> {
             entries
         }
@@ -329,6 +329,7 @@ class CasualCallerImplTest extends Specification
         then:
         def e = thrown(CasualResourceException)
         e.getCause() instanceof ResourceException
+
     }
 
     def 'enqueue fail getting connection from connection factory'()
@@ -348,7 +349,7 @@ class CasualCallerImplTest extends Specification
               'someJndiName'
            }
         }
-        def entries = [ConnectionFactoryEntry.of(producer)]
+        def entries = Optional.of( ConnectionFactoryEntry.of(producer) )
         lookup.get(queueInfo) >> {
             entries
         }
@@ -535,7 +536,7 @@ class CasualCallerImplTest extends Specification
               'someJndiName'
            }
         }
-        def entries = [ConnectionFactoryEntry.of(producer)]
+        def entries = Optional.of( ConnectionFactoryEntry.of(producer) )
         lookup.get(queueInfo) >> {
             entries
         }
@@ -565,7 +566,7 @@ class CasualCallerImplTest extends Specification
               'someJndiName'
            }
         }
-        def entries = [ConnectionFactoryEntry.of(producer)]
+        def entries = Optional.of( ConnectionFactoryEntry.of(producer) )
         lookup.get(queueInfo) >> {
             entries
         }
