@@ -1,20 +1,23 @@
 /*
- * Copyright (c) 2023, The casual project. All rights reserved.
+ * Copyright (c) 2023 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
 package se.laz.casual.connection.caller.topologychanged;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import se.laz.casual.connection.caller.CacheRepopulator;
+import se.laz.casual.connection.caller.CasualCallerException;
 import se.laz.casual.connection.caller.ConnectionFactoryEntry;
 import se.laz.casual.connection.caller.DomainIdChecker;
 import se.laz.casual.connection.caller.TopologyChangedHandler;
 import se.laz.casual.connection.caller.config.ConfigurationService;
 import se.laz.casual.jca.DomainId;
+import se.laz.casual.jca.RuntimeInformation;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,9 +33,10 @@ public class TopologyChangedHandlerImpl implements TopologyChangedHandler
     private static final Logger LOG = Logger.getLogger(TopologyChangedHandlerImpl.class.getName());
     @Resource
     private ManagedScheduledExecutorService scheduledExecutorService;
-    private final TopologyChangedDoneHandler topologyChangedDoneHandler = new TopologyChangedDoneHandler();
     private CacheRepopulator cacheRepopulator;
     private Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier;
+
+    private AccumulatingTopologyUpdateStore updateStore;
 
     // wls NOP-constructor
     public TopologyChangedHandlerImpl()
@@ -42,6 +46,14 @@ public class TopologyChangedHandlerImpl implements TopologyChangedHandler
     public TopologyChangedHandlerImpl(CacheRepopulator cacheRepopulator)
     {
         this.cacheRepopulator = cacheRepopulator;
+        long delayInMs = ConfigurationService.getInstance().getConfiguration().getTopologyChangeDelayMillis();
+        updateStore = new AccumulatingTopologyUpdateStore( delayInMs );
+    }
+
+    @PostConstruct
+    public void onPostConstruct()
+    {
+        scheduleTopologyUpdateTask(  );
     }
 
     @Override
@@ -53,10 +65,7 @@ public class TopologyChangedHandlerImpl implements TopologyChangedHandler
     @Override
     public void topologyChanged(final DomainId domainId)
     {
-        if(topologyChangedDoneHandler.topologyChanged(domainId))
-        {
-            scheduleDiscovery(domainId);
-        }
+        updateStore.put( domainId );
     }
 
     public void setManagedScheduledExecutorService(ManagedScheduledExecutorService scheduledExecutorService)
@@ -64,39 +73,25 @@ public class TopologyChangedHandlerImpl implements TopologyChangedHandler
         this.scheduledExecutorService = scheduledExecutorService;
     }
 
-    private void scheduleDiscovery(DomainId domainId)
+    private void scheduleTopologyUpdateTask()
     {
-        long delayInMs = ConfigurationService.getInstance().getConfiguration().getTopologyChangeDelayMillis();
-        LOG.finest(() -> "scheduling domain discovery for domain: " + domainId);
         try
         {
-            DiscoveryTask task = new DiscoveryTask(domainId, connectionFactoryEntrySupplier, cacheRepopulator);
-            scheduledExecutorService.schedule( task, delayInMs, TimeUnit.MILLISECONDS);
+            DiscoveryTask task = new DiscoveryTask( connectionFactoryEntrySupplier, cacheRepopulator);
+            scheduledExecutorService.schedule( task, 0L, TimeUnit.MILLISECONDS);
         }
         catch(RejectedExecutionException e)
         {
-            topologyChangedDoneHandler.schedulingFailed(domainId);
-            markForLaterDomainDiscovery(domainId);
-            LOG.log(Level.WARNING, e, () -> "Could not schedule task to handle topology change for domain: " + domainId + " it will be handled on the next tpcall/tpacall or enqueue/dequeue call");
+            throw new CasualCallerException( "Could not schedule task to handle topology change.", e );
         }
-    }
-
-    private void markForLaterDomainDiscovery(DomainId domainId)
-    {
-        Optional<ConnectionFactoryEntry> maybeMatch = connectionFactoryEntrySupplier.get().stream()
-                                                                                    .filter(connectionFactoryEntry -> DomainIdChecker.isSameDomain(domainId, connectionFactoryEntry))
-                                                                                    .findFirst();
-        maybeMatch.ifPresent(connectionFactoryEntry -> connectionFactoryEntry.setNeedsDomainDiscovery(true));
     }
 
     private class DiscoveryTask implements Runnable
     {
-        private final DomainId domainId;
         private final Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier;
         private final CacheRepopulator cacheRepopulator;
-        public DiscoveryTask(DomainId domainId, Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier, CacheRepopulator cacheRepopulator)
+        public DiscoveryTask(Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier, CacheRepopulator cacheRepopulator)
         {
-            this.domainId = domainId;
             this.connectionFactoryEntrySupplier = connectionFactoryEntrySupplier;
             this.cacheRepopulator = cacheRepopulator;
         }
@@ -104,23 +99,22 @@ public class TopologyChangedHandlerImpl implements TopologyChangedHandler
         @Override
         public void run()
         {
-            try
+            LOG.finest(() -> "starting topology update task" );
+            while( !RuntimeInformation.isDomainBeingShutdown() )
             {
-                handleTopologyChanged(domainId);
-            }
-            catch(Exception e)
-            {
-                // catching since this method lives in a timer that should never ever throw
-                LOG.log(Level.WARNING, e, () -> "Failed handling topology update, most likely connection went away. Will be handled when connection is reestablished. Domain: " + domainId);
-            }
-            finally
-            {
-                if(topologyChangedDoneHandler.topologyChangeHandled(domainId))
+                DomainId domainId = updateStore.take();
+                try
                 {
-                    scheduleDiscovery(domainId);
+                    handleTopologyChanged( domainId );
+                }
+                catch(Exception e)
+                {
+                    // catching since this method lives in a timer that should never ever throw
+                    LOG.log(Level.WARNING, e, () -> "Failed handling topology update, most likely connection went away. Will be handled when connection is reestablished. Domain: " + domainId);
                 }
             }
         }
+
         private void handleTopologyChanged(final DomainId domainId)
         {
             Optional<ConnectionFactoryEntry> maybeMatch = connectionFactoryEntrySupplier.get().stream()

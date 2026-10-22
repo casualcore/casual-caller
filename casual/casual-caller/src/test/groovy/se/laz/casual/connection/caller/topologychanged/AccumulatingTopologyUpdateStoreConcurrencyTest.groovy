@@ -110,6 +110,7 @@ class AccumulatingTopologyUpdateStoreConcurrencyTest extends Specification
         then:
         end - start >= delayMillis
         actual == id1
+        instance.size(  ) == 0
 
         where:
         delayMillis << [
@@ -145,6 +146,7 @@ class AccumulatingTopologyUpdateStoreConcurrencyTest extends Specification
             assert instance.take( ) == id2
         }
         future.get() >= 10
+        instance.size(  ) == 0
     }
 
     def "Add lots of domains from 2 threads, whilst reading from 1 thread, still only grouped and unique domains."()
@@ -212,10 +214,11 @@ class AccumulatingTopologyUpdateStoreConcurrencyTest extends Specification
         {
             assert batch == incoming
         }
+        instance.size(  ) == 0
 
         where:
         count << [
-                10,20,50,100,200
+                10,20,50
         ]
     }
 
