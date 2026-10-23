@@ -18,7 +18,6 @@ public class ConnectionFactoryEntry
 {
     private static final Logger LOG = Logger.getLogger(ConnectionFactoryEntry.class.getName());
     private final ConnectionFactoryProducer connectionFactoryProducer;
-    private final AtomicBoolean needsDomainDiscovery = new AtomicBoolean(false);
 
     /**
      * Connection factory entries should invalidate on connection errors and revalidate as soon as a new valid

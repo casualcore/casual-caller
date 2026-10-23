@@ -18,8 +18,9 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Accumulate domain ids of topology updates occurring within the given delay window.
- * Making them only eligible for removal once the delay has expired from the
- * first time the domain id is put in the store.
+ * Making them only eligible for removal once the delay has expired.
+ * When multiple of the same domain id are put into the store in the same delay window
+ * it will be eligible for removal based on the first time that domain id was put in the store.
  */
 public class AccumulatingTopologyUpdateStore
 {
@@ -66,6 +67,7 @@ public class AccumulatingTopologyUpdateStore
     /**
      * Retrieve the next available domain from the store.
      * Blocks if no domains are yet available.
+     * Note: Domain ids are only available after put once their delay has expired.
      *
      * @return the next available domainId
      */
@@ -94,6 +96,9 @@ public class AccumulatingTopologyUpdateStore
         return uniqueDomainIds.size();
     }
 
+    /**
+     * Wrapper to implement delaying of domain id items in the queue.
+     */
     private class DelayedDomainId implements Delayed
     {
         private final DomainId domainId;
