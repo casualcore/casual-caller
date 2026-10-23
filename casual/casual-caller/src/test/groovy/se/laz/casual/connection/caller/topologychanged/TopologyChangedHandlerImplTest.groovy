@@ -37,7 +37,6 @@ class TopologyChangedHandlerImplTest extends Specification
          1 * repopulate(connectionFactoryEntry)
       }
       TopologyChangedHandlerImpl instance = new TopologyChangedHandlerImpl(cacheRepopulator)
-      instance.setSupplier(supplier)
 
       instance.topologyChanged(domainId)
       instance.updateStore.size(  ) == 1
@@ -53,7 +52,7 @@ class TopologyChangedHandlerImplTest extends Specification
          }
       }
       instance.setManagedScheduledExecutorService(managedScheduledExecutorService)
-      instance.onPostConstruct(  )
+      instance.setSupplier(supplier)
 
       when:
       while( instance.updateStore.size() != 0 )
@@ -88,7 +87,6 @@ class TopologyChangedHandlerImplTest extends Specification
          }
       }
       TopologyChangedHandlerImpl instance = new TopologyChangedHandlerImpl(cacheRepopulator)
-      instance.setSupplier({ [connectionFactoryEntry] })
 
       instance.topologyChanged(domainId)
 
@@ -103,7 +101,7 @@ class TopologyChangedHandlerImplTest extends Specification
          }
       }
       instance.setManagedScheduledExecutorService(managedScheduledExecutorService)
-      instance.onPostConstruct(  )
+      instance.setSupplier({ [connectionFactoryEntry] })
 
       when:
       while( instance.updateStore.size() != 0 )

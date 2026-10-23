@@ -5,7 +5,6 @@
  */
 package se.laz.casual.connection.caller.topologychanged;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import jakarta.enterprise.concurrent.ManagedScheduledExecutorService;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -50,16 +49,12 @@ public class TopologyChangedHandlerImpl implements TopologyChangedHandler
         updateStore = new AccumulatingTopologyUpdateStore( delayInMs );
     }
 
-    @PostConstruct
-    public void onPostConstruct()
-    {
-        scheduleTopologyUpdateTask(  );
-    }
-
     @Override
     public void setSupplier(Supplier<List<ConnectionFactoryEntry>> connectionFactoryEntrySupplier)
     {
         this.connectionFactoryEntrySupplier = connectionFactoryEntrySupplier;
+        // we are now ready to handle topology updates.
+        scheduleTopologyUpdateTask();
     }
 
     @Override
