@@ -44,7 +44,6 @@ public class CasualCallerImpl implements CasualCaller
     private final TpCaller tpCaller;
     private final ConnectionFactoryLookup lookup;
     private final TransactionLess transactionLess;
-    private final FailedDomainDiscoveryHandler failedDomainDiscoveryHandler;
     private final HttpClient httpClient;
     private final ServiceRoutes serviceRoutes;
 
@@ -54,19 +53,17 @@ public class CasualCallerImpl implements CasualCaller
         tpCaller = null;
         lookup = null;
         transactionLess = null;
-        failedDomainDiscoveryHandler = null;
         httpClient = null;
         serviceRoutes = null;
     }
 
     @Inject
     public CasualCallerImpl(ConnectionFactoryLookup lookup, ConnectionFactoryEntryStore connectionFactoryProvider,
-                            TransactionLess transactionLess, FailedDomainDiscoveryHandler failedDomainDiscoveryHandler,
+                            TransactionLess transactionLess,
                             HttpClient httpClient, ServiceRoutes serviceRoutes, TpCaller tpCaller)
     {
         this.lookup = lookup;
         this.transactionLess = transactionLess;
-        this.failedDomainDiscoveryHandler = failedDomainDiscoveryHandler;
         this.httpClient = httpClient;
         if (!connectionFactoryProvider.hasConfiguredFactories())
         {
@@ -83,7 +80,6 @@ public class CasualCallerImpl implements CasualCaller
         {
             return tpenoentReply();
         }
-        failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         return serviceRoutes.getRoute(serviceName).map(uri -> httpClient.request(uri, data))
                             .orElseGet(() -> flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpcall(() -> tpCaller.tpcall(serviceName, data, flags, lookup)) : tpCaller.tpcall(serviceName, data, flags, lookup));
     }
@@ -101,7 +97,6 @@ public class CasualCallerImpl implements CasualCaller
         {
             return CompletableFuture.completedFuture(Optional.of(tpenoentReply()));
         }
-        failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         return flags.isSet(AtmiFlags.TPNOTRAN) ? transactionLess.tpacall(() -> tpCaller.tpacall(serviceName, data, flags, lookup)) : tpCaller.tpacall(serviceName, data, flags, lookup);
     }
 
@@ -130,7 +125,6 @@ public class CasualCallerImpl implements CasualCaller
         {
             return EnqueueReturn.createBuilder().withErrorState(ErrorState.TPENOENT).build();
         }
-        failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         Optional<ConnectionFactoryEntry> entry = lookup.get(qinfo);
 
         if (!entry.isPresent())
@@ -155,7 +149,6 @@ public class CasualCallerImpl implements CasualCaller
         {
             return DequeueReturn.createBuilder().withErrorState(ErrorState.TPENOENT).build();
         }
-        failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache();
         Optional<ConnectionFactoryEntry> entry = lookup.get(qinfo);
 
         if (!entry.isPresent())
