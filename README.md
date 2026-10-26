@@ -171,3 +171,8 @@ Enable the feature with environment `CASUAL_CALLER_TRANSACTION_STICKY=true` or w
 ## Reverse outbound
 
 For details about reverse outbound configuration and architecture, see [reverse-outbound.md](reverse-outbound.md).
+
+## Topology changes
+
+For details about topology change accumulation, discovery, and cache updates, see
+[topology-changed.md](topology-changed.md).
