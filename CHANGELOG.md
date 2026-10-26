@@ -1,6 +1,17 @@
 # Changelog
 This is the changelog for *casual caller* and all changes are listed in this document.
 
+## [3.4.3-SNAPSHOT] - 2026-10-26
+
+### feat: topology update change ([#58](https://github.com/casualcore/casual-caller/issues/58))
+Changed topology update to now run on a single thread in the scheduler,
+awaiting topology update messgaes.
+
+Removed calls during tpcall/tpacall etc to attempt cache repopulation.
+
+---------
+
+
 ## [3.4.2] - 2026-10-22
 
 ### feat: gradle upgrade ([#57](https://github.com/casualcore/casual-caller/issues/57))

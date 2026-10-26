@@ -1,14 +1,14 @@
 /*
- * Copyright (c) 2023, The casual project. All rights reserved.
+ * Copyright (c) 2023 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
 package se.laz.casual.connection.caller;
 
-import se.laz.casual.api.discovery.DiscoveryReturn;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import se.laz.casual.api.discovery.DiscoveryReturn;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,25 +34,6 @@ public class CacheRepopulator
     {
         synchronized (repopulateLock)
         {
-            // This discovery also satisfies a fallback request recorded before the lock was acquired.
-            connectionFactoryEntry.claimDomainDiscovery();
-            repopulateCache(connectionFactoryEntry);
-        }
-    }
-
-    public void repopulateIfRequired(ConnectionFactoryEntry connectionFactoryEntry)
-    {
-        if (!connectionFactoryEntry.isDomainDiscoveryRequired())
-        {
-            return;
-        }
-        synchronized (repopulateLock)
-        {
-            // Recheck while holding the discovery lock because several callers can observe the pending request.
-            if (!connectionFactoryEntry.claimDomainDiscovery())
-            {
-                return;
-            }
             repopulateCache(connectionFactoryEntry);
         }
     }

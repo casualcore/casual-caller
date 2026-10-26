@@ -44,7 +44,6 @@ class CasualCallerImplTest extends Specification
     HttpClient httpClient
     TpCallerFailover tpCallerFailover
     FailoverAlgorithm failoverAlgorithm
-    FailedDomainDiscoveryHandler failedDomainDiscoveryHandler
 
     def setup()
     {
@@ -78,8 +77,7 @@ class CasualCallerImplTest extends Specification
         }
         transactionLess = new TransactionLess()
         httpClient = HttpClient.of()
-        failedDomainDiscoveryHandler = Mock(FailedDomainDiscoveryHandler)
-        instance = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, failedDomainDiscoveryHandler, httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), tpCallerFailover)
+        instance = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), tpCallerFailover)
         0 * httpClient.request(_,_)
     }
 
@@ -98,7 +96,6 @@ class CasualCallerImplTest extends Specification
 
         then:
         result.errorState == ErrorState.TPENOENT
-        0 * failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache()
         0 * lookup.get(_ as String)
     }
 
@@ -112,7 +109,6 @@ class CasualCallerImplTest extends Specification
 
         then:
         result.orElseThrow().errorState == ErrorState.TPENOENT
-        0 * failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache()
         0 * lookup.get(_ as String)
     }
 
@@ -126,7 +122,6 @@ class CasualCallerImplTest extends Specification
 
         then:
         result.errorState == ErrorState.TPENOENT
-        0 * failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache()
         0 * lookup.get(_ as QueueInfo)
     }
 
@@ -140,7 +135,6 @@ class CasualCallerImplTest extends Specification
 
         then:
         result.errorState == ErrorState.TPENOENT
-        0 * failedDomainDiscoveryHandler.issueDomainDiscoveryAndRepopulateCache()
         0 * lookup.get(_ as QueueInfo)
     }
 
@@ -176,7 +170,7 @@ class CasualCallerImplTest extends Specification
         ConnectionFactoryEntryStore provider = Mock(ConnectionFactoryEntryStore)
         provider.get() >> []
         when:
-        new CasualCallerImpl(lookup, provider, new TransactionLess(), Mock(FailedDomainDiscoveryHandler), httpClient, Mock(ServiceRoutes), tpCallerFailover)
+        new CasualCallerImpl(lookup, provider, new TransactionLess(), httpClient, Mock(ServiceRoutes), tpCallerFailover)
         then:
         thrown(CasualCallerException)
     }
@@ -201,8 +195,7 @@ class CasualCallerImplTest extends Specification
         assert provider.get().isEmpty()
 
         when:
-        new CasualCallerImpl(lookup, provider, transactionLess,
-                Mock(FailedDomainDiscoveryHandler), Mock(HttpClient),
+        new CasualCallerImpl(lookup, provider, transactionLess, Mock(HttpClient),
                 Mock(ServiceRoutes), tpCallerFailover)
 
         then:
@@ -428,7 +421,7 @@ class CasualCallerImplTest extends Specification
        TransactionLess transactionLess = Mock(TransactionLess) {
           0 * tpcall(_)
        }
-       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), Mock(TpCallerFailover))
+       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), Mock(TpCallerFailover))
        when:
        caller.tpcall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.NOFLAG))
        then:
@@ -441,7 +434,7 @@ class CasualCallerImplTest extends Specification
       TransactionLess transactionLess = Mock(TransactionLess) {
          1 * tpcall(_)
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), Mock(TpCallerFailover))
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), Mock(TpCallerFailover))
       when:
       caller.tpcall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.TPNOTRAN))
       then:
@@ -455,7 +448,7 @@ class CasualCallerImplTest extends Specification
       TransactionLess transactionLess = Mock(TransactionLess) {
          0 * tpacall(_)
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, Mock(ServiceRoutes), Mock(TpCallerFailover))
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, httpClient, Mock(ServiceRoutes), Mock(TpCallerFailover))
       when:
       caller.tpacall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.NOFLAG))
       then:
@@ -468,7 +461,7 @@ class CasualCallerImplTest extends Specification
       TransactionLess transactionLess = Mock(TransactionLess) {
          1 * tpacall(_)
       }
-      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), Mock(TpCallerFailover))
+      def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, httpClient, ServiceRoutes.of(ConfigurationService.getInstance().getConfiguration()), Mock(TpCallerFailover))
       when:
       caller.tpacall("foo", Mock(CasualBuffer), Flag.of(AtmiFlags.TPNOTRAN))
       then:
@@ -597,7 +590,7 @@ class CasualCallerImplTest extends Specification
         def tpCaller = Mock(TpCallerFailover){
             0 * tpcall(serviceName, buffer, flags, lookup)
         }
-       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, Mock(FailedDomainDiscoveryHandler), client, serviceRoutes, tpCaller)
+       def caller = new CasualCallerImpl(lookup, connectionFactoryProvider, transactionLess, client, serviceRoutes, tpCaller)
        when:
        ServiceReturn<CasualBuffer> response = caller.tpcall(serviceName, buffer, Flag.of(AtmiFlags.NOFLAG))
        then:
