@@ -1,6 +1,11 @@
 # Changelog
 This is the changelog for *casual caller* and all changes are listed in this document.
 
+## [3.4.3] - 2026-10-28
+
+### fix: 3.4.3 no SNAPSHOT ([#59](https://github.com/casualcore/casual-caller/issues/59))
+Version 3.4.3 - not a SNAPSHOT.
+
 ## [3.4.3-SNAPSHOT] - 2026-10-26
 
 ### feat: topology update change ([#58](https://github.com/casualcore/casual-caller/issues/58))
