@@ -93,4 +93,24 @@ class CacheRepopulatorTest extends Specification
       then:
       entry.isValid()
    }
+
+   def 'When cache is empy, no discovery is performed.'()
+   {
+      given:
+      Map<CacheType, List<String>> entries = [(CacheType.SERVICE):[],(CacheType.QUEUE):[]]
+      Cache cache = Mock(Cache)
+      cache.getAll(  ) >> entries
+
+      TransactionLess transactionLess = Mock( TransactionLess )
+      ConnectionFactoryEntry entry = Mock( ConnectionFactoryEntry)
+
+      CacheRepopulator instance = new CacheRepopulator( cache, transactionLess )
+
+      when:
+      instance.repopulate( entry )
+
+      then:
+      0* transactionLess.discover( entry, entries )
+
+   }
 }
