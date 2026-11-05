@@ -42,17 +42,24 @@ public class CacheRepopulator
     {
         // Run discovery for all known cache items, to potentially aid load balancing.
         Map<CacheType, List<String>> cachedItems = cache.getAll();
+
+        if( noCachedItems( cachedItems ) )
+        {
+            return;
+        }
+
+        Optional<DiscoveryReturn> maybeDiscoveryReturn = transactionLess.discover(connectionFactoryEntry, cachedItems);
+        maybeDiscoveryReturn.ifPresent(discoveryReturn -> cache.repopulate(discoveryReturn, connectionFactoryEntry));
+    }
+
+    private boolean noCachedItems( Map<CacheType, List<String>> cachedItems )
+    {
         int items = 0;
         for( List<String> values : cachedItems.values() )
         {
             items += values.size();
         }
-        if( items == 0 )
-        {
-            return;
-        }
-        Optional<DiscoveryReturn> maybeDiscoveryReturn = transactionLess.discover(connectionFactoryEntry, cachedItems);
-        maybeDiscoveryReturn.ifPresent(discoveryReturn -> cache.repopulate(discoveryReturn, connectionFactoryEntry));
+        return items == 0;
     }
 
 }
