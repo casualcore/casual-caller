@@ -420,6 +420,71 @@ class CacheTest extends Specification
       noExceptionThrown()
    }
 
+   def 'cache is initially empty.'()
+   {
+      when:
+      instance = new Cache()
+
+      then:
+      instance.isEmpty()
+   }
+
+   def 'cache empty check with services.'()
+   {
+      given:
+      instance = new Cache()
+
+      when:
+      instance.store( "serviceName", createConnectionFactories([(priority): [cacheEntryOne, cacheEntryTwo]]) )
+
+      then:
+      !instance.isEmpty()
+
+      when:
+      instance.purgeServices(  )
+
+      then:
+      instance.isEmpty()
+   }
+
+   def 'cache is empty check with queues.'()
+   {
+      given:
+      instance = new Cache()
+
+      when:
+      instance.store( qInfo, [cacheEntryOne] )
+
+      then:
+      !instance.isEmpty()
+
+      when:
+      instance.purgeQueues(  )
+
+      then:
+      instance.isEmpty()
+   }
+
+   def 'cache empty checks with both services and queues.'()
+   {
+      given:
+      instance = new Cache()
+
+      when:
+      instance.store( "serviceName", createConnectionFactories([(priority): [cacheEntryOne, cacheEntryTwo]]) )
+      instance.store( qInfo, [cacheEntryOne] )
+
+      then:
+      !instance.isEmpty()
+
+      when:
+      instance.purgeServices(  )
+      instance.purgeQueues(  )
+
+      then:
+      instance.isEmpty()
+   }
+
    QueueDetails toQueueDetails(String name)
    {
       QueueDetails.createBuilder()

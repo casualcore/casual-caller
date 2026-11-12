@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2021, The casual project. All rights reserved.
+ * Copyright (c) 2017 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -97,5 +97,10 @@ public class Cache
     public void removeService(String serviceName)
     {
         serviceCache.remove(serviceName);
+    }
+
+    public boolean isEmpty()
+    {
+        return serviceCache.isEmpty() && queueCache.isEmpty();
     }
 }

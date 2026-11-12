@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 - 2020, The casual project. All rights reserved.
+ * Copyright (c) 2017 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
@@ -9,25 +9,25 @@ buildscript {
     repositories {
         mavenCentral()
         mavenLocal()
-        maven { url 'https://repo.spring.io/plugins-release' }
+        maven { url = 'https://repo.spring.io/plugins-release' }
     }
 }
 
 plugins {
-  id "org.sonarqube" version "5.1.0.4882"
+    id "org.sonarqube" version "7.2.3.7755"
 }
 
-apply from: 'testsourcesets.gradle'
-
-defaultTasks 'build'
-
-sonarqube {
+sonar {
     properties {
         properties["sonar.host.url"] = 'http://localhost:9000'
         properties["sonar.verbose"] = "true"
         properties['sonar.java.source'] = 17
     }
 }
+
+apply from: 'testsourcesets.gradle'
+
+defaultTasks 'build'
 
 allprojects{
   tasks.withType(JavaCompile) { 
@@ -53,13 +53,6 @@ allprojects{
 subprojects{
   apply from: "$rootProject.projectDir/versions.gradle"
   apply plugin: 'java-library'
-  sonar {
-  properties {
-    properties["sonar.host.url"] = 'http://localhost:9000'
-      properties["sonar.verbose"] = "true"
-      properties['sonar.java.source'] = 17
-    }
-  }
   apply plugin: 'jacoco'
   test {
     jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED', '--add-opens=java.base/java.util=ALL-UNNAMED'
@@ -88,6 +81,9 @@ project.ext {
 configure(project.casual_caller_subprojects) {
     apply from: "$rootProject.projectDir/publish.gradle"
 }
+
+// always run tests when running sonar
+rootProject.tasks['sonar'].dependsOn.add(subprojects.tasks['test'])
 
 task sphinxClean(type: Delete){
     delete 'docs/source/casual-docs'

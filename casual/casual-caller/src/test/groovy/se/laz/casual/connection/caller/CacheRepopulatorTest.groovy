@@ -37,6 +37,7 @@ class CacheRepopulatorTest extends Specification
             entries.put(CacheType.QUEUE, [])
             return entries
          }
+         1 * isEmpty(  ) >> false
          0 * purge(_)
          0 * repopulate(_, entry)
       }
@@ -94,12 +95,10 @@ class CacheRepopulatorTest extends Specification
       entry.isValid()
    }
 
-   def 'When cache is empy, no discovery is performed.'()
+   def 'When cache is empty, no discovery is performed.'()
    {
       given:
-      Map<CacheType, List<String>> entries = [(CacheType.SERVICE):[],(CacheType.QUEUE):[]]
-      Cache cache = Mock(Cache)
-      cache.getAll(  ) >> entries
+      Cache cache = new Cache()
 
       TransactionLess transactionLess = Mock( TransactionLess )
       ConnectionFactoryEntry entry = Mock( ConnectionFactoryEntry)
@@ -110,7 +109,6 @@ class CacheRepopulatorTest extends Specification
       instance.repopulate( entry )
 
       then:
-      0* transactionLess.discover( entry, entries )
-
+      0* transactionLess.discover( entry, _ )
    }
 }
