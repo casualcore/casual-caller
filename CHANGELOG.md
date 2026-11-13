@@ -1,6 +1,12 @@
 # Changelog
 This is the changelog for *casual caller* and all changes are listed in this document.
 
+## [3.4.4] - 2026-11-13
+
+### fix: no blank discoveries ([#60](https://github.com/casualcore/casual-caller/issues/60))
+Update cache repopulation to prevent empty discovery requests being sent
+when there are no cached items (queues or services) in the cache.
+
 ## [3.4.3] - 2026-10-28
 
 ### fix: 3.4.3 no SNAPSHOT ([#59](https://github.com/casualcore/casual-caller/issues/59))

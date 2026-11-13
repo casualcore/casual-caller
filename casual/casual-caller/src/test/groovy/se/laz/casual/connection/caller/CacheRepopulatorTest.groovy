@@ -37,6 +37,7 @@ class CacheRepopulatorTest extends Specification
             entries.put(CacheType.QUEUE, [])
             return entries
          }
+         1 * isEmpty(  ) >> false
          0 * purge(_)
          0 * repopulate(_, entry)
       }
@@ -92,5 +93,22 @@ class CacheRepopulatorTest extends Specification
       instance.repopulate(entry)
       then:
       entry.isValid()
+   }
+
+   def 'When cache is empty, no discovery is performed.'()
+   {
+      given:
+      Cache cache = new Cache()
+
+      TransactionLess transactionLess = Mock( TransactionLess )
+      ConnectionFactoryEntry entry = Mock( ConnectionFactoryEntry)
+
+      CacheRepopulator instance = new CacheRepopulator( cache, transactionLess )
+
+      when:
+      instance.repopulate( entry )
+
+      then:
+      0* transactionLess.discover( entry, _ )
    }
 }

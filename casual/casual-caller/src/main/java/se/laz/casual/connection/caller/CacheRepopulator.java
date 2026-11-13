@@ -40,8 +40,15 @@ public class CacheRepopulator
 
     private void repopulateCache(ConnectionFactoryEntry connectionFactoryEntry)
     {
+        if( cache.isEmpty() )
+        {
+            // no cached items. skip repopulation.
+            return;
+        }
+
         // Run discovery for all known cache items, to potentially aid load balancing.
         Map<CacheType, List<String>> cachedItems = cache.getAll();
+
         Optional<DiscoveryReturn> maybeDiscoveryReturn = transactionLess.discover(connectionFactoryEntry, cachedItems);
         maybeDiscoveryReturn.ifPresent(discoveryReturn -> cache.repopulate(discoveryReturn, connectionFactoryEntry));
     }

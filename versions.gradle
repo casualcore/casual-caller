@@ -1,13 +1,13 @@
 
 /*
- * Copyright (c) 2017 - 2020, The casual project. All rights reserved.
+ * Copyright (c) 2017 - 2026, The casual project. All rights reserved.
  *
  * This software is licensed under the MIT license, https://opensource.org/licenses/MIT
  */
 
 // casual-java group and version
 group = 'se.laz.casual'
-version = '3.4.3'
+version = '3.4.4'
 
 def casual_jca_version = '3.7.1'
 def gson_version = '2.11.0'
