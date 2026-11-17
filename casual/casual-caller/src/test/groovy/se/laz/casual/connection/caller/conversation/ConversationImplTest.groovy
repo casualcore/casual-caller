@@ -21,7 +21,7 @@ class ConversationImplTest extends Specification
       def handoverControl = false
       def userCode = 42
       def isDirectionSwitched = false
-      def conversationReturn = ConversationReturn<CasualBuffer>.of(Mock(CasualBuffer), userCode, Duplex.SEND)
+      def conversationReturn = ConversationReturn.of(Mock(CasualBuffer), userCode, Duplex.SEND)
       def conversation = Mock(Conversation){
          1 * tpdiscon()
          1 * tprecv() >> conversationReturn
