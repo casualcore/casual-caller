@@ -1,6 +1,26 @@
 # Changelog
 This is the changelog for *casual caller* and all changes are listed in this document.
 
+## [3.5.0] - 2026-11-18
+
+### feat: jdk21 ([#61](https://github.com/casualcore/casual-caller/issues/61))
+This change upgrades the minimum Java version from 17 to 21.
+Applications using this release must run on Java 21 or later.
+
+The change:
+
+- Configures Java 21 source and target compatibility.
+- Updates SonarQube analysis to Java 21.
+- Upgrades the Gradle wrapper to 9.9.1.
+- Upgrades Groovy, Spock, and Byte Buddy to Java 21-compatible versions.
+- Updates the casual-jca dependency from 3.7.1 to 3.8.0
+- Adjusts ConversationImplTest for compatibility with the upgraded
+Groovy compiler.
+- Bumps the casual-caller version to 3.5.0.
+
+The complete build passes when Gradle is launched with both JDK 21 and
+JDK 25.
+
 ## [3.4.4] - 2026-11-13
 
 ### fix: no blank discoveries ([#60](https://github.com/casualcore/casual-caller/issues/60))
